@@ -21,15 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install gspread
-        run: pip install gspread google-auth
+      - name: Install dependencies
+        run: pip install gspread google-auth requests
 
       - name: Fetch sheet and save data.json
         env:
           SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
         run: |
           python3 << 'EOF'
-          import json, os, gspread
+          import json, os, re, gspread
           from google.oauth2.service_account import Credentials
 
           key = json.loads(os.environ['SERVICE_ACCOUNT_KEY'])
@@ -45,6 +45,21 @@ jobs:
           rows = ws.get_all_records(default_blank='')
           rows = [r for r in rows if str(r.get('店名','')).strip()]
 
+          # 處理 Date(yyyy,m,d) 格式 → yyyy年m+1月d日
+          def fix_date(val):
+              if not isinstance(val, str):
+                  return val
+              m = re.match(r'Date\((\d+),(\d+),(\d+)\)', val.strip())
+              if m:
+                  y, mo, d = int(m.group(1)), int(m.group(2))+1, int(m.group(3))
+                  return f'{y}年{mo}月{d}日'
+              return val
+
+          for row in rows:
+              for k in ('開幕日', '歇業日'):
+                  if k in row:
+                      row[k] = fix_date(row[k])
+
           with open('data.json', 'w', encoding='utf-8') as f:
               json.dump(rows, f, ensure_ascii=False, indent=2)
 
@@ -53,9 +68,8 @@ jobs:
 
       - name: Geocode missing lat/lng
         run: |
-          pip install requests -q
           python3 << 'EOF'
-          import json, os, time, requests
+          import json, time, requests, re
 
           with open('data.json', 'r', encoding='utf-8') as f:
               rows = json.load(f)
@@ -69,24 +83,51 @@ jobs:
           HEADERS = {'User-Agent': 'ramen-finder/1.0'}
           updated = 0
 
-          for row in to_geocode:
-              address = row.get('地址', '') or row.get('店名', '')
-              if not address:
-                  continue
+          def coords_from_map_url(url):
+              if not url or not url.startswith('http'):
+                  return None, None
+              try:
+                  r = requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+                  final = r.url
+                  m = re.search(r'/@(-?\d+\.\d+),(-?\d+\.\d+)', final)
+                  if m:
+                      return float(m.group(1)), float(m.group(2))
+                  m = re.search(r'[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)', final)
+                  if m:
+                      return float(m.group(1)), float(m.group(2))
+              except Exception:
+                  pass
+              return None, None
+
+          def geocode_nominatim(address):
               try:
                   r = requests.get('https://nominatim.openstreetmap.org/search',
                       params={'q': address, 'format': 'json', 'limit': 1, 'countrycodes': 'tw'},
                       headers=HEADERS, timeout=10)
                   results = r.json()
                   if results:
-                      row['lat'] = float(results[0]['lat'])
-                      row['lng'] = float(results[0]['lon'])
-                      updated += 1
-                      print(f"  ✓ {row.get('店名')}: {row['lat']:.5f}, {row['lng']:.5f}")
-                  else:
-                      print(f"  ✗ {row.get('店名')}: not found")
-              except Exception as e:
-                  print(f"  ✗ {row.get('店名')}: {e}")
+                      return float(results[0]['lat']), float(results[0]['lon'])
+              except Exception:
+                  pass
+              return None, None
+
+          for row in to_geocode:
+              name    = row.get('店名', '')
+              address = row.get('地址', '') or name
+              map_url = row.get('Map', '')
+
+              lat, lng = coords_from_map_url(map_url)
+              if not lat:
+                  time.sleep(1.1)
+                  lat, lng = geocode_nominatim(address)
+
+              if lat:
+                  row['lat'] = lat
+                  row['lng'] = lng
+                  updated += 1
+                  print(f"  ✓ {name}: {lat:.5f}, {lng:.5f}")
+              else:
+                  print(f"  ✗ {name}: not found")
               time.sleep(1.1)
 
           if updated:
@@ -142,8 +183,19 @@ jobs:
               print('data.json is empty, skipping')
               exit(0)
 
-          headers = list(rows[0].keys())
-          values  = [headers] + [[str(r.get(h, '')) for h in headers] for r in rows]
+          # 固定欄位順序（lat/lng 放最後，供地圖功能使用）
+          HEADERS = [
+              '店名','地址','Map','類型','派系','醬底',
+              '營業日','營業時段','店休日','排隊方式','點餐方式','支付方式',
+              '吧台數','桌位數','洗手間','營業備註','其他',
+              '開幕日','歇業日','營業狀態',
+              'Facebook','Instagram','縣市','鄉鎮市區','開幕月份',
+              'lat','lng'
+          ]
+
+          values = [HEADERS]
+          for row in rows:
+              values.append([str(row.get(h, '')) for h in HEADERS])
 
           ws.clear()
           ws.update('A1', values)
