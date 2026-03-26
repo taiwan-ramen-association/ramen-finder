@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <title>台灣拉麵協會 店家查詢</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -274,6 +276,25 @@
   .empty-state p { font-size: 14px; }
 
   #mainContent { display: none; }
+
+  /* ── VIEW TOGGLE ── */
+  .result-actions { display: flex; gap: 8px; align-items: center; }
+  .view-toggle { display: flex; border: 1.5px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .view-btn {
+    border: none; background: var(--paper); color: var(--stone);
+    padding: 5px 11px; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--red); color: white; }
+
+  /* ── MAP ── */
+  #mapContainer { display: none; height: calc(100dvh - 270px); min-height: 300px; }
+  .leaflet-popup-content-wrapper { border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; }
+  .leaflet-popup-content { margin: 12px 14px; }
+  .map-popup-name { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
+  .map-popup-meta { font-size: 12px; color: var(--stone); margin-bottom: 3px; line-height: 1.5; }
+  .map-popup-note { font-size: 11px; background: #fffae8; border-left: 2px solid #f0c84a; padding: 4px 7px; margin-top: 6px; border-radius: 0 4px 4px 0; color: #6b5500; line-height: 1.5; }
+  .map-popup-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -333,10 +354,17 @@
 
   <div class="result-bar">
     <div>共 <strong id="resultCount">0</strong> 間店家</div>
-    <button class="clear-btn" id="clearBtn">清除篩選</button>
+    <div class="result-actions">
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewList">☰ 清單</button>
+        <button class="view-btn" id="viewMap">🗺 地圖</button>
+      </div>
+      <button class="clear-btn" id="clearBtn">清除篩選</button>
+    </div>
   </div>
 
   <div class="card-list" id="cardList"></div>
+  <div id="mapContainer"></div>
 </div>
 
 <script>
@@ -348,6 +376,9 @@ const DATA_URL = './data.json';
 let ALL_DATA   = [];
 let selectedDay  = '';
 let expandedCard = null;
+let currentView  = 'list';
+let leafletMap   = null;
+let markerLayer  = null;
 
 // ── Build time options (00:00 ~ 23:30, step 30min) ────────────────────────
 function buildTimeOptions() {
@@ -485,6 +516,70 @@ function getFiltered() {
   });
 }
 
+// ── Map ────────────────────────────────────────────────────────────────────
+function switchView(v) {
+  currentView = v;
+  document.getElementById('viewList').classList.toggle('active', v === 'list');
+  document.getElementById('viewMap').classList.toggle('active', v === 'map');
+  document.getElementById('cardList').style.display     = v === 'list' ? '' : 'none';
+  document.getElementById('mapContainer').style.display = v === 'map'  ? 'block' : 'none';
+  if (v === 'map' && !leafletMap) initMap();
+  render();
+}
+
+function initMap() {
+  leafletMap  = L.map('mapContainer').setView([23.97, 120.97], 8);
+  markerLayer = L.layerGroup().addTo(leafletMap);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(leafletMap);
+}
+
+function renderMap() {
+  if (!leafletMap) return;
+  markerLayer.clearLayers();
+
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="width:13px;height:13px;background:#C8272D;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
+    iconSize: [13, 13], iconAnchor: [6, 6], popupAnchor: [0, -8]
+  });
+
+  const filtered = getFiltered().filter(s => s.lat && s.lng);
+  if (!filtered.length) return;
+
+  const bounds = [];
+  filtered.forEach(shop => {
+    const lat = parseFloat(shop.lat);
+    const lng = parseFloat(shop.lng);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const dayStr = formatDayStr(shop);
+    const hours  = (shop['營業時段'] || '').replace(/\n/g, '　');
+    const mapUrl = isValidUrl(shop['Map']) ? shop['Map']
+      : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
+
+    const popup = `
+      <div>
+        <div class="map-popup-name">${shop['店名']}</div>
+        ${dayStr ? `<div class="map-popup-meta">📅 ${dayStr}${hours ? '　' + hours : ''}</div>` : ''}
+        ${shop['地址'] ? `<div class="map-popup-meta">📍 ${shop['地址']}</div>` : ''}
+        ${shop['營業備註'] ? `<div class="map-popup-note">${shop['營業備註']}</div>` : ''}
+        <a href="${mapUrl}" target="_blank" class="map-popup-link">開啟 Google 地圖 →</a>
+      </div>`;
+
+    L.marker([lat, lng], { icon }).bindPopup(popup, { maxWidth: 250 }).addTo(markerLayer);
+    bounds.push([lat, lng]);
+  });
+
+  if (bounds.length === 1) {
+    leafletMap.setView(bounds[0], 15);
+  } else if (bounds.length > 1) {
+    leafletMap.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
 // ── Render ─────────────────────────────────────────────────────────────────
 function statusBadge(s) {
   if (!s || s === '營業中') return '';
@@ -555,6 +650,12 @@ function renderCard(shop) {
 function render() {
   const filtered = getFiltered();
   document.getElementById('resultCount').textContent = filtered.length;
+
+  if (currentView === 'map') {
+    renderMap();
+    return;
+  }
+
   const list = document.getElementById('cardList');
   expandedCard = null;
 
@@ -589,6 +690,8 @@ document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('cityFilter').addEventListener('change', render);
 document.getElementById('timeFilter').addEventListener('change', render);
 document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('viewList').addEventListener('click', () => switchView('list'));
+document.getElementById('viewMap').addEventListener('click',  () => switchView('map'));
 document.getElementById('retryBtn').addEventListener('click', loadData);
 document.getElementById('clearBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';

@@ -51,6 +51,50 @@ jobs:
           print(f'Done: {len(rows)} rows saved to data.json')
           EOF
 
+      - name: Geocode missing lat/lng
+        run: |
+          pip install requests -q
+          python3 << 'EOF'
+          import json, os, time, requests
+
+          with open('data.json', 'r', encoding='utf-8') as f:
+              rows = json.load(f)
+
+          to_geocode = [r for r in rows if not r.get('lat') or not r.get('lng')]
+          if not to_geocode:
+              print('No new geocoding needed')
+              exit(0)
+
+          print(f'Geocoding {len(to_geocode)} shops...')
+          HEADERS = {'User-Agent': 'ramen-finder/1.0'}
+          updated = 0
+
+          for row in to_geocode:
+              address = row.get('地址', '') or row.get('店名', '')
+              if not address:
+                  continue
+              try:
+                  r = requests.get('https://nominatim.openstreetmap.org/search',
+                      params={'q': address, 'format': 'json', 'limit': 1, 'countrycodes': 'tw'},
+                      headers=HEADERS, timeout=10)
+                  results = r.json()
+                  if results:
+                      row['lat'] = float(results[0]['lat'])
+                      row['lng'] = float(results[0]['lon'])
+                      updated += 1
+                      print(f"  ✓ {row.get('店名')}: {row['lat']:.5f}, {row['lng']:.5f}")
+                  else:
+                      print(f"  ✗ {row.get('店名')}: not found")
+              except Exception as e:
+                  print(f"  ✗ {row.get('店名')}: {e}")
+              time.sleep(1.1)
+
+          if updated:
+              with open('data.json', 'w', encoding='utf-8') as f:
+                  json.dump(rows, f, ensure_ascii=False, indent=2)
+          print(f'Updated {updated} coordinates')
+          EOF
+
       - name: Commit and push data.json
         run: |
           git config user.name  "github-actions[bot]"
