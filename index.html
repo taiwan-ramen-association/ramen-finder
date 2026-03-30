@@ -1,861 +1,962 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<title>台灣拉麵協會 店家查詢</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台灣拉麵協會 | Taiwan Ramen Association</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:    #C8272D;
+      --ink:    #1A1A1A;
+      --paper:  #FAFAF8;
+      --stone:  #8B7355;
+      --line:   #E0DAD0;
+      --muted:  #6B6560;
+      --white:  #FFFFFF;
+    }
 
-  :root {
-    --red: #C8272D;
-    --red-dark: #9b1e23;
-    --red-light: #f7eaea;
-    --ink: #1a1209;
-    --paper: #faf7f2;
-    --stone: #8a7d6e;
-    --line: #e8e0d4;
-    --white: #ffffff;
-    --open-bg: #eef7ee;
-    --open-txt: #2d7a2d;
-    --pause-bg: #fff8ec;
-    --pause-txt: #c07a00;
-    --prep-bg: #edf3ff;
-    --prep-txt: #3a5bbf;
-  }
+    html { scroll-behavior: smooth; }
 
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    min-height: 100vh;
-  }
+    body {
+      font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-weight: 300;
+    }
 
-  /* ── HEADER ── */
-  header {
-    background: var(--red);
-    color: var(--white);
-    padding: 14px 18px 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-  }
-  .header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  header h1 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 19px;
-    font-weight: 900;
-    letter-spacing: 2px;
-  }
-  .refresh-btn {
-    background: rgba(255,255,255,0.18);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 5px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .refresh-btn:active { background: rgba(255,255,255,0.32); }
-  .refresh-btn.spinning .ri { display: inline-block; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .last-updated { font-size: 10px; opacity: 0.65; margin-top: 3px; }
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(250, 250, 248, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-logo {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--red); }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--red); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .lang-switcher {
+      display: flex;
+      gap: 8px;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 2px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .lang-btn.active, .lang-btn:hover {
+      color: var(--red);
+      background: rgba(200, 39, 45, 0.06);
+    }
+    .nav-cta {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--white);
+      background: var(--red);
+      border: none;
+      padding: 8px 18px;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: #a01e23; }
 
-  /* ── LOADING / ERROR ── */
-  .loading-screen {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 80px 20px; gap: 14px;
-  }
-  .loader {
-    width: 38px; height: 38px;
-    border: 3px solid var(--line);
-    border-top-color: var(--red);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .loading-text { font-size: 13px; color: var(--stone); }
-  .error-screen { padding: 50px 20px; text-align: center; color: var(--stone); }
-  .error-screen .big { font-size: 36px; margin-bottom: 10px; }
-  .error-screen p { font-size: 13px; line-height: 1.6; }
-  .retry-btn {
-    margin-top: 14px;
-    background: var(--red); color: white; border: none;
-    border-radius: 8px; padding: 10px 22px;
-    font-size: 14px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-  }
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 120px 10vw 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg-kanji {
+      position: absolute;
+      right: 6vw;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(160px, 20vw, 280px);
+      font-weight: 900;
+      color: rgba(200, 39, 45, 0.05);
+      line-height: 1;
+      pointer-events: none;
+      writing-mode: vertical-rl;
+      letter-spacing: 0.1em;
+      user-select: none;
+    }
+    .hero-label {
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--red);
+      margin-bottom: 28px;
+    }
+    .hero-line {
+      display: inline-block;
+      width: 40px;
+      height: 1px;
+      background: var(--red);
+      margin-right: 12px;
+      vertical-align: middle;
+    }
+    .hero-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(42px, 6vw, 80px);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .hero-title-en {
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(14px, 1.8vw, 22px);
+      font-weight: 300;
+      letter-spacing: 6px;
+      color: var(--stone);
+      margin-bottom: 40px;
+    }
+    .hero-desc {
+      font-size: 14px;
+      line-height: 2;
+      color: var(--muted);
+      max-width: 440px;
+      margin-bottom: 52px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .btn-primary {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--white);
+      background: var(--red);
+      padding: 14px 32px;
+      text-decoration: none;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: #a01e23; }
+    .btn-secondary {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--ink);
+      text-decoration: none;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--ink);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { color: var(--red); border-color: var(--red); }
+    .hero-scroll {
+      position: absolute;
+      bottom: 48px;
+      left: 10vw;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--muted);
+    }
+    .scroll-line {
+      width: 40px;
+      height: 1px;
+      background: var(--muted);
+    }
 
-  /* ── FILTER BAR ── */
-  .filter-bar {
-    background: var(--white);
-    border-bottom: 1px solid var(--line);
-    padding: 12px 14px;
-  }
-  .search-box { position: relative; margin-bottom: 10px; }
-  .search-box input {
-    width: 100%;
-    border: 1.5px solid var(--line);
-    border-radius: 8px;
-    padding: 9px 14px 9px 38px;
-    font-size: 15px;
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper); color: var(--ink);
-    outline: none; transition: border-color 0.2s;
-  }
-  .search-box input:focus { border-color: var(--red); }
-  .search-box::before {
-    content: "🔍"; position: absolute;
-    left: 11px; top: 50%; transform: translateY(-50%);
-    font-size: 15px; pointer-events: none;
-  }
+    /* ── SECTION BASE ── */
+    section {
+      padding: 100px 10vw;
+    }
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--red);
+    }
+    .section-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      margin-bottom: 56px;
+      line-height: 1.3;
+    }
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--line);
+      margin: 0;
+    }
 
-  .filter-row { display: flex; gap: 8px; }
-  .filter-group { flex: 1; }
-  .filter-group label {
-    display: block; font-size: 10px; color: var(--stone);
-    font-weight: 500; letter-spacing: 0.5px; margin-bottom: 3px;
-    text-transform: uppercase;
-  }
-  .filter-group select {
-    width: 100%;
-    border: 1.5px solid var(--line); border-radius: 6px;
-    padding: 7px 26px 7px 9px;
-    font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper); color: var(--ink);
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 9px center;
-    cursor: pointer; outline: none; transition: border-color 0.2s;
-  }
-  .filter-group select:focus { border-color: var(--red); }
+    /* ── ABOUT ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .about-text p {
+      font-size: 14px;
+      line-height: 2.2;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .about-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+    .stat-box {
+      background: var(--white);
+      padding: 36px 28px;
+      border: 1px solid var(--line);
+    }
+    .stat-number {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--red);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
 
-  /* Day buttons */
-  .day-filter { margin-top: 10px; }
-  .day-filter label {
-    font-size: 10px; color: var(--stone); font-weight: 500;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    display: block; margin-bottom: 5px;
-  }
-  .day-buttons {
-    display: flex; gap: 5px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px;
-  }
-  .day-buttons::-webkit-scrollbar { display: none; }
-  .day-btn {
-    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
-    border-radius: 20px; padding: 5px 11px; font-size: 13px;
-    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
-  }
-  .day-btn.active {
-    background: var(--red); border-color: var(--red);
-    color: var(--white); font-weight: 500;
-  }
+    /* ── NEWS ── */
+    .news-list { list-style: none; }
+    .news-item {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 32px;
+      align-items: start;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.2s;
+    }
+    .news-item:hover { opacity: 0.6; }
+    .news-date {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding-top: 3px;
+    }
+    .news-tag {
+      display: inline-block;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+    .news-title-text {
+      font-size: 14px;
+      letter-spacing: 1px;
+      line-height: 1.6;
+    }
 
-  /* ── RESULT BAR ── */
-  .result-bar {
-    padding: 9px 14px; font-size: 12px; color: var(--stone);
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid var(--line); background: var(--white);
-  }
-  .result-bar strong { color: var(--red); font-weight: 700; font-size: 15px; }
-  .clear-btn {
-    border: none; background: none; color: var(--red);
-    font-size: 12px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; text-decoration: underline;
-  }
+    /* ── FINDER ── */
+    .finder-section {
+      background: var(--ink);
+      color: var(--white);
+    }
+    .finder-section .section-label { color: rgba(200,39,45,0.8); }
+    .finder-section .section-label::before { background: rgba(200,39,45,0.8); }
+    .finder-section .section-title { color: var(--white); margin-bottom: 24px; }
+    .finder-desc {
+      font-size: 14px;
+      line-height: 2;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 48px;
+      max-width: 480px;
+    }
+    .finder-preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-bottom: 48px;
+    }
+    .finder-feature {
+      background: rgba(255,255,255,0.04);
+      padding: 32px 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .finder-feature-icon {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    .finder-feature-title {
+      font-size: 12px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .finder-feature-desc {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.8;
+    }
+    .btn-finder {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 14px 36px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-finder:hover {
+      background: var(--red);
+      border-color: var(--red);
+    }
 
-  /* ── CARDS ── */
-  .card-list { padding: 10px 10px 60px; }
+    /* ── MEMBERSHIP ── */
+    .membership-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+    }
+    .membership-card {
+      background: var(--paper);
+      padding: 48px 32px;
+    }
+    .membership-card.featured {
+      background: var(--red);
+      color: var(--white);
+    }
+    .membership-tier {
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--stone);
+      margin-bottom: 16px;
+    }
+    .membership-card.featured .membership-tier {
+      color: rgba(255,255,255,0.7);
+    }
+    .membership-name {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 24px;
+    }
+    .membership-features {
+      list-style: none;
+      margin-bottom: 36px;
+    }
+    .membership-features li {
+      font-size: 12px;
+      line-height: 1;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .membership-card.featured .membership-features li {
+      border-bottom-color: rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
+    }
+    .btn-join {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 3px;
+      padding: 12px 28px;
+      text-decoration: none;
+      transition: all 0.2s;
+      color: var(--ink);
+      border: 1px solid var(--ink);
+    }
+    .btn-join:hover { background: var(--ink); color: var(--white); }
+    .membership-card.featured .btn-join {
+      color: var(--white);
+      border-color: var(--white);
+    }
+    .membership-card.featured .btn-join:hover {
+      background: var(--white);
+      color: var(--red);
+    }
 
-  .card {
-    background: var(--white);
-    border-radius: 12px; margin-bottom: 9px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    overflow: hidden; cursor: pointer;
-    border: 1.5px solid transparent;
-    transition: border-color 0.15s;
-  }
-  .card.expanded { border-color: var(--red); }
+    /* ── PARTNERS ── */
+    .partners-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--line);
+    }
+    .partner-slot {
+      background: var(--paper);
+      aspect-ratio: 2/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--line);
+      transition: color 0.2s;
+    }
+    .partner-slot:hover { color: var(--muted); }
 
-  .card-header {
-    padding: 12px 13px 7px;
-    display: flex; align-items: flex-start;
-    justify-content: space-between; gap: 8px;
-  }
-  .card-name {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 16px; font-weight: 700;
-    color: var(--ink); line-height: 1.3; flex: 1;
-  }
-  .status-badge {
-    flex-shrink: 0; font-size: 10px; font-weight: 500;
-    padding: 3px 7px; border-radius: 10px; letter-spacing: 0.5px; margin-top: 2px;
-  }
-  .s-open  { background: var(--open-bg);  color: var(--open-txt); }
-  .s-pause { background: var(--pause-bg); color: var(--pause-txt); }
-  .s-prep  { background: var(--prep-bg);  color: var(--prep-txt); }
+    /* ── INSTAGRAM ── */
+    .ig-section { background: var(--white); }
+    .ig-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--line);
+      margin-bottom: 40px;
+    }
+    .ig-placeholder {
+      aspect-ratio: 1;
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--line);
+    }
+    .ig-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 4px;
+      transition: color 0.2s;
+    }
+    .ig-link:hover { color: var(--red); border-color: var(--red); }
 
-  .card-meta { padding: 0 13px 8px; }
-  .meta-row {
-    display: flex; gap: 5px; margin-bottom: 3px;
-    align-items: flex-start; font-size: 12px; color: var(--stone);
-  }
-  .meta-icon { flex-shrink: 0; font-size: 13px; line-height: 1.45; }
-  .meta-text { line-height: 1.5; }
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,0.5);
+      padding: 64px 10vw;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 64px;
+      margin-bottom: 64px;
+    }
+    .footer-logo {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: 3px;
+      margin-bottom: 16px;
+    }
+    .footer-logo span { color: var(--red); }
+    .footer-tagline {
+      font-size: 11px;
+      line-height: 2;
+      margin-bottom: 24px;
+    }
+    .footer-social {
+      display: flex;
+      gap: 16px;
+    }
+    .footer-social a {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-social a:hover { color: var(--white); }
+    .footer-col-title {
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .footer-links a {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--white); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 32px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
 
-  .tags { padding: 0 13px 10px; display: flex; flex-wrap: wrap; gap: 5px; }
-  .tag {
-    font-size: 11px; padding: 2px 8px; border-radius: 10px;
-    background: var(--red-light); color: var(--red-dark); font-weight: 500;
-  }
-  .tag-gray { background: #f0ece6; color: var(--stone); }
-
-  /* ── EXPANDED DETAIL ── */
-  .card-detail {
-    display: none; border-top: 1px solid var(--line);
-    padding: 11px 13px; background: var(--paper);
-  }
-  .card.expanded .card-detail { display: block; }
-
-  .detail-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 9px; margin-bottom: 10px;
-  }
-  .detail-label {
-    font-size: 10px; letter-spacing: 0.5px; color: var(--stone);
-    text-transform: uppercase; margin-bottom: 2px;
-  }
-  .detail-value { font-size: 13px; color: var(--ink); line-height: 1.5; }
-
-  .note-box {
-    background: #fffae8; border-left: 3px solid #f0c84a;
-    border-radius: 0 6px 6px 0; padding: 7px 10px;
-    font-size: 12px; color: #6b5500; line-height: 1.5; margin-bottom: 10px;
-  }
-
-  /* MAP BUTTON */
-  .map-btn {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; padding: 10px;
-    background: #1a73e8; color: white;
-    border-radius: 9px; text-decoration: none;
-    font-size: 14px; font-weight: 500;
-    font-family: 'Noto Sans TC', sans-serif;
-    margin-bottom: 9px; transition: opacity 0.15s;
-  }
-  .map-btn:active { opacity: 0.8; }
-  .map-btn-icon { font-size: 16px; }
-
-  .link-row { display: flex; gap: 7px; flex-wrap: wrap; }
-  .link-btn {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 6px 11px; border-radius: 8px; font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif;
-    text-decoration: none; font-weight: 500; transition: opacity 0.15s;
-  }
-  .link-btn:active { opacity: 0.7; }
-  .link-ig  { background: #fcedf5; color: #c2366a; }
-  .link-fb  { background: #edf0fa; color: #2d4b9b; }
-
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--stone); }
-  .empty-state .big { font-size: 38px; margin-bottom: 10px; }
-  .empty-state p { font-size: 14px; }
-
-  #mainContent { display: none; }
-
-  /* ── LOCATE ── */
-  .locate-btn {
-    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
-    border-radius: 7px; padding: 5px 10px; font-size: 13px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
-  }
-  .locate-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
-  .dist-badge {
-    font-size: 11px; color: #1a73e8; background: #edf3ff;
-    border-radius: 10px; padding: 1px 7px; font-weight: 500;
-  }
-
-  /* ── VIEW TOGGLE ── */
-  .result-actions { display: flex; gap: 8px; align-items: center; }
-  .view-toggle { display: flex; border: 1.5px solid var(--line); border-radius: 7px; overflow: hidden; }
-  .view-btn {
-    border: none; background: var(--paper); color: var(--stone);
-    padding: 5px 11px; font-size: 13px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s;
-  }
-  .view-btn.active { background: var(--red); color: white; }
-
-  .map-ctrl-btn {
-    width: 34px; height: 34px; border-radius: 6px;
-    border: 2px solid rgba(0,0,0,0.2); background: white;
-    font-size: 17px; cursor: pointer; display: flex;
-    align-items: center; justify-content: center;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-  }
-  .map-ctrl-btn:active { background: #f0f0f0; }
-  .map-ctrl-btn.following { background: #1a73e8; border-color: #1a73e8; }
-  .map-ctrl-group { display: flex; flex-direction: column; gap: 6px; }
-
-  /* ── MAP ── */
-  #mapContainer { display: none; height: calc(100dvh - 270px); min-height: 300px; }
-  .leaflet-popup-content-wrapper { border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; }
-  .leaflet-popup-content { margin: 12px 14px; }
-  .map-popup-name { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
-  .map-popup-meta { font-size: 12px; color: var(--stone); margin-bottom: 3px; line-height: 1.5; }
-  .map-popup-note { font-size: 11px; background: #fffae8; border-left: 2px solid #f0c84a; padding: 4px 7px; margin-top: 6px; border-radius: 0 4px 4px 0; color: #6b5500; line-height: 1.5; }
-  .map-popup-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: 500; }
-</style>
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      section { padding: 72px 6vw; }
+      .hero { padding: 100px 6vw 72px; }
+      .hero-bg-kanji { display: none; }
+      .about-grid { grid-template-columns: 1fr; gap: 48px; }
+      .finder-preview { grid-template-columns: 1fr; }
+      .membership-grid { grid-template-columns: 1fr; }
+      .partners-grid { grid-template-columns: repeat(3, 1fr); }
+      .ig-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+    }
+  </style>
 </head>
 <body>
 
-<header>
-  <div class="header-row">
-    <h1>🍜 台灣拉麵協會</h1>
-    <button class="refresh-btn" id="refreshBtn">
-      <span class="ri">↻</span> 更新
-    </button>
-  </div>
-  <div class="last-updated" id="lastUpdated">資料載入中…</div>
-</header>
-
-<div id="loadingScreen" class="loading-screen">
-  <div class="loader"></div>
-  <div class="loading-text">載入最新店家資料…</div>
-</div>
-
-<div id="errorScreen" class="error-screen" style="display:none">
-  <div class="big">⚠️</div>
-  <p>資料載入失敗<br>請確認網路後再試</p>
-  <button class="retry-btn" id="retryBtn">重新載入</button>
-</div>
-
-<div id="mainContent">
-  <div class="filter-bar">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="搜尋店名、地址、派系…" autocomplete="off">
-    </div>
-    <div class="filter-row">
-      <div class="filter-group">
-        <label>縣市</label>
-        <select id="cityFilter"><option value="">全部縣市</option></select>
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">台灣<span>拉麵</span>協會</a>
+    <ul class="nav-links">
+      <li><a href="#about"   data-i18n="nav_about">關於協會</a></li>
+      <li><a href="#news"    data-i18n="nav_news">最新消息</a></li>
+      <li><a href="#finder"  data-i18n="nav_finder">拉麵搜尋</a></li>
+      <li><a href="#join"    data-i18n="nav_join">加入會員</a></li>
+      <li><a href="#contact" data-i18n="nav_contact">聯絡我們</a></li>
+    </ul>
+    <div class="nav-right">
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLang('zh')">繁中</button>
+        <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
       </div>
-      <div class="filter-group">
-        <label>營業時間</label>
-        <select id="timeFilter">
-          <option value="">不限時間</option>
-        </select>
+      <a href="#join" class="nav-cta" data-i18n="nav_cta">加入會員</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg-kanji">拉麵</div>
+    <p class="hero-label"><span class="hero-line"></span><span data-i18n="hero_label">台灣拉麵協會 設立於 2024</span></p>
+    <h1 class="hero-title" data-i18n="hero_title">台灣拉麵協會</h1>
+    <p class="hero-title-en" data-i18n="hero_subtitle">TAIWAN RAMEN ASSOCIATION</p>
+    <p class="hero-desc" data-i18n="hero_desc">推廣台灣拉麵文化，連結愛好者、店家與職人。<br>從一碗麵開始，建立屬於台灣的拉麵生態圈。</p>
+    <div class="hero-actions">
+      <a href="#finder" class="btn-primary" data-i18n="hero_cta1">拉麵搜尋器</a>
+      <a href="#about"  class="btn-secondary" data-i18n="hero_cta2">了解更多</a>
+    </div>
+    <div class="hero-scroll">
+      <span class="scroll-line"></span>
+      <span data-i18n="scroll">SCROLL</span>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <p class="section-label" data-i18n="about_label">ABOUT US</p>
+    <h2 class="section-title" data-i18n="about_title">關於協會</h2>
+    <div class="about-grid">
+      <div class="about-text">
+        <p data-i18n="about_p1">台灣拉麵協會成立的初衷，是為了凝聚台灣對拉麵文化的熱愛。我們相信，一碗好的拉麵不只是食物，更是文化的載體、職人精神的體現。</p>
+        <p data-i18n="about_p2">協會以 Instagram 為核心社群平台，持續記錄並推廣台灣各地的拉麵店家，讓更多人發現在地的拉麵風景。</p>
+        <p data-i18n="about_p3">我們提供全台拉麵店家資料庫、開放會員制度、以及不定期舉辦的業界交流活動，致力於建立一個健康、開放的拉麵生態圈。</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat-box">
+          <div class="stat-number" id="stat-shops">300+</div>
+          <div class="stat-label" data-i18n="stat_shops">收錄店家</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">2024</div>
+          <div class="stat-label" data-i18n="stat_founded">協會成立</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">22+</div>
+          <div class="stat-label" data-i18n="stat_cities">覆蓋縣市</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">IG</div>
+          <div class="stat-label" data-i18n="stat_platform">主力社群</div>
+        </div>
       </div>
     </div>
-    <div class="day-filter">
-      <label>營業日</label>
-      <div class="day-buttons">
-        <button class="day-btn active" data-day="">全部</button>
-        <button class="day-btn" data-day="一">週一</button>
-        <button class="day-btn" data-day="二">週二</button>
-        <button class="day-btn" data-day="三">週三</button>
-        <button class="day-btn" data-day="四">週四</button>
-        <button class="day-btn" data-day="五">週五</button>
-        <button class="day-btn" data-day="六">週六</button>
-        <button class="day-btn" data-day="日">週日</button>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- NEWS -->
+  <section id="news">
+    <p class="section-label" data-i18n="news_label">LATEST NEWS</p>
+    <h2 class="section-title" data-i18n="news_title">最新消息</h2>
+    <ul class="news-list">
+      <li>
+        <a href="#" class="news-item">
+          <span class="news-date">2026.03.30</span>
+          <div>
+            <span class="news-tag" data-i18n="tag_announce">公告</span>
+            <p class="news-title-text" data-i18n="news1">協會官方網站正式上線</p>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="news-item">
+          <span class="news-date">2026.03.15</span>
+          <div>
+            <span class="news-tag" data-i18n="tag_data">資料更新</span>
+            <p class="news-title-text" data-i18n="news2">拉麵搜尋器店家資料更新，新增多間北部新店</p>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="news-item">
+          <span class="news-date">2026.02.01</span>
+          <div>
+            <span class="news-tag" data-i18n="tag_event">活動</span>
+            <p class="news-title-text" data-i18n="news3">2026 年春季拉麵業界交流活動報名開始</p>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FINDER -->
+  <section id="finder" class="finder-section">
+    <p class="section-label" data-i18n="finder_label">RAMEN FINDER</p>
+    <h2 class="section-title" data-i18n="finder_title">拉麵搜尋器</h2>
+    <p class="finder-desc" data-i18n="finder_desc">全台 300+ 間拉麵店家，依縣市、營業時間、特色篩選，即時查看是否營業中。</p>
+    <div class="finder-preview">
+      <div class="finder-feature">
+        <div class="finder-feature-icon">🗺</div>
+        <div class="finder-feature-title" data-i18n="ff1_title">地圖模式</div>
+        <div class="finder-feature-desc" data-i18n="ff1_desc">透過互動地圖快速找到附近的拉麵店</div>
+      </div>
+      <div class="finder-feature">
+        <div class="finder-feature-icon">🕐</div>
+        <div class="finder-feature-title" data-i18n="ff2_title">即時營業狀態</div>
+        <div class="finder-feature-desc" data-i18n="ff2_desc">即時顯示今日是否營業、目前是否開門中</div>
+      </div>
+      <div class="finder-feature">
+        <div class="finder-feature-icon">🔍</div>
+        <div class="finder-feature-title" data-i18n="ff3_title">多條件篩選</div>
+        <div class="finder-feature-desc" data-i18n="ff3_desc">依縣市、湯頭、特色、座位等條件精確搜尋</div>
       </div>
     </div>
-  </div>
+    <a href="index.html" class="btn-finder" data-i18n="finder_cta">前往搜尋器 →</a>
+  </section>
 
-  <div class="result-bar">
-    <div>共 <strong id="resultCount">0</strong> 間店家</div>
-    <div class="result-actions">
-      <button class="locate-btn" id="locateBtn">📍 定位</button>
-      <div class="view-toggle">
-        <button class="view-btn active" id="viewList">☰ 清單</button>
-        <button class="view-btn" id="viewMap">🗺 地圖</button>
+  <!-- MEMBERSHIP -->
+  <section id="join">
+    <p class="section-label" data-i18n="join_label">MEMBERSHIP</p>
+    <h2 class="section-title" data-i18n="join_title">加入會員</h2>
+    <div class="membership-grid">
+      <div class="membership-card">
+        <div class="membership-tier" data-i18n="tier1_label">FREE</div>
+        <div class="membership-name" data-i18n="tier1_name">一般會員</div>
+        <ul class="membership-features">
+          <li data-i18n="tier1_f1">✓ 基本店家搜尋</li>
+          <li data-i18n="tier1_f2">✓ 地圖瀏覽</li>
+          <li data-i18n="tier1_f3">✓ 協會電子報</li>
+        </ul>
+        <a href="#" class="btn-join" data-i18n="tier_cta">立即加入</a>
       </div>
-      <button class="clear-btn" id="clearBtn">清除篩選</button>
+      <div class="membership-card featured">
+        <div class="membership-tier" data-i18n="tier2_label">PREMIUM</div>
+        <div class="membership-name" data-i18n="tier2_name">進階會員</div>
+        <ul class="membership-features">
+          <li data-i18n="tier2_f1">✓ 所有一般功能</li>
+          <li data-i18n="tier2_f2">✓ 店家詳細資訊</li>
+          <li data-i18n="tier2_f3">✓ 會員專屬活動</li>
+          <li data-i18n="tier2_f4">✓ 優先新店通知</li>
+        </ul>
+        <a href="#" class="btn-join" data-i18n="tier_cta">立即加入</a>
+      </div>
+      <div class="membership-card">
+        <div class="membership-tier" data-i18n="tier3_label">SHOP</div>
+        <div class="membership-name" data-i18n="tier3_name">店家會員</div>
+        <ul class="membership-features">
+          <li data-i18n="tier3_f1">✓ 店家資料刊登</li>
+          <li data-i18n="tier3_f2">✓ 置頂曝光</li>
+          <li data-i18n="tier3_f3">✓ 業界交流活動</li>
+          <li data-i18n="tier3_f4">✓ 協會認證標章</li>
+        </ul>
+        <a href="#" class="btn-join" data-i18n="tier_cta">立即加入</a>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card-list" id="cardList"></div>
-  <div id="mapContainer"></div>
-</div>
+  <div class="divider"></div>
 
-<script>
-// ── Config ─────────────────────────────────────────────────────────────────
-// 讀同一個 repo 下的 data.json（由 GitHub Actions 自動同步自 Google Sheets）
-const DATA_URL = './data.json';
+  <!-- PARTNERS -->
+  <section id="partners">
+    <p class="section-label" data-i18n="partners_label">PARTNERS</p>
+    <h2 class="section-title" data-i18n="partners_title">合作夥伴</h2>
+    <div class="partners-grid">
+      <div class="partner-slot">LOGO</div>
+      <div class="partner-slot">LOGO</div>
+      <div class="partner-slot">LOGO</div>
+      <div class="partner-slot">LOGO</div>
+      <div class="partner-slot">LOGO</div>
+    </div>
+  </section>
 
-// ── State ──────────────────────────────────────────────────────────────────
-let ALL_DATA   = [];
-let selectedDay  = '';
-let expandedCard = null;
-let currentView  = 'list';
-let leafletMap   = null;
-let markerLayer  = null;
-let userLat      = null;
-let userLng      = null;
-let userMarker   = null;
-let watchId      = null;
-let followMode   = false;
+  <div class="divider"></div>
 
-// ── Build time options (00:00 ~ 23:30, step 30min) ────────────────────────
-function buildTimeOptions() {
-  const sel = document.getElementById('timeFilter');
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const label = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      const opt = document.createElement('option');
-      opt.value = label; opt.textContent = label;
-      sel.appendChild(opt);
-    }
-  }
-}
-buildTimeOptions();
+  <!-- INSTAGRAM -->
+  <section id="contact" class="ig-section">
+    <p class="section-label" data-i18n="ig_label">INSTAGRAM</p>
+    <h2 class="section-title" data-i18n="ig_title">追蹤我們</h2>
+    <div class="ig-grid">
+      <div class="ig-placeholder">IG POST</div>
+      <div class="ig-placeholder">IG POST</div>
+      <div class="ig-placeholder">IG POST</div>
+      <div class="ig-placeholder">IG POST</div>
+    </div>
+    <a href="https://www.instagram.com/taiwan.ramen.association" target="_blank" class="ig-link" data-i18n="ig_cta">
+      @taiwan.ramen.association →
+    </a>
+  </section>
 
-// ── Load ───────────────────────────────────────────────────────────────────
-async function loadData() {
-  document.getElementById('loadingScreen').style.display = 'flex';
-  document.getElementById('errorScreen').style.display   = 'none';
-  document.getElementById('mainContent').style.display   = 'none';
-  document.getElementById('refreshBtn').classList.add('spinning');
-
-  try {
-    const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
-
-    ALL_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
-
-    // City dropdown
-    const cities = [...new Set(ALL_DATA.map(d => d['縣市']).filter(Boolean))].sort();
-    const sel = document.getElementById('cityFilter');
-    sel.innerHTML = '<option value="">全部縣市</option>';
-    cities.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c; o.textContent = c; sel.appendChild(o);
-    });
-
-    const now = new Date();
-    document.getElementById('lastUpdated').textContent =
-      `資料更新於 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}　共 ${ALL_DATA.length} 間`;
-
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display   = 'block';
-    render();
-  } catch(e) {
-    console.error(e);
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('errorScreen').style.display   = 'block';
-    document.getElementById('lastUpdated').textContent = '載入失敗';
-  } finally {
-    document.getElementById('refreshBtn').classList.remove('spinning');
-  }
-}
-
-// ── Time helpers ───────────────────────────────────────────────────────────
-// Parse "HH:MM" → minutes from midnight
-function toMins(str) {
-  const m = str.match(/(\d{1,2}):(\d{2})/);
-  if (!m) return null;
-  return parseInt(m[1]) * 60 + parseInt(m[2]);
-}
-
-// Given a raw 營業時段 string, return array of {start, end} in minutes
-// Handles formats like:
-//   "11:30-14:00\n17:00-21:00"
-//   "11:30–14:00、17:00–21:00"
-//   "12:00-21:00"
-function parseHours(raw) {
-  if (!raw) return [];
-  // normalize separators
-  const normalized = raw.replace(/[–—]/g, '-').replace(/、/g, '\n');
-  // find all HH:MM-HH:MM patterns
-  const slots = [];
-  const re = /(\d{1,2}:\d{2})\s*[-~～]\s*(\d{1,2}:\d{2})/g;
-  let match;
-  while ((match = re.exec(normalized)) !== null) {
-    const start = toMins(match[1]);
-    let   end   = toMins(match[2]);
-    if (start === null || end === null) continue;
-    // Handle overnight (e.g. 17:00-03:00)
-    if (end < start) end += 24 * 60;
-    slots.push({ start, end });
-  }
-  return slots;
-}
-
-// Is a shop open at targetMins?
-function isOpenAt(shop, targetMins) {
-  const slots = parseHours(shop['營業時段']);
-  if (!slots.length) return false;
-  return slots.some(s => targetMins >= s.start && targetMins < s.end);
-}
-
-// ── Filter ─────────────────────────────────────────────────────────────────
-const DAY_ORDER = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7};
-
-function shopDays(shop) {
-  const raw = shop['營業日'] || '';
-  if (!raw || raw === '不固定') return [];
-  return raw.split(',').map(d => d.trim()).filter(d => d in DAY_ORDER);
-}
-
-function formatDayStr(shop) {
-  const days = shopDays(shop);
-  if (!days.length) return shop['營業日'] || '';
-  return '週' + days.sort((a,b) => DAY_ORDER[a]-DAY_ORDER[b]).join('、');
-}
-
-function getFiltered() {
-  const query  = document.getElementById('searchInput').value.trim().toLowerCase();
-  const city   = document.getElementById('cityFilter').value;
-  const timeVal = document.getElementById('timeFilter').value;
-
-  const result = ALL_DATA.filter(shop => {
-    if (city && shop['縣市'] !== city) return false;
-
-    if (selectedDay) {
-      const raw = shop['營業日'] || '';
-      if (raw === '不固定') return false;
-      if (!raw.split(',').map(d=>d.trim()).includes(selectedDay)) return false;
-    }
-
-    if (timeVal) {
-      const mins = toMins(timeVal);
-      if (mins === null) return false;
-      if (!isOpenAt(shop, mins)) return false;
-    }
-
-    if (query) {
-      const hay = [shop['店名'],shop['地址'],shop['派系'],shop['類型'],shop['醬底']].join(' ').toLowerCase();
-      if (!hay.includes(query)) return false;
-    }
-    return true;
-  });
-
-  if (userLat !== null) {
-    result.sort((a, b) => {
-      const da = shopDist(a) ?? Infinity;
-      const db = shopDist(b) ?? Infinity;
-      return da - db;
-    });
-  }
-  return result;
-}
-
-// ── Geolocation ────────────────────────────────────────────────────────────
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371, toRad = x => x * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDist(km) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-}
-
-function shopDist(shop) {
-  if (userLat === null || !shop.lat || !shop.lng) return null;
-  return haversine(userLat, userLng, parseFloat(shop.lat), parseFloat(shop.lng));
-}
-
-function showUserMarker() {
-  if (!leafletMap || userLat === null) return;
-  if (userMarker) leafletMap.removeLayer(userMarker);
-  userMarker = L.circleMarker([userLat, userLng], {
-    radius: 8, color: '#fff', weight: 2.5, fillColor: '#1a73e8', fillOpacity: 1
-  }).addTo(leafletMap).bindPopup('你在這裡');
-}
-
-function locateUser() {
-  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
-  const btn = document.getElementById('locateBtn');
-  btn.textContent = '⏳ 定位中…';
-  btn.disabled = true;
-  navigator.geolocation.getCurrentPosition(pos => {
-    userLat = pos.coords.latitude;
-    userLng = pos.coords.longitude;
-    btn.textContent = '📍 已定位';
-    btn.classList.add('located');
-    btn.disabled = false;
-    if (leafletMap) {
-      showUserMarker();
-      leafletMap.setView([userLat, userLng], 15);
-    }
-    render();
-  }, () => {
-    btn.textContent = '📍 定位';
-    btn.disabled = false;
-    alert('無法取得位置，請確認已允許定位權限');
-  });
-}
-
-function toggleFollow() {
-  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
-  if (followMode) {
-    // 關閉跟隨
-    navigator.geolocation.clearWatch(watchId);
-    watchId    = null;
-    followMode = false;
-    const btn = document.querySelector('.map-ctrl-btn.following');
-    if (btn) btn.classList.remove('following');
-  } else {
-    // 開啟跟隨
-    followMode = true;
-    const followBtn = document.getElementById('followMapBtn');
-    if (followBtn) followBtn.classList.add('following');
-    watchId = navigator.geolocation.watchPosition(pos => {
-      userLat = pos.coords.latitude;
-      userLng = pos.coords.longitude;
-      document.getElementById('locateBtn').textContent = '📍 已定位';
-      document.getElementById('locateBtn').classList.add('located');
-      showUserMarker();
-      if (followMode && leafletMap) leafletMap.setView([userLat, userLng]);
-      render();
-    }, () => {
-      followMode = false;
-      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-      const followBtn = document.getElementById('followMapBtn');
-      if (followBtn) followBtn.classList.remove('following');
-    }, { enableHighAccuracy: true });
-  }
-}
-
-// ── Map ────────────────────────────────────────────────────────────────────
-function switchView(v) {
-  currentView = v;
-  document.getElementById('viewList').classList.toggle('active', v === 'list');
-  document.getElementById('viewMap').classList.toggle('active', v === 'map');
-  document.getElementById('cardList').style.display     = v === 'list' ? '' : 'none';
-  document.getElementById('mapContainer').style.display = v === 'map'  ? 'block' : 'none';
-  if (v === 'map' && !leafletMap) initMap();
-  render();
-}
-
-function initMap() {
-  leafletMap  = L.map('mapContainer').setView([23.97, 120.97], 8);
-  markerLayer = L.layerGroup().addTo(leafletMap);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19
-  }).addTo(leafletMap);
-
-  // 右下角控制組：定位 + 跟隨
-  const MapControls = L.Control.extend({
-    options: { position: 'bottomright' },
-    onAdd() {
-      const wrap = L.DomUtil.create('div', 'map-ctrl-group');
-
-      const locBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
-      locBtn.title = '定位到我的位置';
-      locBtn.innerHTML = '📍';
-      L.DomEvent.on(locBtn, 'click', L.DomEvent.stop);
-      L.DomEvent.on(locBtn, 'click', locateUser);
-
-      const followBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
-      followBtn.id    = 'followMapBtn';
-      followBtn.title = '跟隨我的位置';
-      followBtn.innerHTML = '🧭';
-      L.DomEvent.on(followBtn, 'click', L.DomEvent.stop);
-      L.DomEvent.on(followBtn, 'click', toggleFollow);
-
-      return wrap;
-    }
-  });
-  new MapControls().addTo(leafletMap);
-
-  // 手動拖曳地圖時退出跟隨模式
-  leafletMap.on('dragstart', () => { if (followMode) toggleFollow(); });
-
-  showUserMarker();
-}
-
-function renderMap() {
-  if (!leafletMap) return;
-  markerLayer.clearLayers();
-
-  const icon = L.divIcon({
-    className: '',
-    html: '<div style="width:13px;height:13px;background:#C8272D;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
-    iconSize: [13, 13], iconAnchor: [6, 6], popupAnchor: [0, -8]
-  });
-
-  const filtered = getFiltered().filter(s => s.lat && s.lng);
-  if (!filtered.length) return;
-
-  const bounds = [];
-  filtered.forEach(shop => {
-    const lat = parseFloat(shop.lat);
-    const lng = parseFloat(shop.lng);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const dayStr = formatDayStr(shop);
-    const hours  = (shop['營業時段'] || '').replace(/\n/g, '　');
-    const mapUrl = isValidUrl(shop['Map']) ? shop['Map']
-      : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
-
-    const popup = `
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
       <div>
-        <div class="map-popup-name">${shop['店名']}</div>
-        ${dayStr ? `<div class="map-popup-meta">📅 ${dayStr}${hours ? '　' + hours : ''}</div>` : ''}
-        ${shop['地址'] ? `<div class="map-popup-meta">📍 ${shop['地址']}</div>` : ''}
-        ${shop['營業備註'] ? `<div class="map-popup-note">${shop['營業備註']}</div>` : ''}
-        <a href="${mapUrl}" target="_blank" class="map-popup-link">開啟 Google 地圖 →</a>
-      </div>`;
-
-    L.marker([lat, lng], { icon }).bindPopup(popup, { maxWidth: 250 }).addTo(markerLayer);
-    bounds.push([lat, lng]);
-  });
-
-  if (bounds.length === 1) {
-    leafletMap.setView(bounds[0], 15);
-  } else if (bounds.length > 1) {
-    leafletMap.fitBounds(bounds, { padding: [30, 30] });
-  }
-}
-
-// ── Render ─────────────────────────────────────────────────────────────────
-function statusBadge(s) {
-  if (!s || s === '營業中') return '';
-  const cls = s === '暫停營業' ? 's-pause' : s === '籌備中' ? 's-prep' : '';
-  if (!cls) return '';
-  return `<span class="status-badge ${cls}">${s === '暫停營業' ? '暫停' : s}</span>`;
-}
-
-function isValidUrl(s) {
-  return s && s.startsWith('http') && !['無',''].includes(s);
-}
-
-function renderCard(shop) {
-  const dist    = shopDist(shop);
-  const dayStr  = formatDayStr(shop);
-  const hours   = (shop['營業時段'] || '').replace(/\n/g, '　');
-  const offDay  = (shop['店休日']   || '').replace(/,/g, '、');
-  const types   = (shop['類型']     || '').split(',').map(t=>t.trim()).filter(Boolean);
-  const factions= (shop['派系']     || '').split(',').map(t=>t.trim()).filter(Boolean);
-
-  // Map button
-  const hasMap  = isValidUrl(shop['Map']);
-  const mapUrl  = hasMap ? shop['Map']
-    : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
-  const mapBtn  = shop['地址']
-    ? `<a href="${mapUrl}" target="_blank" class="map-btn">
-         <span class="map-btn-icon">📍</span>
-         ${shop['地址']}
-       </a>`
-    : '';
-
-  const links = [];
-  if (isValidUrl(shop['Instagram'])) links.push(`<a href="${shop['Instagram']}" target="_blank" class="link-btn link-ig">📷 Instagram</a>`);
-  if (isValidUrl(shop['Facebook']))  links.push(`<a href="${shop['Facebook']}"  target="_blank" class="link-btn link-fb">👥 Facebook</a>`);
-
-  const detailItems = [
-    shop['支付方式'] ? {l:'支付', v:shop['支付方式']} : null,
-    shop['排隊方式'] ? {l:'排隊', v:shop['排隊方式']} : null,
-    shop['點餐方式'] ? {l:'點餐', v:shop['點餐方式']} : null,
-    shop['醬底']     ? {l:'醬底', v:shop['醬底']}     : null,
-    (shop['吧台數'] || shop['桌位數']) ? {l:'座位', v:
-      [shop['吧台數'] ? `吧台 ${shop['吧台數']}` : '',
-       shop['桌位數'] ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　')} : null,
-  ].filter(Boolean);
-
-  return `
-  <div class="card">
-    <div class="card-header">
-      <div class="card-name">${shop['店名']}</div>
-      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
-        ${dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : ''}
-        ${statusBadge(shop['營業狀態'])}
+        <div class="footer-logo">台灣<span>拉麵</span>協會</div>
+        <p class="footer-tagline" data-i18n="footer_tagline">推廣台灣拉麵文化<br>Taiwan Ramen Association</p>
+        <div class="footer-social">
+          <a href="https://www.instagram.com/taiwan.ramen.association" target="_blank">Instagram</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_col1">NAVIGATE</div>
+        <ul class="footer-links">
+          <li><a href="#about"  data-i18n="nav_about">關於協會</a></li>
+          <li><a href="#news"   data-i18n="nav_news">最新消息</a></li>
+          <li><a href="#finder" data-i18n="nav_finder">拉麵搜尋</a></li>
+          <li><a href="#join"   data-i18n="nav_join">加入會員</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_col2">SERVICE</div>
+        <ul class="footer-links">
+          <li><a href="index.html" data-i18n="footer_finder">店家搜尋器</a></li>
+          <li><a href="#" data-i18n="footer_map">拉麵地圖</a></li>
+          <li><a href="#" data-i18n="footer_news">活動資訊</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_col3">CONTACT</div>
+        <ul class="footer-links">
+          <li><a href="#" data-i18n="footer_contact">聯絡我們</a></li>
+          <li><a href="#" data-i18n="footer_shop">店家申請</a></li>
+          <li><a href="#" data-i18n="footer_ad">廣告合作</a></li>
+        </ul>
       </div>
     </div>
-    <div class="card-meta">
-      ${dayStr ? `<div class="meta-row"><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></div>` : ''}
+    <div class="footer-bottom">
+      <span>© 2024 台灣拉麵協會 Taiwan Ramen Association</span>
+      <span data-i18n="footer_rights">All Rights Reserved.</span>
     </div>
-    ${types.length || factions.length ? `
-    <div class="tags">
-      ${types.map(t=>`<span class="tag">${t}</span>`).join('')}
-      ${factions.map(t=>`<span class="tag tag-gray">${t}</span>`).join('')}
-    </div>` : ''}
-    <div class="card-detail">
-      ${mapBtn}
-      ${detailItems.length ? `<div class="detail-grid">${detailItems.map(d=>`<div><div class="detail-label">${d.l}</div><div class="detail-value">${d.v}</div></div>`).join('')}</div>` : ''}
-      ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
-      ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
-    </div>
-  </div>`;
-}
+  </footer>
 
-function render() {
-  const filtered = getFiltered();
-  document.getElementById('resultCount').textContent = filtered.length;
+  <script>
+    // ── LANGUAGE SWITCHER ──
+    const i18n = {
+      zh: {
+        nav_about: '關於協會', nav_news: '最新消息', nav_finder: '拉麵搜尋',
+        nav_join: '加入會員', nav_contact: '聯絡我們', nav_cta: '加入會員',
+        hero_label: '台灣拉麵協會 設立於 2024',
+        hero_title: '台灣拉麵協會',
+        hero_subtitle: 'TAIWAN RAMEN ASSOCIATION',
+        hero_desc: '推廣台灣拉麵文化，連結愛好者、店家與職人。\n從一碗麵開始，建立屬於台灣的拉麵生態圈。',
+        hero_cta1: '拉麵搜尋器', hero_cta2: '了解更多', scroll: 'SCROLL',
+        about_label: 'ABOUT US', about_title: '關於協會',
+        about_p1: '台灣拉麵協會成立的初衷，是為了凝聚台灣對拉麵文化的熱愛。我們相信，一碗好的拉麵不只是食物，更是文化的載體、職人精神的體現。',
+        about_p2: '協會以 Instagram 為核心社群平台，持續記錄並推廣台灣各地的拉麵店家，讓更多人發現在地的拉麵風景。',
+        about_p3: '我們提供全台拉麵店家資料庫、開放會員制度、以及不定期舉辦的業界交流活動，致力於建立一個健康、開放的拉麵生態圈。',
+        stat_shops: '收錄店家', stat_founded: '協會成立', stat_cities: '覆蓋縣市', stat_platform: '主力社群',
+        news_label: 'LATEST NEWS', news_title: '最新消息',
+        tag_announce: '公告', tag_data: '資料更新', tag_event: '活動',
+        news1: '協會官方網站正式上線',
+        news2: '拉麵搜尋器店家資料更新，新增多間北部新店',
+        news3: '2026 年春季拉麵業界交流活動報名開始',
+        finder_label: 'RAMEN FINDER', finder_title: '拉麵搜尋器',
+        finder_desc: '全台 300+ 間拉麵店家，依縣市、營業時間、特色篩選，即時查看是否營業中。',
+        ff1_title: '地圖模式', ff1_desc: '透過互動地圖快速找到附近的拉麵店',
+        ff2_title: '即時營業狀態', ff2_desc: '即時顯示今日是否營業、目前是否開門中',
+        ff3_title: '多條件篩選', ff3_desc: '依縣市、湯頭、特色、座位等條件精確搜尋',
+        finder_cta: '前往搜尋器 →',
+        join_label: 'MEMBERSHIP', join_title: '加入會員',
+        tier1_label: 'FREE', tier1_name: '一般會員',
+        tier1_f1: '✓ 基本店家搜尋', tier1_f2: '✓ 地圖瀏覽', tier1_f3: '✓ 協會電子報',
+        tier2_label: 'PREMIUM', tier2_name: '進階會員',
+        tier2_f1: '✓ 所有一般功能', tier2_f2: '✓ 店家詳細資訊', tier2_f3: '✓ 會員專屬活動', tier2_f4: '✓ 優先新店通知',
+        tier3_label: 'SHOP', tier3_name: '店家會員',
+        tier3_f1: '✓ 店家資料刊登', tier3_f2: '✓ 置頂曝光', tier3_f3: '✓ 業界交流活動', tier3_f4: '✓ 協會認證標章',
+        tier_cta: '立即加入',
+        partners_label: 'PARTNERS', partners_title: '合作夥伴',
+        ig_label: 'INSTAGRAM', ig_title: '追蹤我們', ig_cta: '@taiwan.ramen.association →',
+        footer_tagline: '推廣台灣拉麵文化\nTaiwan Ramen Association',
+        footer_col1: 'NAVIGATE', footer_col2: 'SERVICE', footer_col3: 'CONTACT',
+        footer_finder: '店家搜尋器', footer_map: '拉麵地圖', footer_news: '活動資訊',
+        footer_contact: '聯絡我們', footer_shop: '店家申請', footer_ad: '廣告合作',
+        footer_rights: 'All Rights Reserved.',
+      },
+      ja: {
+        nav_about: '協会について', nav_news: '最新情報', nav_finder: 'ラーメン検索',
+        nav_join: '会員登録', nav_contact: 'お問い合わせ', nav_cta: '会員登録',
+        hero_label: '台湾ラーメン協会 2024年設立',
+        hero_title: '台湾拉麺協会',
+        hero_subtitle: 'TAIWAN RAMEN ASSOCIATION',
+        hero_desc: '台湾のラーメン文化を推進し、愛好者・店舗・職人をつなぐ。\n一杯のラーメンから、台湾独自のラーメン生態系を築く。',
+        hero_cta1: 'ラーメン検索', hero_cta2: '詳しく見る', scroll: 'SCROLL',
+        about_label: 'ABOUT US', about_title: '協会について',
+        about_p1: '台湾ラーメン協会は、台湾のラーメン文化への愛を結集するために設立されました。一杯の良いラーメンは食事以上のもの——文化の担い手であり、職人精神の体現です。',
+        about_p2: '協会はInstagramを中心にコミュニティを展開し、台湾各地のラーメン店を記録・発信しています。',
+        about_p3: '全台湾のラーメン店データベース、会員制度、業界交流イベントを通じて、健全でオープンなラーメン生態系の構築を目指しています。',
+        stat_shops: '掲載店舗数', stat_founded: '設立年', stat_cities: '対応都市', stat_platform: 'メインSNS',
+        news_label: 'LATEST NEWS', news_title: '最新情報',
+        tag_announce: 'お知らせ', tag_data: 'データ更新', tag_event: 'イベント',
+        news1: '協会公式サイトが正式オープン',
+        news2: 'ラーメン検索ツールのデータ更新、北部の新店を追加',
+        news3: '2026年春季ラーメン業界交流イベントの申込開始',
+        finder_label: 'RAMEN FINDER', finder_title: 'ラーメン検索',
+        finder_desc: '台湾全土300+店舗を、エリア・営業時間・特徴で絞り込み検索。',
+        ff1_title: 'マップ表示', ff1_desc: 'インタラクティブマップで近くの店を検索',
+        ff2_title: 'リアルタイム営業情報', ff2_desc: '現在営業中かどうかをリアルタイムで確認',
+        ff3_title: '詳細フィルター', ff3_desc: 'エリア・スープ・特徴・座席数で絞り込み',
+        finder_cta: '検索ツールへ →',
+        join_label: 'MEMBERSHIP', join_title: '会員登録',
+        tier1_label: 'FREE', tier1_name: '一般会員',
+        tier1_f1: '✓ 基本店舗検索', tier1_f2: '✓ マップ閲覧', tier1_f3: '✓ 協会メルマガ',
+        tier2_label: 'PREMIUM', tier2_name: 'プレミアム会員',
+        tier2_f1: '✓ 全ての基本機能', tier2_f2: '✓ 店舗詳細情報', tier2_f3: '✓ 会員限定イベント', tier2_f4: '✓ 新店舗優先通知',
+        tier3_label: 'SHOP', tier3_name: '店舗会員',
+        tier3_f1: '✓ 店舗情報掲載', tier3_f2: '✓ トップ表示', tier3_f3: '✓ 業界交流イベント', tier3_f4: '✓ 協会認定バッジ',
+        tier_cta: '今すぐ登録',
+        partners_label: 'PARTNERS', partners_title: 'パートナー',
+        ig_label: 'INSTAGRAM', ig_title: 'フォローする', ig_cta: '@taiwan.ramen.association →',
+        footer_tagline: '台湾ラーメン文化を推進する\nTaiwan Ramen Association',
+        footer_col1: 'NAVIGATE', footer_col2: 'SERVICE', footer_col3: 'CONTACT',
+        footer_finder: '店舗検索ツール', footer_map: 'ラーメンマップ', footer_news: 'イベント情報',
+        footer_contact: 'お問い合わせ', footer_shop: '店舗申請', footer_ad: '広告掲載',
+        footer_rights: 'All Rights Reserved.',
+      },
+      en: {
+        nav_about: 'About', nav_news: 'News', nav_finder: 'Ramen Finder',
+        nav_join: 'Join', nav_contact: 'Contact', nav_cta: 'Join Us',
+        hero_label: 'Taiwan Ramen Association · Est. 2024',
+        hero_title: 'Taiwan Ramen\nAssociation',
+        hero_subtitle: '台灣拉麵協會',
+        hero_desc: 'Promoting ramen culture in Taiwan. Connecting enthusiasts, shops, and artisans — one bowl at a time.',
+        hero_cta1: 'Ramen Finder', hero_cta2: 'Learn More', scroll: 'SCROLL',
+        about_label: 'ABOUT US', about_title: 'About the Association',
+        about_p1: 'The Taiwan Ramen Association was founded to unite the passion for ramen culture across Taiwan. A great bowl of ramen is more than food — it is a vessel of culture and an expression of artisanship.',
+        about_p2: 'We operate primarily through Instagram, continuously documenting and promoting ramen shops across Taiwan to help more people discover the local ramen scene.',
+        about_p3: 'We provide a comprehensive ramen shop database, an open membership program, and regular industry networking events — building a healthy, open ramen ecosystem.',
+        stat_shops: 'Listed Shops', stat_founded: 'Est. Year', stat_cities: 'Cities Covered', stat_platform: 'Main Platform',
+        news_label: 'LATEST NEWS', news_title: 'Latest News',
+        tag_announce: 'Announce', tag_data: 'Data Update', tag_event: 'Event',
+        news1: 'Official Association Website Now Live',
+        news2: 'Ramen Finder Updated with New Northern Taiwan Shops',
+        news3: '2026 Spring Ramen Industry Networking Event Now Open',
+        finder_label: 'RAMEN FINDER', finder_title: 'Ramen Finder',
+        finder_desc: 'Search 300+ ramen shops across Taiwan. Filter by city, hours, and features. Check real-time open/closed status.',
+        ff1_title: 'Map View', ff1_desc: 'Find nearby ramen shops via interactive map',
+        ff2_title: 'Live Status', ff2_desc: 'Real-time open/closed status for every shop',
+        ff3_title: 'Smart Filters', ff3_desc: 'Filter by city, broth, features, and seating',
+        finder_cta: 'Open Finder →',
+        join_label: 'MEMBERSHIP', join_title: 'Join the Association',
+        tier1_label: 'FREE', tier1_name: 'Member',
+        tier1_f1: '✓ Basic Shop Search', tier1_f2: '✓ Map Access', tier1_f3: '✓ Newsletter',
+        tier2_label: 'PREMIUM', tier2_name: 'Premium',
+        tier2_f1: '✓ All Free Features', tier2_f2: '✓ Detailed Shop Info', tier2_f3: '✓ Member Events', tier2_f4: '✓ New Shop Alerts',
+        tier3_label: 'SHOP', tier3_name: 'Shop Member',
+        tier3_f1: '✓ Shop Listing', tier3_f2: '✓ Featured Placement', tier3_f3: '✓ Industry Events', tier3_f4: '✓ Official Badge',
+        tier_cta: 'Join Now',
+        partners_label: 'PARTNERS', partners_title: 'Our Partners',
+        ig_label: 'INSTAGRAM', ig_title: 'Follow Us', ig_cta: '@taiwan.ramen.association →',
+        footer_tagline: 'Promoting Ramen Culture in Taiwan\nTaiwan Ramen Association',
+        footer_col1: 'NAVIGATE', footer_col2: 'SERVICE', footer_col3: 'CONTACT',
+        footer_finder: 'Shop Finder', footer_map: 'Ramen Map', footer_news: 'Events',
+        footer_contact: 'Contact Us', footer_shop: 'Shop Application', footer_ad: 'Advertising',
+        footer_rights: 'All Rights Reserved.',
+      }
+    };
 
-  if (currentView === 'map') {
-    renderMap();
-    return;
-  }
+    let currentLang = 'zh';
 
-  const list = document.getElementById('cardList');
-  expandedCard = null;
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="big">🍜</div><p>找不到符合的店家<br>請調整篩選條件</p></div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map(renderCard).join('');
-  list.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', e => {
-      if (e.target.closest('a')) return;
-      if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
-      card.classList.toggle('expanded');
-      expandedCard = card.classList.contains('expanded') ? card : null;
-      if (expandedCard) setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
-    });
-  });
-}
-
-// ── Event listeners ────────────────────────────────────────────────────────
-document.querySelectorAll('.day-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedDay = btn.dataset.day;
-    render();
-  });
-});
-
-document.getElementById('searchInput').addEventListener('input', render);
-document.getElementById('cityFilter').addEventListener('change', render);
-document.getElementById('timeFilter').addEventListener('change', render);
-document.getElementById('refreshBtn').addEventListener('click', loadData);
-document.getElementById('viewList').addEventListener('click', () => switchView('list'));
-document.getElementById('viewMap').addEventListener('click',  () => switchView('map'));
-document.getElementById('locateBtn').addEventListener('click', locateUser);
-document.getElementById('retryBtn').addEventListener('click', loadData);
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('cityFilter').value  = '';
-  document.getElementById('timeFilter').value  = '';
-  selectedDay = '';
-  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('.day-btn[data-day=""]').classList.add('active');
-  render();
-});
-
-// ── Init ───────────────────────────────────────────────────────────────────
-loadData();
-</script>
+    function setLang(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === {zh:'繁中',ja:'日本語',en:'EN'}[lang]));
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (i18n[lang][key] !== undefined) el.innerHTML = i18n[lang][key].replace(/\n/g, '<br>');
+      });
+      document.documentElement.lang = {zh:'zh-TW',ja:'ja',en:'en'}[lang];
+    }
+  </script>
 </body>
 </html>

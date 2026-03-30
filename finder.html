@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<title>台灣拉麵協會 店家查詢</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #C8272D;
+    --red-dark: #9b1e23;
+    --red-light: #f7eaea;
+    --ink: #1a1209;
+    --paper: #faf7f2;
+    --stone: #8a7d6e;
+    --line: #e8e0d4;
+    --white: #ffffff;
+    --open-bg: #eef7ee;
+    --open-txt: #2d7a2d;
+    --pause-bg: #fff8ec;
+    --pause-txt: #c07a00;
+    --prep-bg: #edf3ff;
+    --prep-txt: #3a5bbf;
+  }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--red);
+    color: var(--white);
+    padding: 14px 18px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 2px;
+  }
+  .refresh-btn {
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .refresh-btn:active { background: rgba(255,255,255,0.32); }
+  .refresh-btn.spinning .ri { display: inline-block; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .last-updated { font-size: 10px; opacity: 0.65; margin-top: 3px; }
+
+  /* ── LOADING / ERROR ── */
+  .loading-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 80px 20px; gap: 14px;
+  }
+  .loader {
+    width: 38px; height: 38px;
+    border: 3px solid var(--line);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-text { font-size: 13px; color: var(--stone); }
+  .error-screen { padding: 50px 20px; text-align: center; color: var(--stone); }
+  .error-screen .big { font-size: 36px; margin-bottom: 10px; }
+  .error-screen p { font-size: 13px; line-height: 1.6; }
+  .retry-btn {
+    margin-top: 14px;
+    background: var(--red); color: white; border: none;
+    border-radius: 8px; padding: 10px 22px;
+    font-size: 14px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 14px;
+  }
+  .search-box { position: relative; margin-bottom: 10px; }
+  .search-box input {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 14px 9px 38px;
+    font-size: 15px;
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper); color: var(--ink);
+    outline: none; transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--red); }
+  .search-box::before {
+    content: "🔍"; position: absolute;
+    left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; pointer-events: none;
+  }
+
+  .filter-row { display: flex; gap: 8px; }
+  .filter-group { flex: 1; }
+  .filter-group label {
+    display: block; font-size: 10px; color: var(--stone);
+    font-weight: 500; letter-spacing: 0.5px; margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+  .filter-group select {
+    width: 100%;
+    border: 1.5px solid var(--line); border-radius: 6px;
+    padding: 7px 26px 7px 9px;
+    font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper); color: var(--ink);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center;
+    cursor: pointer; outline: none; transition: border-color 0.2s;
+  }
+  .filter-group select:focus { border-color: var(--red); }
+
+  /* Day buttons */
+  .day-filter { margin-top: 10px; }
+  .day-filter label {
+    font-size: 10px; color: var(--stone); font-weight: 500;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    display: block; margin-bottom: 5px;
+  }
+  .day-buttons {
+    display: flex; gap: 5px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+  }
+  .day-buttons::-webkit-scrollbar { display: none; }
+  .day-btn {
+    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
+    border-radius: 20px; padding: 5px 11px; font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+  }
+  .day-btn.active {
+    background: var(--red); border-color: var(--red);
+    color: var(--white); font-weight: 500;
+  }
+
+  /* ── RESULT BAR ── */
+  .result-bar {
+    padding: 9px 14px; font-size: 12px; color: var(--stone);
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--line); background: var(--white);
+  }
+  .result-bar strong { color: var(--red); font-weight: 700; font-size: 15px; }
+  .clear-btn {
+    border: none; background: none; color: var(--red);
+    font-size: 12px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; text-decoration: underline;
+  }
+
+  /* ── CARDS ── */
+  .card-list { padding: 10px 10px 60px; }
+
+  .card {
+    background: var(--white);
+    border-radius: 12px; margin-bottom: 9px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    overflow: hidden; cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .card.expanded { border-color: var(--red); }
+
+  .card-header {
+    padding: 12px 13px 7px;
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 8px;
+  }
+  .card-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--ink); line-height: 1.3; flex: 1;
+  }
+  .status-badge {
+    flex-shrink: 0; font-size: 10px; font-weight: 500;
+    padding: 3px 7px; border-radius: 10px; letter-spacing: 0.5px; margin-top: 2px;
+  }
+  .s-open  { background: var(--open-bg);  color: var(--open-txt); }
+  .s-pause { background: var(--pause-bg); color: var(--pause-txt); }
+  .s-prep  { background: var(--prep-bg);  color: var(--prep-txt); }
+
+  .card-meta { padding: 0 13px 8px; }
+  .meta-row {
+    display: flex; gap: 5px; margin-bottom: 3px;
+    align-items: flex-start; font-size: 12px; color: var(--stone);
+  }
+  .meta-icon { flex-shrink: 0; font-size: 13px; line-height: 1.45; }
+  .meta-text { line-height: 1.5; }
+
+  .tags { padding: 0 13px 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    background: var(--red-light); color: var(--red-dark); font-weight: 500;
+  }
+  .tag-gray { background: #f0ece6; color: var(--stone); }
+
+  /* ── EXPANDED DETAIL ── */
+  .card-detail {
+    display: none; border-top: 1px solid var(--line);
+    padding: 11px 13px; background: var(--paper);
+  }
+  .card.expanded .card-detail { display: block; }
+
+  .detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 9px; margin-bottom: 10px;
+  }
+  .detail-label {
+    font-size: 10px; letter-spacing: 0.5px; color: var(--stone);
+    text-transform: uppercase; margin-bottom: 2px;
+  }
+  .detail-value { font-size: 13px; color: var(--ink); line-height: 1.5; }
+
+  .note-box {
+    background: #fffae8; border-left: 3px solid #f0c84a;
+    border-radius: 0 6px 6px 0; padding: 7px 10px;
+    font-size: 12px; color: #6b5500; line-height: 1.5; margin-bottom: 10px;
+  }
+
+  /* MAP BUTTON */
+  .map-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 10px;
+    background: #1a73e8; color: white;
+    border-radius: 9px; text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    font-family: 'Noto Sans TC', sans-serif;
+    margin-bottom: 9px; transition: opacity 0.15s;
+  }
+  .map-btn:active { opacity: 0.8; }
+  .map-btn-icon { font-size: 16px; }
+
+  .link-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  .link-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 11px; border-radius: 8px; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    text-decoration: none; font-weight: 500; transition: opacity 0.15s;
+  }
+  .link-btn:active { opacity: 0.7; }
+  .link-ig  { background: #fcedf5; color: #c2366a; }
+  .link-fb  { background: #edf0fa; color: #2d4b9b; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--stone); }
+  .empty-state .big { font-size: 38px; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  #mainContent { display: none; }
+
+  /* ── LOCATE ── */
+  .locate-btn {
+    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
+    border-radius: 7px; padding: 5px 10px; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
+  }
+  .locate-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
+  .dist-badge {
+    font-size: 11px; color: #1a73e8; background: #edf3ff;
+    border-radius: 10px; padding: 1px 7px; font-weight: 500;
+  }
+
+  /* ── VIEW TOGGLE ── */
+  .result-actions { display: flex; gap: 8px; align-items: center; }
+  .view-toggle { display: flex; border: 1.5px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .view-btn {
+    border: none; background: var(--paper); color: var(--stone);
+    padding: 5px 11px; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--red); color: white; }
+
+  .map-ctrl-btn {
+    width: 34px; height: 34px; border-radius: 6px;
+    border: 2px solid rgba(0,0,0,0.2); background: white;
+    font-size: 17px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+  }
+  .map-ctrl-btn:active { background: #f0f0f0; }
+  .map-ctrl-btn.following { background: #1a73e8; border-color: #1a73e8; }
+  .map-ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ── MAP ── */
+  #mapContainer { display: none; height: calc(100dvh - 270px); min-height: 300px; }
+  .leaflet-popup-content-wrapper { border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; }
+  .leaflet-popup-content { margin: 12px 14px; }
+  .map-popup-name { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
+  .map-popup-meta { font-size: 12px; color: var(--stone); margin-bottom: 3px; line-height: 1.5; }
+  .map-popup-note { font-size: 11px; background: #fffae8; border-left: 2px solid #f0c84a; padding: 4px 7px; margin-top: 6px; border-radius: 0 4px 4px 0; color: #6b5500; line-height: 1.5; }
+  .map-popup-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <h1>🍜 台灣拉麵協會</h1>
+    <button class="refresh-btn" id="refreshBtn">
+      <span class="ri">↻</span> 更新
+    </button>
+  </div>
+  <div class="last-updated" id="lastUpdated">資料載入中…</div>
+</header>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="loader"></div>
+  <div class="loading-text">載入最新店家資料…</div>
+</div>
+
+<div id="errorScreen" class="error-screen" style="display:none">
+  <div class="big">⚠️</div>
+  <p>資料載入失敗<br>請確認網路後再試</p>
+  <button class="retry-btn" id="retryBtn">重新載入</button>
+</div>
+
+<div id="mainContent">
+  <div class="filter-bar">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜尋店名、地址、派系…" autocomplete="off">
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>縣市</label>
+        <select id="cityFilter"><option value="">全部縣市</option></select>
+      </div>
+      <div class="filter-group">
+        <label>營業時間</label>
+        <select id="timeFilter">
+          <option value="">不限時間</option>
+        </select>
+      </div>
+    </div>
+    <div class="day-filter">
+      <label>營業日</label>
+      <div class="day-buttons">
+        <button class="day-btn active" data-day="">全部</button>
+        <button class="day-btn" data-day="一">週一</button>
+        <button class="day-btn" data-day="二">週二</button>
+        <button class="day-btn" data-day="三">週三</button>
+        <button class="day-btn" data-day="四">週四</button>
+        <button class="day-btn" data-day="五">週五</button>
+        <button class="day-btn" data-day="六">週六</button>
+        <button class="day-btn" data-day="日">週日</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-bar">
+    <div>共 <strong id="resultCount">0</strong> 間店家</div>
+    <div class="result-actions">
+      <button class="locate-btn" id="locateBtn">📍 定位</button>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewList">☰ 清單</button>
+        <button class="view-btn" id="viewMap">🗺 地圖</button>
+      </div>
+      <button class="clear-btn" id="clearBtn">清除篩選</button>
+    </div>
+  </div>
+
+  <div class="card-list" id="cardList"></div>
+  <div id="mapContainer"></div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+// 讀同一個 repo 下的 data.json（由 GitHub Actions 自動同步自 Google Sheets）
+const DATA_URL = './data.json';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let ALL_DATA   = [];
+let selectedDay  = '';
+let expandedCard = null;
+let currentView  = 'list';
+let leafletMap   = null;
+let markerLayer  = null;
+let userLat      = null;
+let userLng      = null;
+let userMarker   = null;
+let watchId      = null;
+let followMode   = false;
+
+// ── Build time options (00:00 ~ 23:30, step 30min) ────────────────────────
+function buildTimeOptions() {
+  const sel = document.getElementById('timeFilter');
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const label = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      const opt = document.createElement('option');
+      opt.value = label; opt.textContent = label;
+      sel.appendChild(opt);
+    }
+  }
+}
+buildTimeOptions();
+
+// ── Load ───────────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('errorScreen').style.display   = 'none';
+  document.getElementById('mainContent').style.display   = 'none';
+  document.getElementById('refreshBtn').classList.add('spinning');
+
+  try {
+    const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+
+    ALL_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
+
+    // City dropdown
+    const cities = [...new Set(ALL_DATA.map(d => d['縣市']).filter(Boolean))].sort();
+    const sel = document.getElementById('cityFilter');
+    sel.innerHTML = '<option value="">全部縣市</option>';
+    cities.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c; sel.appendChild(o);
+    });
+
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent =
+      `資料更新於 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}　共 ${ALL_DATA.length} 間`;
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display   = 'block';
+    render();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('errorScreen').style.display   = 'block';
+    document.getElementById('lastUpdated').textContent = '載入失敗';
+  } finally {
+    document.getElementById('refreshBtn').classList.remove('spinning');
+  }
+}
+
+// ── Time helpers ───────────────────────────────────────────────────────────
+// Parse "HH:MM" → minutes from midnight
+function toMins(str) {
+  const m = str.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1]) * 60 + parseInt(m[2]);
+}
+
+// Given a raw 營業時段 string, return array of {start, end} in minutes
+// Handles formats like:
+//   "11:30-14:00\n17:00-21:00"
+//   "11:30–14:00、17:00–21:00"
+//   "12:00-21:00"
+function parseHours(raw) {
+  if (!raw) return [];
+  // normalize separators
+  const normalized = raw.replace(/[–—]/g, '-').replace(/、/g, '\n');
+  // find all HH:MM-HH:MM patterns
+  const slots = [];
+  const re = /(\d{1,2}:\d{2})\s*[-~～]\s*(\d{1,2}:\d{2})/g;
+  let match;
+  while ((match = re.exec(normalized)) !== null) {
+    const start = toMins(match[1]);
+    let   end   = toMins(match[2]);
+    if (start === null || end === null) continue;
+    // Handle overnight (e.g. 17:00-03:00)
+    if (end < start) end += 24 * 60;
+    slots.push({ start, end });
+  }
+  return slots;
+}
+
+// Is a shop open at targetMins?
+function isOpenAt(shop, targetMins) {
+  const slots = parseHours(shop['營業時段']);
+  if (!slots.length) return false;
+  return slots.some(s => targetMins >= s.start && targetMins < s.end);
+}
+
+// ── Filter ─────────────────────────────────────────────────────────────────
+const DAY_ORDER = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7};
+
+function shopDays(shop) {
+  const raw = shop['營業日'] || '';
+  if (!raw || raw === '不固定') return [];
+  return raw.split(',').map(d => d.trim()).filter(d => d in DAY_ORDER);
+}
+
+function formatDayStr(shop) {
+  const days = shopDays(shop);
+  if (!days.length) return shop['營業日'] || '';
+  return '週' + days.sort((a,b) => DAY_ORDER[a]-DAY_ORDER[b]).join('、');
+}
+
+function getFiltered() {
+  const query  = document.getElementById('searchInput').value.trim().toLowerCase();
+  const city   = document.getElementById('cityFilter').value;
+  const timeVal = document.getElementById('timeFilter').value;
+
+  const result = ALL_DATA.filter(shop => {
+    if (city && shop['縣市'] !== city) return false;
+
+    if (selectedDay) {
+      const raw = shop['營業日'] || '';
+      if (raw === '不固定') return false;
+      if (!raw.split(',').map(d=>d.trim()).includes(selectedDay)) return false;
+    }
+
+    if (timeVal) {
+      const mins = toMins(timeVal);
+      if (mins === null) return false;
+      if (!isOpenAt(shop, mins)) return false;
+    }
+
+    if (query) {
+      const hay = [shop['店名'],shop['地址'],shop['派系'],shop['類型'],shop['醬底']].join(' ').toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+
+  if (userLat !== null) {
+    result.sort((a, b) => {
+      const da = shopDist(a) ?? Infinity;
+      const db = shopDist(b) ?? Infinity;
+      return da - db;
+    });
+  }
+  return result;
+}
+
+// ── Geolocation ────────────────────────────────────────────────────────────
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
+
+function shopDist(shop) {
+  if (userLat === null || !shop.lat || !shop.lng) return null;
+  return haversine(userLat, userLng, parseFloat(shop.lat), parseFloat(shop.lng));
+}
+
+function showUserMarker() {
+  if (!leafletMap || userLat === null) return;
+  if (userMarker) leafletMap.removeLayer(userMarker);
+  userMarker = L.circleMarker([userLat, userLng], {
+    radius: 8, color: '#fff', weight: 2.5, fillColor: '#1a73e8', fillOpacity: 1
+  }).addTo(leafletMap).bindPopup('你在這裡');
+}
+
+function locateUser() {
+  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
+  const btn = document.getElementById('locateBtn');
+  btn.textContent = '⏳ 定位中…';
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    btn.textContent = '📍 已定位';
+    btn.classList.add('located');
+    btn.disabled = false;
+    if (leafletMap) {
+      showUserMarker();
+      leafletMap.setView([userLat, userLng], 15);
+    }
+    render();
+  }, () => {
+    btn.textContent = '📍 定位';
+    btn.disabled = false;
+    alert('無法取得位置，請確認已允許定位權限');
+  });
+}
+
+function toggleFollow() {
+  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
+  if (followMode) {
+    // 關閉跟隨
+    navigator.geolocation.clearWatch(watchId);
+    watchId    = null;
+    followMode = false;
+    const btn = document.querySelector('.map-ctrl-btn.following');
+    if (btn) btn.classList.remove('following');
+  } else {
+    // 開啟跟隨
+    followMode = true;
+    const followBtn = document.getElementById('followMapBtn');
+    if (followBtn) followBtn.classList.add('following');
+    watchId = navigator.geolocation.watchPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      document.getElementById('locateBtn').textContent = '📍 已定位';
+      document.getElementById('locateBtn').classList.add('located');
+      showUserMarker();
+      if (followMode && leafletMap) leafletMap.setView([userLat, userLng]);
+      render();
+    }, () => {
+      followMode = false;
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      const followBtn = document.getElementById('followMapBtn');
+      if (followBtn) followBtn.classList.remove('following');
+    }, { enableHighAccuracy: true });
+  }
+}
+
+// ── Map ────────────────────────────────────────────────────────────────────
+function switchView(v) {
+  currentView = v;
+  document.getElementById('viewList').classList.toggle('active', v === 'list');
+  document.getElementById('viewMap').classList.toggle('active', v === 'map');
+  document.getElementById('cardList').style.display     = v === 'list' ? '' : 'none';
+  document.getElementById('mapContainer').style.display = v === 'map'  ? 'block' : 'none';
+  if (v === 'map' && !leafletMap) initMap();
+  render();
+}
+
+function initMap() {
+  leafletMap  = L.map('mapContainer').setView([23.97, 120.97], 8);
+  markerLayer = L.layerGroup().addTo(leafletMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19
+  }).addTo(leafletMap);
+
+  // 右下角控制組：定位 + 跟隨
+  const MapControls = L.Control.extend({
+    options: { position: 'bottomright' },
+    onAdd() {
+      const wrap = L.DomUtil.create('div', 'map-ctrl-group');
+
+      const locBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
+      locBtn.title = '定位到我的位置';
+      locBtn.innerHTML = '📍';
+      L.DomEvent.on(locBtn, 'click', L.DomEvent.stop);
+      L.DomEvent.on(locBtn, 'click', locateUser);
+
+      const followBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
+      followBtn.id    = 'followMapBtn';
+      followBtn.title = '跟隨我的位置';
+      followBtn.innerHTML = '🧭';
+      L.DomEvent.on(followBtn, 'click', L.DomEvent.stop);
+      L.DomEvent.on(followBtn, 'click', toggleFollow);
+
+      return wrap;
+    }
+  });
+  new MapControls().addTo(leafletMap);
+
+  // 手動拖曳地圖時退出跟隨模式
+  leafletMap.on('dragstart', () => { if (followMode) toggleFollow(); });
+
+  showUserMarker();
+}
+
+function renderMap() {
+  if (!leafletMap) return;
+  markerLayer.clearLayers();
+
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="width:13px;height:13px;background:#C8272D;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
+    iconSize: [13, 13], iconAnchor: [6, 6], popupAnchor: [0, -8]
+  });
+
+  const filtered = getFiltered().filter(s => s.lat && s.lng);
+  if (!filtered.length) return;
+
+  const bounds = [];
+  filtered.forEach(shop => {
+    const lat = parseFloat(shop.lat);
+    const lng = parseFloat(shop.lng);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const dayStr = formatDayStr(shop);
+    const hours  = (shop['營業時段'] || '').replace(/\n/g, '　');
+    const mapUrl = isValidUrl(shop['Map']) ? shop['Map']
+      : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
+
+    const popup = `
+      <div>
+        <div class="map-popup-name">${shop['店名']}</div>
+        ${dayStr ? `<div class="map-popup-meta">📅 ${dayStr}${hours ? '　' + hours : ''}</div>` : ''}
+        ${shop['地址'] ? `<div class="map-popup-meta">📍 ${shop['地址']}</div>` : ''}
+        ${shop['營業備註'] ? `<div class="map-popup-note">${shop['營業備註']}</div>` : ''}
+        <a href="${mapUrl}" target="_blank" class="map-popup-link">開啟 Google 地圖 →</a>
+      </div>`;
+
+    L.marker([lat, lng], { icon }).bindPopup(popup, { maxWidth: 250 }).addTo(markerLayer);
+    bounds.push([lat, lng]);
+  });
+
+  if (bounds.length === 1) {
+    leafletMap.setView(bounds[0], 15);
+  } else if (bounds.length > 1) {
+    leafletMap.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function statusBadge(s) {
+  if (!s || s === '營業中') return '';
+  const cls = s === '暫停營業' ? 's-pause' : s === '籌備中' ? 's-prep' : '';
+  if (!cls) return '';
+  return `<span class="status-badge ${cls}">${s === '暫停營業' ? '暫停' : s}</span>`;
+}
+
+function isValidUrl(s) {
+  return s && s.startsWith('http') && !['無',''].includes(s);
+}
+
+function renderCard(shop) {
+  const dist    = shopDist(shop);
+  const dayStr  = formatDayStr(shop);
+  const hours   = (shop['營業時段'] || '').replace(/\n/g, '　');
+  const offDay  = (shop['店休日']   || '').replace(/,/g, '、');
+  const types   = (shop['類型']     || '').split(',').map(t=>t.trim()).filter(Boolean);
+  const factions= (shop['派系']     || '').split(',').map(t=>t.trim()).filter(Boolean);
+
+  // Map button
+  const hasMap  = isValidUrl(shop['Map']);
+  const mapUrl  = hasMap ? shop['Map']
+    : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
+  const mapBtn  = shop['地址']
+    ? `<a href="${mapUrl}" target="_blank" class="map-btn">
+         <span class="map-btn-icon">📍</span>
+         ${shop['地址']}
+       </a>`
+    : '';
+
+  const links = [];
+  if (isValidUrl(shop['Instagram'])) links.push(`<a href="${shop['Instagram']}" target="_blank" class="link-btn link-ig">📷 Instagram</a>`);
+  if (isValidUrl(shop['Facebook']))  links.push(`<a href="${shop['Facebook']}"  target="_blank" class="link-btn link-fb">👥 Facebook</a>`);
+
+  const detailItems = [
+    shop['支付方式'] ? {l:'支付', v:shop['支付方式']} : null,
+    shop['排隊方式'] ? {l:'排隊', v:shop['排隊方式']} : null,
+    shop['點餐方式'] ? {l:'點餐', v:shop['點餐方式']} : null,
+    shop['醬底']     ? {l:'醬底', v:shop['醬底']}     : null,
+    (shop['吧台數'] || shop['桌位數']) ? {l:'座位', v:
+      [shop['吧台數'] ? `吧台 ${shop['吧台數']}` : '',
+       shop['桌位數'] ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　')} : null,
+  ].filter(Boolean);
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">${shop['店名']}</div>
+      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+        ${dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : ''}
+        ${statusBadge(shop['營業狀態'])}
+      </div>
+    </div>
+    <div class="card-meta">
+      ${dayStr ? `<div class="meta-row"><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></div>` : ''}
+    </div>
+    ${types.length || factions.length ? `
+    <div class="tags">
+      ${types.map(t=>`<span class="tag">${t}</span>`).join('')}
+      ${factions.map(t=>`<span class="tag tag-gray">${t}</span>`).join('')}
+    </div>` : ''}
+    <div class="card-detail">
+      ${mapBtn}
+      ${detailItems.length ? `<div class="detail-grid">${detailItems.map(d=>`<div><div class="detail-label">${d.l}</div><div class="detail-value">${d.v}</div></div>`).join('')}</div>` : ''}
+      ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
+      ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function render() {
+  const filtered = getFiltered();
+  document.getElementById('resultCount').textContent = filtered.length;
+
+  if (currentView === 'map') {
+    renderMap();
+    return;
+  }
+
+  const list = document.getElementById('cardList');
+  expandedCard = null;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="big">🍜</div><p>找不到符合的店家<br>請調整篩選條件</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(renderCard).join('');
+  list.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
+      card.classList.toggle('expanded');
+      expandedCard = card.classList.contains('expanded') ? card : null;
+      if (expandedCard) setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+    });
+  });
+}
+
+// ── Event listeners ────────────────────────────────────────────────────────
+document.querySelectorAll('.day-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDay = btn.dataset.day;
+    render();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('cityFilter').addEventListener('change', render);
+document.getElementById('timeFilter').addEventListener('change', render);
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('viewList').addEventListener('click', () => switchView('list'));
+document.getElementById('viewMap').addEventListener('click',  () => switchView('map'));
+document.getElementById('locateBtn').addEventListener('click', locateUser);
+document.getElementById('retryBtn').addEventListener('click', loadData);
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('cityFilter').value  = '';
+  document.getElementById('timeFilter').value  = '';
+  selectedDay = '';
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.day-btn[data-day=""]').classList.add('active');
+  render();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
