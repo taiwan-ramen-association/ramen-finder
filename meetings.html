@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會議紀錄 | 台灣拉麵協會</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:   #C8272D;
+      --ink:   #1A1A1A;
+      --paper: #FAFAF8;
+      --stone: #8B7355;
+      --line:  #E0DAD0;
+      --muted: #6B6560;
+      --white: #FFFFFF;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-weight: 300;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(250,250,248,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--red); }
+    .nav-back {
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--red); }
+
+    /* MAIN */
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    .page-label {
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-label::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--red);
+    }
+    .page-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      margin-bottom: 56px;
+    }
+
+    /* LIST */
+    .meetings-list { list-style: none; }
+    .meeting-item {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      align-items: center;
+      gap: 32px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.2s;
+    }
+    .meeting-item:first-child { border-top: 1px solid var(--line); }
+    .meeting-item:hover { opacity: 0.6; }
+    .meeting-date {
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .meeting-title {
+      font-size: 14px;
+      letter-spacing: 1px;
+      line-height: 1.6;
+    }
+    .meeting-icon {
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    /* LOADING / EMPTY */
+    #status {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      padding: 40px 0;
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 20px; }
+      main { padding: 60px 20px; }
+      .meeting-item { grid-template-columns: 1fr auto; gap: 16px; }
+      .meeting-date { display: none; }
+      .meeting-title { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-logo">台灣<span>拉麵</span>協會</a>
+    <a href="index.html" class="nav-back">← 返回首頁</a>
+  </nav>
+
+  <main>
+    <p class="page-label">MINUTES</p>
+    <h1 class="page-title">會議紀錄</h1>
+    <p id="status">載入中…</p>
+    <ul class="meetings-list" id="list"></ul>
+  </main>
+
+  <script>
+    fetch('meetings.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const status = document.getElementById('status');
+        const list   = document.getElementById('list');
+        status.remove();
+        if (!data.length) {
+          list.insertAdjacentHTML('afterend', '<p id="status">尚無會議紀錄。</p>');
+          return;
+        }
+        data.forEach(m => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <a class="meeting-item" href="${m.url}" target="_blank" rel="noopener">
+              <span class="meeting-date">${m.date}</span>
+              <span class="meeting-title">${m.title}</span>
+              <span class="meeting-icon">↗</span>
+            </a>`;
+          list.appendChild(li);
+        });
+      })
+      .catch(() => {
+        document.getElementById('status').textContent = '載入失敗，請稍後再試。';
+      });
+  </script>
+</body>
+</html>
