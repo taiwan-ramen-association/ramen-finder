@@ -411,17 +411,6 @@
       text-align: center;
     }
     .announce-confirm:hover { background: var(--red); }
-    .announce-skip {
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--muted);
-      text-align: center;
-      cursor: pointer;
-      text-decoration: none;
-      transition: color 0.2s;
-      padding: 4px;
-    }
-    .announce-skip:hover { color: var(--ink); }
     @media (max-width: 500px) {
       .announce-header { padding: 22px 20px 18px; }
       .announce-body { padding: 20px 20px; }
@@ -687,7 +676,6 @@
       </div>
       <div class="announce-footer">
         <button class="announce-confirm" onclick="closeAnnounce()">確認進入 →</button>
-        <span class="announce-skip" onclick="closeAnnounce()">略過，直接進入網站</span>
       </div>
     </div>
   </div>
@@ -916,6 +904,7 @@
 
       // 顯示 overlay
       document.getElementById('announce-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
 
       // 載入 news.json 填入最新消息
       fetch('news.json?t=' + Date.now())
@@ -976,6 +965,7 @@
       const today = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
       localStorage.setItem('tra_announce_date', today);
       document.getElementById('announce-overlay').classList.remove('open');
+      document.body.style.overflow = '';
     }
 
     // ── APRIL FOOLS: 4/2 00:00 UTC+8 自動關閉 ──
