@@ -615,16 +615,20 @@
       background: var(--line);
       margin-bottom: 40px;
     }
-    .ig-placeholder {
+    .ig-item {
       aspect-ratio: 1;
+      overflow: hidden;
+      display: block;
       background: var(--paper);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--line);
     }
+    .ig-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.2s;
+    }
+    .ig-item:hover img { opacity: 0.8; }
     .ig-link {
       display: inline-flex;
       align-items: center;
@@ -904,12 +908,7 @@
   <section id="contact" class="ig-section">
     <p class="section-label" data-i18n="ig_label">INSTAGRAM</p>
     <h2 class="section-title" data-i18n="ig_title">追蹤我們</h2>
-    <div class="ig-grid">
-      <div class="ig-placeholder">IG POST</div>
-      <div class="ig-placeholder">IG POST</div>
-      <div class="ig-placeholder">IG POST</div>
-      <div class="ig-placeholder">IG POST</div>
-    </div>
+    <div class="ig-grid" id="ig-grid"></div>
     <a href="https://www.instagram.com/twramen.assoc/" target="_blank" class="ig-link" data-i18n="ig_cta">
       @twramen.assoc →
     </a>
@@ -1155,6 +1154,27 @@
             grid.appendChild(slot);
           });
           container.appendChild(grid);
+        });
+      });
+
+    // ── INSTAGRAM ──
+    fetch('instagram.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(posts => {
+        const grid = document.getElementById('ig-grid');
+        if (!grid) return;
+        posts.forEach(p => {
+          const a = document.createElement('a');
+          a.className = 'ig-item';
+          a.href = p.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          const img = document.createElement('img');
+          img.src = p.image;
+          img.alt = 'Instagram post';
+          img.loading = 'lazy';
+          a.appendChild(img);
+          grid.appendChild(a);
         });
       });
 
