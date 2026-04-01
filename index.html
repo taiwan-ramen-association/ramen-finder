@@ -305,6 +305,129 @@
       border-color: var(--red);
     }
 
+    /* ── DAILY ANNOUNCE OVERLAY ── */
+    #announce-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(26, 26, 26, 0.92);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #announce-overlay.open { display: flex; }
+    .announce-card {
+      background: var(--paper);
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .announce-header {
+      background: var(--ink);
+      color: var(--white);
+      padding: 28px 32px 24px;
+      border-bottom: 3px solid var(--red);
+    }
+    .announce-label {
+      font-size: 9px;
+      letter-spacing: 5px;
+      color: rgba(200,39,45,0.8);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .announce-label::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: rgba(200,39,45,0.8);
+    }
+    .announce-site-name {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--white);
+    }
+    .announce-site-name span { color: var(--red); }
+    .announce-body { padding: 28px 32px; }
+    .announce-greeting {
+      font-size: 13px;
+      line-height: 2;
+      color: var(--muted);
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .announce-news-title {
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--red);
+      margin-bottom: 14px;
+    }
+    .announce-news-list { list-style: none; margin-bottom: 24px; }
+    .announce-news-item {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.2s;
+    }
+    .announce-news-item:first-child { border-top: 1px solid var(--line); }
+    .announce-news-item.has-link:hover { opacity: 0.6; cursor: pointer; }
+    .announce-news-date { color: var(--muted); font-size: 10px; letter-spacing: 1px; padding-top: 2px; }
+    .announce-news-tag {
+      display: inline-block;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 1px 6px;
+      margin-bottom: 4px;
+    }
+    .announce-footer { padding: 0 32px 28px; display: flex; flex-direction: column; gap: 10px; }
+    .announce-confirm {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--ink);
+      color: var(--white);
+      border: none;
+      font-size: 12px;
+      letter-spacing: 3px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-align: center;
+    }
+    .announce-confirm:hover { background: var(--red); }
+    .announce-skip {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s;
+      padding: 4px;
+    }
+    .announce-skip:hover { color: var(--ink); }
+    @media (max-width: 500px) {
+      .announce-header { padding: 22px 20px 18px; }
+      .announce-body { padding: 20px 20px; }
+      .announce-footer { padding: 0 20px 20px; }
+    }
+
     /* ── APRIL FOOLS ── */
     .btn-live {
       display: inline-flex;
@@ -548,6 +671,27 @@
 </head>
 <body>
 
+  <!-- DAILY ANNOUNCE OVERLAY -->
+  <div id="announce-overlay">
+    <div class="announce-card">
+      <div class="announce-header">
+        <p class="announce-label">NOTICE · 公告</p>
+        <div class="announce-site-name">台灣<span>拉麵</span>協會</div>
+      </div>
+      <div class="announce-body">
+        <p class="announce-greeting" id="announce-greeting">歡迎來到台灣拉麵協會官方網站。</p>
+        <p class="announce-news-title">LATEST NEWS · 最新消息</p>
+        <ul class="announce-news-list" id="announce-news-list">
+          <li style="font-size:12px;color:var(--muted);padding:12px 0;">載入中…</li>
+        </ul>
+      </div>
+      <div class="announce-footer">
+        <button class="announce-confirm" onclick="closeAnnounce()">確認進入 →</button>
+        <span class="announce-skip" onclick="closeAnnounce()">略過，直接進入網站</span>
+      </div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav>
     <a href="index.html" class="nav-logo">台灣<span>拉麵</span>協會</a>
@@ -763,6 +907,77 @@
   </div>
 
   <script>
+    // ── DAILY ANNOUNCE ──
+    (function() {
+      const key = 'tra_announce_date';
+      const today = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+      const seen  = localStorage.getItem(key);
+      if (seen === today) return; // 今天已看過，不顯示
+
+      // 顯示 overlay
+      document.getElementById('announce-overlay').classList.add('open');
+
+      // 載入 news.json 填入最新消息
+      fetch('news.json?t=' + Date.now())
+        .then(r => r.json())
+        .then(data => {
+          const list = document.getElementById('announce-news-list');
+          list.innerHTML = '';
+
+          // 愚人節限定：4/2 00:00 UTC+8 前加入彩蛋項目
+          const aprilDeadline = new Date('2026-04-02T00:00:00+08:00');
+          if (Date.now() < aprilDeadline.getTime()) {
+            const aprilItem = document.createElement('li');
+            aprilItem.innerHTML = `
+              <a class="announce-news-item has-link" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener">
+                <span class="announce-news-date">2026/04/01</span>
+                <span>
+                  <span class="announce-news-tag">NEW</span><br>
+                  <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <span class="live-dot"></span>即時排隊情報系統正式上線
+                  </span>
+                </span>
+              </a>`;
+            list.appendChild(aprilItem);
+          }
+
+          // 最新 3 筆 news
+          data.slice(0, 3).forEach(item => {
+            const li = document.createElement('li');
+            if (item.url) {
+              li.innerHTML = `
+                <a class="announce-news-item has-link" href="${item.url}" target="_blank" rel="noopener">
+                  <span class="announce-news-date">${item.date}</span>
+                  <span><span class="announce-news-tag">${item.tag}</span><br>${item.title}</span>
+                </a>`;
+            } else {
+              li.innerHTML = `
+                <div class="announce-news-item">
+                  <span class="announce-news-date">${item.date}</span>
+                  <span><span class="announce-news-tag">${item.tag}</span><br>${item.title}</span>
+                </div>`;
+            }
+            list.appendChild(li);
+          });
+
+          // 問候語（早/午/晚）
+          const hr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour: 'numeric', hour12: false }) | 0;
+          const greet = hr < 12 ? '早安！' : hr < 18 ? '午安！' : '晚安！';
+          document.getElementById('announce-greeting').textContent =
+            greet + '歡迎來到台灣拉麵協會官方網站。以下是最新公告，請確認後繼續瀏覽。';
+        })
+        .catch(() => {
+          document.getElementById('announce-news-list').innerHTML =
+            '<li style="font-size:12px;color:var(--muted);padding:12px 0;">暫無公告。</li>';
+        });
+    })();
+
+    function closeAnnounce() {
+      const today = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+      localStorage.setItem('tra_announce_date', today);
+      document.getElementById('announce-overlay').classList.remove('open');
+    }
+
     // ── APRIL FOOLS: 4/2 00:00 UTC+8 自動關閉 ──
     (function() {
       const deadline = new Date('2026-04-02T00:00:00+08:00');
