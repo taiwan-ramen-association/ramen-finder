@@ -60,6 +60,21 @@ jobs:
                   if k in row:
                       row[k] = fix_date(row[k])
 
+          # 自動從地址解析縣市與鄉鎮市區
+          def parse_city_district(addr):
+              m = re.match(r'^(.{2,3}[市縣])(.{1,4}[區市鎮鄉])', addr)
+              if m:
+                  return m.group(1), m.group(2)
+              return '', ''
+
+          for row in rows:
+              if not str(row.get('縣市','')).strip() or not str(row.get('鄉鎮市區','')).strip():
+                  city, dist = parse_city_district(str(row.get('地址','')))
+                  if not str(row.get('縣市','')).strip():
+                      row['縣市'] = city
+                  if not str(row.get('鄉鎮市區','')).strip():
+                      row['鄉鎮市區'] = dist
+
           with open('data.json', 'w', encoding='utf-8') as f:
               json.dump(rows, f, ensure_ascii=False, indent=2)
 
@@ -143,6 +158,40 @@ jobs:
           git add data.json
           git diff --cached --quiet && echo "No changes" || git commit -m "Auto-sync from Google Sheets $(date '+%Y-%m-%d %H:%M') UTC"
           git push
+
+      - name: Backup data.json to backups branch
+        run: |
+          DATE=$(TZ='Asia/Taipei' date '+%Y-%m-%d')
+          CUTOFF=$(TZ='Asia/Taipei' date -d '30 days ago' '+%Y-%m-%d')
+          BACKUP_FILE="data_${DATE}.json"
+
+          git fetch origin backups 2>/dev/null || true
+
+          if git ls-remote --exit-code origin backups > /dev/null 2>&1; then
+            git worktree add /tmp/backups backups
+          else
+            git worktree add --orphan -b backups /tmp/backups
+          fi
+
+          # 複製今日備份
+          cp data.json "/tmp/backups/${BACKUP_FILE}"
+
+          cd /tmp/backups
+
+          # 清除 30 天前的舊備份
+          for f in data_*.json; do
+            file_date="${f#data_}"
+            file_date="${file_date%.json}"
+            if [[ "$file_date" < "$CUTOFF" ]]; then
+              git rm "$f" && echo "Removed old backup: $f"
+            fi
+          done
+
+          git add "${BACKUP_FILE}"
+          git diff --cached --quiet \
+            && echo "Backup ${DATE} already exists, skipping" \
+            || git commit -m "Backup ${DATE} (pruned files older than ${CUTOFF})"
+          git push origin backups
 
   # ── JOB 2：data.json → Google Sheets ──────────────────────────────────────
   json_to_sheets:
