@@ -411,6 +411,45 @@
       text-align: center;
     }
     .announce-confirm:hover { background: var(--red); }
+
+    /* ── APRIL FOOLS TOAST ── */
+    #april-toast {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    #april-toast.show { display: flex; }
+    .april-toast-inner {
+      text-align: center;
+      animation: aprilPop 2.8s ease forwards;
+    }
+    .april-toast-text {
+      font-family: 'Noto Serif TC', serif;
+      font-size: clamp(48px, 12vw, 96px);
+      font-weight: 900;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      text-shadow: 0 4px 32px rgba(200,39,45,0.3);
+    }
+    .april-toast-sub {
+      font-size: clamp(13px, 3vw, 18px);
+      letter-spacing: 4px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    @keyframes aprilPop {
+      0%   { opacity: 0; transform: scale(0.5); }
+      15%  { opacity: 1; transform: scale(1.08); }
+      25%  { transform: scale(0.97); }
+      35%  { transform: scale(1); }
+      70%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.05); }
+    }
     @media (max-width: 500px) {
       .announce-header { padding: 22px 20px 18px; }
       .announce-body { padding: 20px 20px; }
@@ -680,6 +719,14 @@
     </div>
   </div>
 
+  <!-- APRIL FOOLS TOAST -->
+  <div id="april-toast">
+    <div class="april-toast-inner">
+      <div class="april-toast-text">愚人節快樂</div>
+      <div class="april-toast-sub">APRIL FOOLS' DAY 🎉</div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav>
     <a href="index.html" class="nav-logo">台灣<span>拉麵</span>協會</a>
@@ -895,6 +942,9 @@
   </div>
 
   <script>
+    // ── APRIL FOOLS FLAG ──
+    let _aprilClicked = false;
+
     // ── SCROLL LOCK (iOS / Android fix) ──
     function lockScroll() {
       const y = window.scrollY;
@@ -941,6 +991,7 @@
                   </span>
                 </span>
               </a>`;
+            aprilItem.querySelector('a').addEventListener('click', () => { _aprilClicked = true; });
             list.appendChild(aprilItem);
           }
 
@@ -980,6 +1031,12 @@
       localStorage.setItem('tra_announce_date', today);
       document.getElementById('announce-overlay').classList.remove('open');
       unlockScroll();
+      if (_aprilClicked) {
+        _aprilClicked = false;
+        const toast = document.getElementById('april-toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2800);
+      }
     }
 
     // ── APRIL FOOLS: 4/2 00:00 UTC+8 自動關閉 ──
