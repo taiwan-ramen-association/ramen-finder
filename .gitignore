@@ -12,6 +12,11 @@ tools/check_*.txt
 test_coords.py
 scrape_maps_list.py
 
+# 含 API Key，僅限本機
+tools/compare_hours.py
+tools/diff_report.csv
+tools/test_one_shop.json
+
 # Python
 __pycache__/
 *.pyc

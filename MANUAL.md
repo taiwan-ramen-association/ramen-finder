@@ -27,10 +27,12 @@
 ├── image/              IG 貼文圖片
 │
 ├── tools/              本機工具（Python 腳本）
-│   ├── geocode.py          補齊店家座標
+│   ├── setup_data.py       一鍵：更新行政區 + 補縣市 + 補座標
+│   ├── geocode.py          單獨補齊店家座標（含模式2批次重跑）
 │   ├── excel_to_json.py    xlsx → data.json
 │   ├── json_to_excel.py    data.json → xlsx（方便用 Excel 編輯）
-│   ├── fetch_districts.py  更新行政區劃清單
+│   ├── compare_hours.py    比對 Google Places 營業時間
+│   ├── scrape_maps_list.py 從 Google Maps 清單批次爬取店家資料
 │   ├── districts.json      內政部行政區劃資料（自動維護）
 │   └── data.xlsx           Excel 工作檔（不納入版控）
 │
@@ -130,7 +132,7 @@ python tools/json_to_excel.py
 
 # 2. 用 Excel 開啟 tools/data.xlsx 編輯後存檔
 
-# 3. 轉回 JSON
+# 3. 轉回 JSON（會自動正規化營業時段格式）
 python tools/excel_to_json.py
 
 # 4. Push
@@ -139,23 +141,55 @@ git commit -m "更新店家資料"
 git push
 ```
 
+> `json_to_excel.py` 和 `excel_to_json.py` 都會自動正規化營業時段格式：
+> 統一破折號為全形（`–`）、多時段中間以頓號分隔（`12:00–14:00、17:00–21:00`）
+
 ---
 
-### 補齊店家座標
+### 補齊店家資料（一鍵）
+
+新增店家後，若縣市／鄉鎮市區或座標欄位為空，執行：
 
 ```bash
-python tools/geocode.py
+python tools/setup_data.py
 ```
 
-執行後選擇模式：
-- `1`：只補缺少座標的店家
-- `2`：重新更正所有店家座標
+依序執行：
+1. 從內政部 API 更新行政區劃清單
+2. 自動從地址填入縣市／鄉鎮市區（僅補空白欄位）
+3. 自動補齊 lat/lng 座標
+
+> 所有步驟均使用免費 API，無需 API Key。
 
 ---
 
-### 更新行政區劃清單
+### 比對 Google Places 營業時間
 
-通常不需要手動執行（每月 1 日自動更新）。若需要立即更新：
+```bash
+python tools/compare_hours.py
+```
+
+逐一比對「營業中」店家的本地時段與 Google Maps 資料：
+
+| 狀態 | 說明 |
+|------|------|
+| ✅ 吻合 | 無需處理 |
+| 📋 本地缺資料 | 自動從 Google 補填週一～週日 |
+| 🔄 有差異 | 自動以 Google 為準更新 |
+| ⚠️ Google 無資料 | 疑似歇業或暫停，**需人工確認** |
+| ❓ 找不到店家 | Place ID 搜尋失敗，需人工確認 |
+
+執行完畢輸出：
+- `tools/diff_report.csv`：所有店家比對結果總表
+- `tools/compare_hours_log.txt`：詳細差異紀錄
+
+> 需要 Google Places API Key（明碼寫在腳本中，僅供本機使用，請勿 push）
+
+---
+
+### 單獨更新行政區劃清單
+
+通常不需要手動執行（每月 1 日自動更新，`setup_data.py` 也會執行此步驟）。若需要立即更新：
 
 ```bash
 python tools/fetch_districts.py
