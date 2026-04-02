@@ -518,7 +518,12 @@ function isOpenAt(timeStr, targetMins) {
 // ── Filter ─────────────────────────────────────────────────────────────────
 const DAY_ORDER = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7};
 
+const ALL_DAYS = ['一','二','三','四','五','六','日'];
+
 function shopDays(shop) {
+  const days = ALL_DAYS.filter(d => shop['週'+d]);
+  if (days.length) return days;
+  // fallback：沒有週X資料時讀舊欄位
   const raw = shop['營業日'] || '';
   if (!raw || raw === '不固定') return [];
   return raw.split(',').map(d => d.trim()).filter(d => d in DAY_ORDER);
@@ -545,8 +550,15 @@ function getFiltered() {
     if (timeVal) {
       const mins = toMins(timeVal);
       if (mins === null) return false;
-      const timeStr = selectedDay ? shop['週' + selectedDay] : shop['營業時段'];
-      if (!isOpenAt(timeStr, mins)) return false;
+      if (selectedDay) {
+        if (!isOpenAt(shop['週' + selectedDay], mins)) return false;
+      } else {
+        const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
+        const open = hasWeekData
+          ? ALL_DAYS.some(d => isOpenAt(shop['週'+d], mins))
+          : isOpenAt(shop['營業時段'], mins);
+        if (!open) return false;
+      }
     }
 
     if (query) {
@@ -714,7 +726,10 @@ function renderMap() {
     if (isNaN(lat) || isNaN(lng)) return;
 
     const dayStr = formatDayStr(shop);
-    const hours  = (shop['營業時段'] || '').replace(/\n/g, '　');
+    const openTimes = [...new Set(ALL_DAYS.map(d => shop['週'+d]).filter(Boolean))];
+    const hours = openTimes.length === 1 ? openTimes[0].replace(/\n/g, '　')
+      : openTimes.length > 1 ? '依日而異'
+      : (shop['營業時段'] || '').replace(/\n/g, '　');
     const mapUrl = isValidUrl(shop['Map']) ? shop['Map']
       : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
 
@@ -753,8 +768,14 @@ function isValidUrl(s) {
 function renderCard(shop) {
   const dist    = shopDist(shop);
   const dayStr  = formatDayStr(shop);
-  const hours   = (shop['營業時段'] || '').replace(/\n/g, '　');
-  const offDay  = (shop['店休日']   || '').replace(/,/g, '、');
+  const openTimes = [...new Set(ALL_DAYS.map(d => shop['週'+d]).filter(Boolean))];
+  const hours = openTimes.length === 1 ? openTimes[0].replace(/\n/g, '　')
+    : openTimes.length > 1 ? '依日而異'
+    : (shop['營業時段'] || '').replace(/\n/g, '　');
+  const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
+  const offDay = hasWeekData
+    ? ALL_DAYS.filter(d => !shop['週'+d]).join('、')
+    : (shop['店休日'] || '').replace(/,/g, '、');
   const types   = (shop['類型']     || '').split(',').map(t=>t.trim()).filter(Boolean);
   const factions= (shop['派系']     || '').split(',').map(t=>t.trim()).filter(Boolean);
 
