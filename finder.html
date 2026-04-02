@@ -508,9 +508,9 @@ function parseHours(raw) {
   return slots;
 }
 
-// Is a shop open at targetMins?
-function isOpenAt(shop, targetMins) {
-  const slots = parseHours(shop['營業時段']);
+// Is a shop open at targetMins given a time string?
+function isOpenAt(timeStr, targetMins) {
+  const slots = parseHours(timeStr);
   if (!slots.length) return false;
   return slots.some(s => targetMins >= s.start && targetMins < s.end);
 }
@@ -539,15 +539,14 @@ function getFiltered() {
     if (city && shop['縣市'] !== city) return false;
 
     if (selectedDay) {
-      const raw = shop['營業日'] || '';
-      if (raw === '不固定') return false;
-      if (!raw.split(',').map(d=>d.trim()).includes(selectedDay)) return false;
+      if (!shop['週' + selectedDay]) return false;
     }
 
     if (timeVal) {
       const mins = toMins(timeVal);
       if (mins === null) return false;
-      if (!isOpenAt(shop, mins)) return false;
+      const timeStr = selectedDay ? shop['週' + selectedDay] : shop['營業時段'];
+      if (!isOpenAt(timeStr, mins)) return false;
     }
 
     if (query) {
