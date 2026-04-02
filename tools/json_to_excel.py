@@ -16,7 +16,7 @@ except ImportError:
 
 # ── 地址解析 ──────────────────────────────────────────────────────────────────
 def _load_districts():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'districts.json')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'districts.json')  # tools/districts.json
     try:
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -39,9 +39,10 @@ def parse_city_district(addr):
     return '', ''
 
 # ── 路徑設定 ──────────────────────────────────────────────────────────────────
-script_dir = os.path.dirname(os.path.abspath(__name__))
-json_path  = os.path.join(script_dir, 'data.json')
-xlsx_path  = os.path.join(script_dir, 'data.xlsx')
+tools_dir  = os.path.dirname(os.path.abspath(__file__))
+root_dir   = os.path.dirname(tools_dir)
+json_path  = os.path.join(root_dir, 'data.json')
+xlsx_path  = os.path.join(tools_dir, 'data.xlsx')
 
 # ── 讀取 JSON ─────────────────────────────────────────────────────────────────
 print('📂 讀取 data.json...')

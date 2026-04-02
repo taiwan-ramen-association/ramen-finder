@@ -18,8 +18,9 @@ except ImportError:
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-json_path  = os.path.join(script_dir, 'data.json')
+tools_dir  = os.path.dirname(os.path.abspath(__file__))
+root_dir   = os.path.dirname(tools_dir)
+json_path  = os.path.join(root_dir, 'data.json')
 
 # ── 模式選擇 ───────────────────────────────────────────────────────────────────
 print('模式選擇：')
