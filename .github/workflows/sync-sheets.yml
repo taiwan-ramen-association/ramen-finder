@@ -77,10 +77,13 @@ jobs:
           except FileNotFoundError:
               _districts = {}
 
+          def strip_postal(addr):
+              return re.sub(r'^\d{3,6}', '', str(addr)).strip()
+
           def parse_city_district(addr):
               if not addr or not _districts:
                   return '', ''
-              addr_n = addr.replace('台', '臺')
+              addr_n = strip_postal(addr).replace('台', '臺')
               for county, towns in _districts.items():
                   if addr_n.startswith(county):
                       rest = addr_n[len(county):]
@@ -90,6 +93,8 @@ jobs:
               return '', ''
 
           for row in rows:
+              if str(row.get('地址', '')).strip():
+                  row['地址'] = strip_postal(row['地址'])
               if not str(row.get('縣市','')).strip() or not str(row.get('鄉鎮市區','')).strip():
                   city, dist = parse_city_district(str(row.get('地址','')))
                   if not str(row.get('縣市','')).strip():
@@ -178,7 +183,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
-          git diff --cached --quiet && echo "No changes" || git commit -m "Auto-sync from Google Sheets $(date '+%Y-%m-%d %H:%M') UTC [skip-sheets]"
+          git diff --cached --quiet && echo "No changes" || git commit -m "Auto-sync from Google Sheets $(date '+%Y-%m-%d %H:%M') UTC"
 
           git push
 

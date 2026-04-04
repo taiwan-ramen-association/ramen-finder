@@ -98,6 +98,12 @@ def parse_city_district(addr):
 
 updated_dist = 0
 for row in rows:
+    # 去除地址欄位開頭的郵遞區號
+    addr = row.get('地址', '')
+    if addr:
+        cleaned = re.sub(r'^\d{3,6}', '', addr).strip()
+        if cleaned != addr:
+            row['地址'] = cleaned
     need_city = not row.get('縣市', '').strip()
     need_dist = not row.get('鄉鎮市區', '').strip()
     if not need_city and not need_dist:
