@@ -187,6 +187,41 @@ jobs:
 
           git push
 
+      - name: Write cleaned data back to Google Sheets
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          python3 << 'EOF'
+          import json, os, gspread
+          from google.oauth2.service_account import Credentials
+
+          key = json.loads(os.environ['SERVICE_ACCOUNT_KEY'])
+          creds = Credentials.from_service_account_info(key, scopes=[
+              'https://www.googleapis.com/auth/spreadsheets'
+          ])
+          gc = gspread.authorize(creds)
+
+          SPREADSHEET_ID = '1kS00wVDgdg11ejcC85Y4_utJ4jaywgUpb-KrhFIp8Mo'
+          sh = gc.open_by_key(SPREADSHEET_ID)
+          ws = sh.worksheet('總表csv')
+
+          with open('data.json', 'r', encoding='utf-8') as f:
+              rows = json.load(f)
+
+          if not rows:
+              print('data.json is empty, skipping')
+              exit(0)
+
+          HEADERS = list(rows[0].keys())
+          values = [HEADERS]
+          for row in rows:
+              values.append([str(row.get(h, '')) for h in HEADERS])
+
+          ws.clear()
+          ws.update('A1', values)
+          print(f'Done: {len(rows)} rows written back to Google Sheets')
+          EOF
+
       - name: Backup data.json to backups branch
         run: |
           DATE=$(TZ='Asia/Taipei' date '+%Y-%m-%d')
