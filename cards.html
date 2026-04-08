@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="icon/03.png">
+  <title>聊天卡牌 | 台灣拉麵協會</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --c0: #F5E4A8;   /* 😊 warm yellow */
+      --c0-dark: #C8A800;
+      --c1: #B8D8F0;   /* ⭐ sky blue */
+      --c1-dark: #4A90C4;
+      --c2: #F5C4A0;   /* ⭐⭐ orange */
+      --c2-dark: #D4690A;
+      --c3: #E8A0A0;   /* ⭐⭐⭐ red */
+      --c3-dark: #C8272D;
+      --card-w: 340px;
+      --card-h: 500px;
+    }
+
+    body { background: var(--paper); min-height: 100vh; }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 20px 60px;
+      gap: 32px;
+    }
+
+    /* ── HEADER ── */
+    .deck-header {
+      text-align: center;
+    }
+    .deck-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--ink);
+    }
+    .deck-sub {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── MODE SELECTOR ── */
+    .mode-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .mode-btn {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      padding: 7px 16px;
+      border: 1.5px solid var(--line);
+      background: var(--white);
+      color: var(--muted);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .mode-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .mode-btn.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+    .level-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .level-btn {
+      font-size: 12px;
+      letter-spacing: 1px;
+      padding: 6px 14px;
+      border: 1.5px solid var(--line);
+      background: var(--white);
+      color: var(--muted);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .level-btn[data-level="0"].active { background: var(--c0); border-color: var(--c0-dark); color: #7A6000; }
+    .level-btn[data-level="1"].active { background: var(--c1); border-color: var(--c1-dark); color: #1A4A70; }
+    .level-btn[data-level="2"].active { background: var(--c2); border-color: var(--c2-dark); color: #7A3000; }
+    .level-btn[data-level="3"].active { background: var(--c3); border-color: var(--c3-dark); color: #6A0000; }
+
+    /* ── PROGRESS ── */
+    .progress-info {
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .progress-bar-wrap {
+      width: var(--card-w);
+      height: 3px;
+      background: var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--ink);
+      transition: width .4s ease;
+      border-radius: 2px;
+    }
+
+    /* ── CARD SCENE ── */
+    .card-scene {
+      width: var(--card-w);
+      height: var(--card-h);
+      perspective: 1000px;
+      cursor: pointer;
+      position: relative;
+    }
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform .55s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+    .card-scene.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    /* ── CARD BACK ── */
+    .card-back {
+      background: var(--ink);
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .card-back-pattern {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      opacity: .06;
+      background-image: repeating-linear-gradient(
+        45deg,
+        var(--white) 0px,
+        var(--white) 1px,
+        transparent 1px,
+        transparent 12px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        var(--white) 0px,
+        var(--white) 1px,
+        transparent 1px,
+        transparent 12px
+      );
+    }
+    .card-back-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 5px;
+      color: var(--white);
+      text-align: center;
+      line-height: 1.8;
+      z-index: 1;
+    }
+    .card-back-hint {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,.45);
+      z-index: 1;
+    }
+    .tap-icon {
+      font-size: 28px;
+      z-index: 1;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: .5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* ── CARD FRONT ── */
+    .card-front {
+      transform: rotateY(180deg);
+      padding: 32px 28px;
+      justify-content: space-between;
+    }
+    .card-front.level-0 { background: var(--c0); }
+    .card-front.level-1 { background: var(--c1); }
+    .card-front.level-2 { background: var(--c2); }
+    .card-front.level-3 { background: var(--c3); }
+
+    .card-level-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .level-icon { font-size: 20px; line-height: 1; }
+    .level-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      font-weight: 500;
+      opacity: .65;
+    }
+    .card-number {
+      font-size: 10px;
+      letter-spacing: 2px;
+      opacity: .5;
+    }
+
+    .card-question-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 0;
+    }
+    .card-question {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.9;
+      text-align: center;
+      color: rgba(0,0,0,.78);
+    }
+
+    .card-footer-hint {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-align: center;
+      opacity: .45;
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .card-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-draw {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      padding: 14px 36px;
+      background: var(--ink);
+      color: var(--white);
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-draw:hover { opacity: .82; }
+    .btn-draw:active { transform: scale(.97); }
+    .btn-draw:disabled { opacity: .3; cursor: not-allowed; }
+
+    .btn-skip {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 12px;
+      letter-spacing: 2px;
+      padding: 14px 20px;
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--line);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-skip:hover { border-color: var(--muted); color: var(--ink); }
+    .btn-skip:disabled { opacity: .3; cursor: not-allowed; }
+
+    .btn-reset {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color .2s;
+    }
+    .btn-reset:hover { color: var(--ink); }
+
+    /* ── DONE STATE ── */
+    .done-msg {
+      display: none;
+      text-align: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .done-msg.show { display: flex; }
+    .done-emoji { font-size: 40px; }
+    .done-text {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--ink);
+    }
+    .done-sub {
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    /* ── RULES TOGGLE ── */
+    .rules-toggle {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px 0;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .rules-panel {
+      display: none;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px 28px;
+      width: var(--card-w);
+      font-size: 13px;
+      line-height: 2;
+      color: var(--ink);
+    }
+    .rules-panel.show { display: block; }
+    .rules-panel h3 {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 15px;
+      letter-spacing: 3px;
+      margin-bottom: 12px;
+    }
+    .rules-panel ul { padding-left: 16px; }
+    .rules-panel li { margin-bottom: 4px; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 400px) {
+      :root {
+        --card-w: 300px;
+        --card-h: 440px;
+      }
+      .card-question { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">台灣拉麵協會 <span>|</span> TRA</a>
+  <a class="nav-back" href="index.html">← 返回</a>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="deck-header">
+    <div class="deck-title">聊天卡牌</div>
+    <div class="deck-sub">CONVERSATION CARD DECK</div>
+  </div>
+
+  <!-- Mode bar -->
+  <div class="mode-bar">
+    <button class="mode-btn active" data-mode="random">隨機抽牌</button>
+    <button class="mode-btn" data-mode="sequential">階段式</button>
+  </div>
+
+  <!-- Level filters -->
+  <div class="level-filters" id="levelFilters">
+    <button class="level-btn active" data-level="0">😊 暖身</button>
+    <button class="level-btn active" data-level="1">⭐ 生活</button>
+    <button class="level-btn active" data-level="2">⭐⭐ 情緒</button>
+    <button class="level-btn active" data-level="3">⭐⭐⭐ 深度</button>
+  </div>
+
+  <!-- Progress -->
+  <div>
+    <div class="progress-info" id="progressInfo">剩餘 <span id="remaining">100</span> 張</div>
+    <div style="margin-top:8px;">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="card-scene" id="cardScene">
+    <div class="card-inner" id="cardInner">
+      <!-- Back -->
+      <div class="card-face card-back">
+        <div class="card-back-pattern"></div>
+        <div class="card-back-title">聊天<br>卡牌</div>
+        <div class="tap-icon">✦</div>
+        <div class="card-back-hint">點擊翻牌</div>
+      </div>
+      <!-- Front -->
+      <div class="card-face card-front level-0" id="cardFront">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="card-level-tag">
+            <span class="level-icon" id="cardLevelIcon">😊</span>
+            <span class="level-label" id="cardLevelLabel">暖身</span>
+          </div>
+          <span class="card-number" id="cardNumber">#1</span>
+        </div>
+        <div class="card-question-wrap">
+          <div class="card-question" id="cardQuestion">準備好了嗎？</div>
+        </div>
+        <div class="card-footer-hint">可以跳過 · 不強迫回答</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done message (hidden by default) -->
+  <div class="done-msg" id="doneMsg">
+    <div class="done-emoji">🎉</div>
+    <div class="done-text">所有題目完成</div>
+    <div class="done-sub">今天聊得如何？</div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card-actions" id="cardActions">
+    <button class="btn-skip" id="btnSkip" disabled>跳過</button>
+    <button class="btn-draw" id="btnDraw">抽牌</button>
+  </div>
+  <button class="btn-reset" id="btnReset">重新洗牌</button>
+
+  <!-- Rules -->
+  <button class="rules-toggle" id="rulesToggle">玩法說明</button>
+  <div class="rules-panel" id="rulesPanel">
+    <h3>遊戲流程</h3>
+    <ul>
+      <li>所有玩家圍坐，輪流抽牌並回答</li>
+      <li>可選擇「跳過一次」，不強迫回答</li>
+      <li>不評論、不批判，傾聽比回應重要</li>
+    </ul>
+    <br>
+    <h3>選擇模式</h3>
+    <ul>
+      <li><b>隨機抽牌</b>：所有勾選等級混合隨機出現</li>
+      <li><b>階段式</b>：😊 → ⭐ → ⭐⭐ → ⭐⭐⭐ 依序</li>
+    </ul>
+    <br>
+    <h3>建議深度</h3>
+    <ul>
+      <li>輕鬆局：只開 😊 + ⭐</li>
+      <li>一般局：開到 ⭐⭐</li>
+      <li>深聊局：全開</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+// ── CARD DATA ──────────────────────────────────────────────
+const CARDS = [
+  // 😊 Level 0 — Warm-up (20)
+  { id: 1,  level: 0, q: '打開手機，分享一張最近拍的照片與它的故事' },
+  { id: 2,  level: 0, q: '分享一個最近讓你感到幸運的事情' },
+  { id: 3,  level: 0, q: '今天你想感謝的兩件小事是什麼？' },
+  { id: 4,  level: 0, q: '指定兩人做最醜鬼臉並合照' },
+  { id: 5,  level: 0, q: '用一個表情符號代表你現在的狀態' },
+  { id: 6,  level: 0, q: '最近一次讓你笑出來的是什麼？' },
+  { id: 7,  level: 0, q: '幫今天取一個標題' },
+  { id: 8,  level: 0, q: '最近一件讓你心情變好的小事' },
+  { id: 9,  level: 0, q: '現在最想喝什麼？' },
+  { id: 10, level: 0, q: '最近一次覺得時間過很快是在做什麼？' },
+  { id: 11, level: 0, q: '最近有沒有一件「剛剛好」的巧合？' },
+  { id: 12, level: 0, q: '如果今天是電影，你是什麼類型？' },
+  { id: 13, level: 0, q: '最近一次讓你覺得「還不錯」的瞬間' },
+  { id: 14, level: 0, q: '現在最想去的地方（不用理由）' },
+  { id: 15, level: 0, q: '最近最常聽的一首歌' },
+  { id: 16, level: 0, q: '今天有沒有一個讓你放鬆的瞬間' },
+  { id: 17, level: 0, q: '最近一次改變原本計畫是因為什麼' },
+  { id: 18, level: 0, q: '現在比較想聊天還是放空？' },
+  { id: 19, level: 0, q: '最近有沒有一件讓你覺得「好險有做」的事' },
+  { id: 20, level: 0, q: '如果今天提早結束，你會做什麼' },
+
+  // ⭐ Level 1 — Life (30)
+  { id: 21, level: 1, q: '最近最花時間的是什麼？' },
+  { id: 22, level: 1, q: '目前生活重心是什麼？' },
+  { id: 23, level: 1, q: '最近的節奏對你來說舒服嗎？' },
+  { id: 24, level: 1, q: '最近比較忙碌還是鬆散？' },
+  { id: 25, level: 1, q: '最近有沒有固定的日常習慣？' },
+  { id: 26, level: 1, q: '最近做過一個讓自己滿意的決定' },
+  { id: 27, level: 1, q: '最近刻意不做的一件事' },
+  { id: 28, level: 1, q: '最近一次改變原本想法是什麼時候？' },
+  { id: 29, level: 1, q: '最近有沒有優先選擇自己的一次？' },
+  { id: 30, level: 1, q: '最近比較傾向計畫還是隨機？' },
+  { id: 31, level: 1, q: '最近發現自己的一個新反應' },
+  { id: 32, level: 1, q: '最近最常對自己說的一句話' },
+  { id: 33, level: 1, q: '最近有沒有重新認識自己的一刻' },
+  { id: 34, level: 1, q: '最近比較像撐著還是調整？' },
+  { id: 35, level: 1, q: '最近有沒有刻意留時間給自己？' },
+  { id: 36, level: 1, q: '別人眼中的你是什麼樣子？' },
+  { id: 37, level: 1, q: '做過與形象不符的事？' },
+  { id: 38, level: 1, q: '現在的你像以前的你嗎？' },
+  { id: 39, level: 1, q: '最近有沒有一刻很「像自己」？' },
+  { id: 40, level: 1, q: '最近比較像真實自己還是功能型自己？' },
+  { id: 41, level: 1, q: '最近比較重視效率還是感受？' },
+  { id: 42, level: 1, q: '最近比較想獨處還是社交？' },
+  { id: 43, level: 1, q: '最近最想守住的是什麼？' },
+  { id: 44, level: 1, q: '最近最在意的一件小事' },
+  { id: 45, level: 1, q: '最近有沒有改變一個小習慣？' },
+  { id: 46, level: 1, q: '最近是穩定還是變動？' },
+  { id: 47, level: 1, q: '最近是在累積還是在調整？' },
+  { id: 48, level: 1, q: '最近比較有方向還是探索中？' },
+  { id: 49, level: 1, q: '最近生活比較有掌控感還是流動感？' },
+  { id: 50, level: 1, q: '最近最接近你的狀態詞是什麼？' },
+
+  // ⭐⭐ Level 2 — Emotion (30)
+  { id: 51, level: 2, q: '最近一次紅了眼眶' },
+  { id: 52, level: 2, q: '一件曾心碎但現在能接受的事' },
+  { id: 53, level: 2, q: '最近有沒有一件讓你失望的事' },
+  { id: 54, level: 2, q: '最近有沒有一刻覺得孤單' },
+  { id: 55, level: 2, q: '最近有沒有一種情緒反覆出現' },
+  { id: 56, level: 2, q: '委屈時通常怎麼做' },
+  { id: 57, level: 2, q: '心情差時傾向分散還是面對' },
+  { id: 58, level: 2, q: '壓力大時的第一反應' },
+  { id: 59, level: 2, q: '最近一次撐下來的事情' },
+  { id: 60, level: 2, q: '最近如何讓自己好過一點' },
+  { id: 61, level: 2, q: '有沒有想說卻沒說的事' },
+  { id: 62, level: 2, q: '哪種情緒只對特定人表現' },
+  { id: 63, level: 2, q: '最近一次選擇「算了」' },
+  { id: 64, level: 2, q: '最近有沒有壓抑情緒' },
+  { id: 65, level: 2, q: '最近一次表達真實感受是什麼' },
+  { id: 66, level: 2, q: '什麼行為最讓你生氣' },
+  { id: 67, level: 2, q: '生氣時通常如何表達' },
+  { id: 68, level: 2, q: '最近有沒有踩到你的界線' },
+  { id: 69, level: 2, q: '有沒有一種情況你特別容易不舒服' },
+  { id: 70, level: 2, q: '最近有沒有為自己設下界線' },
+  { id: 71, level: 2, q: '最近有沒有好好照顧自己' },
+  { id: 72, level: 2, q: '什麼狀態下你最容易崩' },
+  { id: 73, level: 2, q: '最近一次對自己寬容' },
+  { id: 74, level: 2, q: '有沒有一件事讓你慢慢恢復' },
+  { id: 75, level: 2, q: '最近最需要調整的是什麼' },
+  { id: 76, level: 2, q: '最近比較容易累還是恢復' },
+  { id: 77, level: 2, q: '最近什麼最消耗你' },
+  { id: 78, level: 2, q: '最近什麼最補充你' },
+  { id: 79, level: 2, q: '最近有沒有能讓你喘口氣的時刻' },
+  { id: 80, level: 2, q: '最近你的能量是上升還是下降' },
+
+  // ⭐⭐⭐ Level 3 — Deep (20)
+  { id: 81,  level: 3, q: '想刪除的一段記憶' },
+  { id: 82,  level: 3, q: '一個仍影響你的選擇' },
+  { id: 83,  level: 3, q: '現在人生是選擇還是被推動' },
+  { id: 84,  level: 3, q: '現在人生在哪個階段' },
+  { id: 85,  level: 3, q: '改變你世界觀的一件事' },
+  { id: 86,  level: 3, q: '價值觀有沒有改變' },
+  { id: 87,  level: 3, q: '五年後怎麼看現在' },
+  { id: 88,  level: 3, q: '希望未來記得現在什麼' },
+  { id: 89,  level: 3, q: '曾經很確定但現在動搖的信念' },
+  { id: 90,  level: 3, q: '一段讓你重新定義重要的經歷' },
+  { id: 91,  level: 3, q: '現在是在累積還是轉向' },
+  { id: 92,  level: 3, q: '有沒有一個角色你想放下' },
+  { id: 93,  level: 3, q: '最不想回到哪個狀態' },
+  { id: 94,  level: 3, q: '有沒有一段關係仍影響你' },
+  { id: 95,  level: 3, q: '如果重新來一次會怎麼選' },
+  { id: 96,  level: 3, q: '有沒有一個你還沒完成的課題' },
+  { id: 97,  level: 3, q: '現在的人生更接近誰的期待' },
+  { id: 98,  level: 3, q: '你正在成為誰' },
+  { id: 99,  level: 3, q: '如果人生有標題會是什麼' },
+  { id: 100, level: 3, q: '這一階段你最想留下什麼' },
+];
+
+const LEVEL_META = [
+  { icon: '😊', label: '暖身',  cls: 'level-0' },
+  { icon: '⭐',  label: '生活',  cls: 'level-1' },
+  { icon: '⭐⭐', label: '情緒', cls: 'level-2' },
+  { icon: '⭐⭐⭐', label: '深度', cls: 'level-3' },
+];
+
+// ── STATE ──────────────────────────────────────────────────
+let mode = 'random';           // 'random' | 'sequential'
+let activelevels = new Set([0,1,2,3]);
+let deck = [];                 // remaining cards
+let currentCard = null;
+let isFlipped = false;
+let totalInDeck = 0;
+
+// ── DOM REFS ───────────────────────────────────────────────
+const cardScene   = document.getElementById('cardScene');
+const cardFront   = document.getElementById('cardFront');
+const cardQ       = document.getElementById('cardQuestion');
+const cardLvIco   = document.getElementById('cardLevelIcon');
+const cardLvLbl   = document.getElementById('cardLevelLabel');
+const cardNum     = document.getElementById('cardNumber');
+const btnDraw     = document.getElementById('btnDraw');
+const btnSkip     = document.getElementById('btnSkip');
+const btnReset    = document.getElementById('btnReset');
+const remaining   = document.getElementById('remaining');
+const progressFill= document.getElementById('progressFill');
+const doneMsg     = document.getElementById('doneMsg');
+const cardActions = document.getElementById('cardActions');
+const rulesToggle = document.getElementById('rulesToggle');
+const rulesPanel  = document.getElementById('rulesPanel');
+
+// ── HELPERS ────────────────────────────────────────────────
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildDeck() {
+  const filtered = CARDS.filter(c => activelevels.has(c.level));
+  if (mode === 'random') {
+    deck = shuffle([...filtered]);
+  } else {
+    // sequential: sort by level then shuffle within each level
+    deck = [];
+    for (let l = 0; l < 4; l++) {
+      const lvCards = filtered.filter(c => c.level === l);
+      deck.push(...shuffle(lvCards));
+    }
+  }
+  totalInDeck = deck.length;
+  updateProgress();
+}
+
+function updateProgress() {
+  const left = deck.length;
+  const used = totalInDeck - left;
+  remaining.textContent = left;
+  progressFill.style.width = totalInDeck ? `${(used / totalInDeck) * 100}%` : '0%';
+}
+
+function setCardContent(card) {
+  const meta = LEVEL_META[card.level];
+  cardQ.textContent = card.q;
+  cardLvIco.textContent = meta.icon;
+  cardLvLbl.textContent = meta.label;
+  cardNum.textContent = `#${card.id}`;
+  // update color
+  cardFront.className = `card-face card-front ${meta.cls}`;
+}
+
+function flipToBack() {
+  cardScene.classList.remove('flipped');
+  isFlipped = false;
+}
+
+function flipToFront() {
+  cardScene.classList.add('flipped');
+  isFlipped = true;
+}
+
+function showDone() {
+  doneMsg.classList.add('show');
+  cardActions.style.display = 'none';
+  cardScene.style.display = 'none';
+}
+
+function hideDone() {
+  doneMsg.classList.remove('show');
+  cardActions.style.display = '';
+  cardScene.style.display = '';
+}
+
+function drawCard() {
+  if (deck.length === 0) {
+    showDone();
+    return;
+  }
+  currentCard = deck.shift();
+  setCardContent(currentCard);
+  updateProgress();
+
+  // animate: flip back → wait → flip front
+  flipToBack();
+  setTimeout(() => {
+    flipToFront();
+    btnSkip.disabled = false;
+  }, 60);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+function init() {
+  hideDone();
+  buildDeck();
+  flipToBack();
+  btnSkip.disabled = true;
+  // reset card to default back state
+}
+
+// ── EVENTS ────────────────────────────────────────────────
+cardScene.addEventListener('click', () => {
+  if (isFlipped) {
+    // flip back (peek at back)
+    flipToBack();
+    btnSkip.disabled = false;
+  } else {
+    if (currentCard) flipToFront();
+  }
+});
+
+btnDraw.addEventListener('click', drawCard);
+
+btnSkip.addEventListener('click', () => {
+  // Put current card aside, draw next
+  flipToBack();
+  btnSkip.disabled = true;
+  setTimeout(drawCard, 320);
+});
+
+btnReset.addEventListener('click', () => {
+  init();
+});
+
+// Mode buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    init();
+  });
+});
+
+// Level filter buttons
+document.querySelectorAll('.level-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const lv = parseInt(btn.dataset.level);
+    if (activelevels.has(lv)) {
+      // don't allow deselecting all
+      if (activelevels.size === 1) return;
+      activelevels.delete(lv);
+      btn.classList.remove('active');
+    } else {
+      activelevels.add(lv);
+      btn.classList.add('active');
+    }
+    init();
+  });
+});
+
+// Rules toggle
+rulesToggle.addEventListener('click', () => {
+  rulesPanel.classList.toggle('show');
+  rulesToggle.textContent = rulesPanel.classList.contains('show') ? '收起說明' : '玩法說明';
+});
+
+// ── START ──────────────────────────────────────────────────
+init();
+</script>
+
+</body>
+</html>
