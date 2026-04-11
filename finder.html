@@ -42,40 +42,19 @@
   header {
     background: var(--red);
     color: var(--white);
-    padding: 14px 18px 12px;
+    padding: 10px 18px;
     position: sticky;
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 12px rgba(0,0,0,0.2);
   }
-  .header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
   header h1 {
     font-family: 'Noto Serif TC', serif;
-    font-size: 19px;
+    font-size: 17px;
     font-weight: 900;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
   }
-  .refresh-btn {
-    background: rgba(255,255,255,0.18);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 5px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .refresh-btn:active { background: rgba(255,255,255,0.32); }
-  .refresh-btn.spinning .ri { display: inline-block; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .last-updated { font-size: 10px; opacity: 0.65; margin-top: 3px; }
 
   /* ── LOADING / ERROR ── */
   .loading-screen {
@@ -126,7 +105,7 @@
   }
 
   .filter-row { display: flex; gap: 8px; }
-  .filter-group { flex: 1; }
+  .filter-group { flex: 1; min-width: 0; }
   .filter-group label {
     display: block; font-size: 10px; color: var(--stone);
     font-weight: 500; letter-spacing: 0.5px; margin-bottom: 3px;
@@ -135,38 +114,15 @@
   .filter-group select {
     width: 100%;
     border: 1.5px solid var(--line); border-radius: 6px;
-    padding: 7px 26px 7px 9px;
-    font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
+    padding: 7px 22px 7px 7px;
+    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
     background: var(--paper); color: var(--ink);
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 9px center;
+    background-repeat: no-repeat; background-position: right 7px center;
     cursor: pointer; outline: none; transition: border-color 0.2s;
   }
   .filter-group select:focus { border-color: var(--red); }
-
-  /* Day buttons */
-  .day-filter { margin-top: 10px; }
-  .day-filter label {
-    font-size: 10px; color: var(--stone); font-weight: 500;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    display: block; margin-bottom: 5px;
-  }
-  .day-buttons {
-    display: flex; gap: 5px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px;
-  }
-  .day-buttons::-webkit-scrollbar { display: none; }
-  .day-btn {
-    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
-    border-radius: 20px; padding: 5px 11px; font-size: 13px;
-    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
-  }
-  .day-btn.active {
-    background: var(--red); border-color: var(--red);
-    color: var(--white); font-weight: 500;
-  }
 
   /* ── RESULT BAR ── */
   .result-bar {
@@ -294,12 +250,13 @@
   #mainContent { display: none; }
 
   /* ── LOCATE ── */
-  .locate-btn {
+  .locate-btn, .now-open-btn {
     border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
     border-radius: 7px; padding: 5px 10px; font-size: 13px; cursor: pointer;
     font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
   }
   .locate-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
+  .now-open-btn.active { border-color: #2d7a2d; color: #2d7a2d; background: var(--open-bg); font-weight: 500; }
   .dist-badge {
     font-size: 11px; color: #1a73e8; background: #edf3ff;
     border-radius: 10px; padding: 1px 7px; font-weight: 500;
@@ -339,13 +296,7 @@
 <body>
 
 <header>
-  <div class="header-row">
-    <h1>🍜 台灣拉麵協會</h1>
-    <button class="refresh-btn" id="refreshBtn">
-      <span class="ri">↻</span> 更新
-    </button>
-  </div>
-  <div class="last-updated" id="lastUpdated">資料載入中…</div>
+  <h1>🍜 台灣拉麵協會－拉麵搜尋器</h1>
 </header>
 
 <div id="loadingScreen" class="loading-screen">
@@ -371,22 +322,20 @@
       </div>
       <div class="filter-group">
         <label>營業時間</label>
-        <select id="timeFilter">
-          <option value="">不限時間</option>
-        </select>
+        <select id="timeFilter"><option value="">不限時間</option></select>
       </div>
-    </div>
-    <div class="day-filter">
-      <label>營業日</label>
-      <div class="day-buttons">
-        <button class="day-btn active" data-day="">全部</button>
-        <button class="day-btn" data-day="一">週一</button>
-        <button class="day-btn" data-day="二">週二</button>
-        <button class="day-btn" data-day="三">週三</button>
-        <button class="day-btn" data-day="四">週四</button>
-        <button class="day-btn" data-day="五">週五</button>
-        <button class="day-btn" data-day="六">週六</button>
-        <button class="day-btn" data-day="日">週日</button>
+      <div class="filter-group">
+        <label>營業日</label>
+        <select id="dayFilter">
+          <option value="">全部</option>
+          <option value="一">週一</option>
+          <option value="二">週二</option>
+          <option value="三">週三</option>
+          <option value="四">週四</option>
+          <option value="五">週五</option>
+          <option value="六">週六</option>
+          <option value="日">週日</option>
+        </select>
       </div>
     </div>
   </div>
@@ -394,6 +343,7 @@
   <div class="result-bar">
     <div>共 <strong id="resultCount">0</strong> 間店家</div>
     <div class="result-actions">
+      <button class="now-open-btn" id="nowOpenBtn">🟢 現在營業中</button>
       <button class="locate-btn" id="locateBtn">📍 定位</button>
       <div class="view-toggle">
         <button class="view-btn active" id="viewList">☰ 清單</button>
@@ -413,9 +363,13 @@
 const DATA_URL = './data.json';
 
 // ── State ──────────────────────────────────────────────────────────────────
-let ALL_DATA   = [];
-let serverDate   = new Date(); // 由 fetch Date header 更新，不受裝置時鐘影響
-let selectedDay  = '';
+let ALL_DATA        = [];
+let serverDate      = new Date();
+let serverTimeOffset = 0; // ms，device 與 server 時鐘差
+let selectedDay     = '';
+let isNowOpen       = false;
+
+function serverNow() { return new Date(Date.now() + serverTimeOffset); }
 let expandedCard = null;
 let currentView  = 'list';
 let leafletMap   = null;
@@ -445,13 +399,15 @@ async function loadData() {
   document.getElementById('loadingScreen').style.display = 'flex';
   document.getElementById('errorScreen').style.display   = 'none';
   document.getElementById('mainContent').style.display   = 'none';
-  document.getElementById('refreshBtn').classList.add('spinning');
 
   try {
     const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const dateHeader = res.headers.get('Date');
-    if (dateHeader) serverDate = new Date(dateHeader);
+    if (dateHeader) {
+      serverDate = new Date(dateHeader);
+      serverTimeOffset = serverDate.getTime() - Date.now();
+    }
     const rows = await res.json();
 
     ALL_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
@@ -475,10 +431,6 @@ async function loadData() {
       o.value = c; o.textContent = c; sel.appendChild(o);
     });
 
-    const now = new Date();
-    document.getElementById('lastUpdated').textContent =
-      `資料更新於 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}　共 ${ALL_DATA.length} 間`;
-
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('mainContent').style.display   = 'block';
     render();
@@ -486,9 +438,6 @@ async function loadData() {
     console.error(e);
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('errorScreen').style.display   = 'block';
-    document.getElementById('lastUpdated').textContent = '載入失敗';
-  } finally {
-    document.getElementById('refreshBtn').classList.remove('spinning');
   }
 }
 
@@ -580,9 +529,10 @@ function formatDayStr(shop) {
 }
 
 function getFiltered() {
-  const query  = document.getElementById('searchInput').value.trim().toLowerCase();
-  const city   = document.getElementById('cityFilter').value;
+  const query   = document.getElementById('searchInput').value.trim().toLowerCase();
+  const city    = document.getElementById('cityFilter').value;
   const timeVal = document.getElementById('timeFilter').value;
+  selectedDay   = document.getElementById('dayFilter').value;
 
   const result = ALL_DATA.filter(shop => {
     if (city && shop['縣市'] !== city) return false;
@@ -660,8 +610,17 @@ function showUserMarker() {
 }
 
 function locateUser() {
-  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
   const btn = document.getElementById('locateBtn');
+  if (userLat !== null) {
+    userLat = userLng = null;
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; followMode = false; }
+    if (userMarker && leafletMap) { leafletMap.removeLayer(userMarker); userMarker = null; }
+    btn.textContent = '📍 定位';
+    btn.classList.remove('located');
+    render();
+    return;
+  }
+  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
   btn.textContent = '⏳ 定位中…';
   btn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
@@ -670,16 +629,32 @@ function locateUser() {
     btn.textContent = '📍 已定位';
     btn.classList.add('located');
     btn.disabled = false;
-    if (leafletMap) {
-      showUserMarker();
-      leafletMap.setView([userLat, userLng], 15);
-    }
+    if (leafletMap) { showUserMarker(); leafletMap.setView([userLat, userLng], 15); }
     render();
   }, () => {
     btn.textContent = '📍 定位';
     btn.disabled = false;
     alert('無法取得位置，請確認已允許定位權限');
   });
+}
+
+function toggleNowOpen() {
+  isNowOpen = !isNowOpen;
+  document.getElementById('nowOpenBtn').classList.toggle('active', isNowOpen);
+  if (isNowOpen) {
+    const now = serverNow();
+    const DAY_NAMES = ['日','一','二','三','四','五','六'];
+    const day = DAY_NAMES[now.getDay()];
+    const rounded = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30) * 30;
+    const hh = String(Math.floor(rounded / 60)).padStart(2, '0');
+    const mm = String(rounded % 60).padStart(2, '0');
+    document.getElementById('dayFilter').value  = day;
+    document.getElementById('timeFilter').value = `${hh}:${mm}`;
+  } else {
+    document.getElementById('dayFilter').value  = '';
+    document.getElementById('timeFilter').value = '';
+  }
+  render();
 }
 
 function toggleFollow() {
@@ -918,30 +893,22 @@ function render() {
 }
 
 // ── Event listeners ────────────────────────────────────────────────────────
-document.querySelectorAll('.day-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedDay = btn.dataset.day;
-    render();
-  });
-});
-
 document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('cityFilter').addEventListener('change', render);
 document.getElementById('timeFilter').addEventListener('change', render);
-document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('dayFilter').addEventListener('change', render);
 document.getElementById('viewList').addEventListener('click', () => switchView('list'));
 document.getElementById('viewMap').addEventListener('click',  () => switchView('map'));
 document.getElementById('locateBtn').addEventListener('click', locateUser);
+document.getElementById('nowOpenBtn').addEventListener('click', toggleNowOpen);
 document.getElementById('retryBtn').addEventListener('click', loadData);
 document.getElementById('clearBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('cityFilter').value  = '';
   document.getElementById('timeFilter').value  = '';
-  selectedDay = '';
-  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('.day-btn[data-day=""]').classList.add('active');
+  document.getElementById('dayFilter').value   = '';
+  isNowOpen = false;
+  document.getElementById('nowOpenBtn').classList.remove('active');
   render();
 });
 
