@@ -1077,9 +1077,24 @@ function launchFireworks(birthdayShops) {
     }
   }
 
-  // 10 秒內分散發射約 12 顆火箭
-  const DURATION    = 7000;
-  const ROCKET_TIMES = Array.from({ length: 10 }, (_, i) => 300 + i * 580 + Math.random() * 200);
+  const DURATION = 7000;
+
+  // 第一顆：從正中間底部發射，爆炸在正中間
+  // vy = -12，到達 canvas.height * 0.5 需要約多少幀：模擬飛行時間 ≈ 800ms
+  const FIRST_EXPLODE_MS = 800;
+  setTimeout(() => {
+    rockets.push({
+      x: canvas.width * 0.5, y: canvas.height,
+      vx: 0,
+      vy: -12,
+      targetY: canvas.height * 0.5,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      trail: [],
+    });
+  }, 0);
+
+  // 後續 9 顆隨機發射
+  const ROCKET_TIMES = Array.from({ length: 9 }, (_, i) => 700 + i * 650 + Math.random() * 250);
   ROCKET_TIMES.forEach(t => setTimeout(spawnRocket, t));
 
   let started = null;
@@ -1090,10 +1105,12 @@ function launchFireworks(birthdayShops) {
     canvas.style.transition = 'opacity 0.4s ease';
     canvas.style.opacity = '0';
     setTimeout(() => canvas.remove(), 450);
-    if (banner.parentNode) {
-      banner.style.opacity = '0';
-      setTimeout(() => banner.remove(), 450);
-    }
+    [banner, skipLabel].forEach(el => {
+      if (el && el.parentNode) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 450);
+      }
+    });
   }
 
   function loop(ts) {
@@ -1161,14 +1178,13 @@ function launchFireworks(birthdayShops) {
   }
   requestAnimationFrame(loop);
 
-  // ── 生日文字浮出（第一波爆炸後 400ms 出現，停留約 4 秒後淡出）──
+  // ── 生日文字（置中，與第一顆爆炸同步）──
   const banner = document.createElement('div');
   banner.style.cssText = `
     position:fixed; inset:0; z-index:10000; pointer-events:none;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px; opacity:0; transition: opacity 0.6s ease;
+    gap:10px; opacity:0; transition: opacity 0.5s ease;
   `;
-
   birthdayShops.forEach(name => {
     const line = document.createElement('div');
     line.style.cssText = `
@@ -1182,26 +1198,7 @@ function launchFireworks(birthdayShops) {
     banner.appendChild(line);
   });
 
-  // checkbox
-  const skipLabel = document.createElement('label');
-  skipLabel.style.cssText = `
-    margin-top:14px; display:flex; align-items:center; gap:7px;
-    pointer-events:auto; cursor:pointer;
-    font-size:13px; letter-spacing:1px; color:rgba(255,255,255,0.85);
-    text-shadow:0 1px 4px rgba(0,0,0,0.4); user-select:none;
-  `;
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.style.cssText = 'width:15px;height:15px;cursor:pointer;accent-color:#f06292;';
-  cb.addEventListener('change', () => {
-    if (cb.checked) localStorage.setItem(BD_SKIP_KEY, bdToday());
-    else localStorage.removeItem(BD_SKIP_KEY);
-  });
-  skipLabel.appendChild(cb);
-  skipLabel.appendChild(document.createTextNode('當日不再顯示'));
-  banner.appendChild(skipLabel);
-
-  // x 關閉按鈕
+  // x 關閉按鈕（固定右上角）
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '✕';
   closeBtn.style.cssText = `
@@ -1217,12 +1214,37 @@ function launchFireworks(birthdayShops) {
   closeBtn.addEventListener('mouseleave', () => { closeBtn.style.background = 'rgba(255,255,255,0.15)'; });
   closeBtn.addEventListener('click', dismiss);
   banner.appendChild(closeBtn);
-
   document.body.appendChild(banner);
 
-  setTimeout(() => { banner.style.opacity = '1'; }, 700);
-  setTimeout(() => { if (!dismissed) banner.style.opacity = '0'; }, 6400);
-  setTimeout(() => { if (!dismissed) banner.remove(); }, 7100);
+  // ── checkbox（獨立固定在畫面 95% 高度，文字出現後 2 秒才淡入）──
+  const skipLabel = document.createElement('label');
+  skipLabel.style.cssText = `
+    position:fixed; left:50%; bottom:5vh; transform:translateX(-50%);
+    z-index:10001; pointer-events:auto; cursor:pointer;
+    display:flex; align-items:center; gap:7px;
+    font-size:13px; letter-spacing:1px; color:rgba(255,255,255,0.85);
+    text-shadow:0 1px 4px rgba(0,0,0,0.4); user-select:none;
+    opacity:0; transition: opacity 0.5s ease;
+    white-space:nowrap;
+  `;
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.style.cssText = 'width:15px;height:15px;cursor:pointer;accent-color:#f06292;';
+  cb.addEventListener('change', () => {
+    if (cb.checked) localStorage.setItem(BD_SKIP_KEY, bdToday());
+    else localStorage.removeItem(BD_SKIP_KEY);
+  });
+  skipLabel.appendChild(cb);
+  skipLabel.appendChild(document.createTextNode('當日不再顯示'));
+  document.body.appendChild(skipLabel);
+
+  // 文字與第一顆爆炸同步出現
+  setTimeout(() => { banner.style.opacity = '1'; }, FIRST_EXPLODE_MS);
+  // checkbox 在文字出現後 2 秒才顯示
+  setTimeout(() => { if (!dismissed) skipLabel.style.opacity = '1'; }, FIRST_EXPLODE_MS + 2000);
+  // 淡出
+  setTimeout(() => { if (!dismissed) { banner.style.opacity = '0'; skipLabel.style.opacity = '0'; } }, 6400);
+  setTimeout(() => { if (!dismissed) { banner.remove(); skipLabel.remove(); } }, 7100);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
