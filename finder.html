@@ -353,6 +353,7 @@
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
   <button class="drawer-item" id="favFilterBtn">♥ 收藏清單</button>
+  <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
 </div>
 
@@ -424,6 +425,7 @@ let selectedDay      = '';
 let isNowOpen        = false;
 let showFavOnly      = false;
 let favSet           = new Set(JSON.parse(localStorage.getItem('tw-ramen-favs') || '[]'));
+const BD_SKIP_KEY    = 'tw-ramen-bd-skip';
 
 function serverNow() { return new Date(Date.now() + serverTimeOffset); }
 function saveFavs()  { localStorage.setItem('tw-ramen-favs', JSON.stringify([...favSet])); }
@@ -1018,16 +1020,20 @@ document.getElementById('favFilterBtn').addEventListener('click', () => {
   document.getElementById('drawerBackdrop').style.display = 'none';
   render();
 });
+document.getElementById('resetBdSkipBtn').addEventListener('click', () => {
+  localStorage.removeItem(BD_SKIP_KEY);
+  document.getElementById('drawer').style.display   = 'none';
+  document.getElementById('drawerBackdrop').style.display = 'none';
+});
 
 // ── Fireworks ──────────────────────────────────────────────────────────────
-const BD_SKIP_KEY = 'tw-ramen-bd-skip';
 function bdToday() {
   return new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
 }
 
 function launchFireworks(birthdayShops) {
   if (localStorage.getItem(BD_SKIP_KEY) === bdToday()) return;
-  // ── Canvas ──
+
   const canvas = document.createElement('canvas');
   canvas.id = 'fireworks-canvas';
   canvas.width  = window.innerWidth;
@@ -1036,39 +1042,93 @@ function launchFireworks(birthdayShops) {
   const ctx = canvas.getContext('2d');
 
   const COLORS = ['#f48fb1','#f06292','#e91e63','#ff8a65','#ffb74d','#fff176','#a5d6a7','#80cbc4','#90caf9','#ce93d8'];
-  const particles = [];
+  const rockets   = [];   // 升空中的火箭
+  const particles = [];   // 爆炸粒子
 
-  function spawnBurst(x, y) {
-    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-    for (let i = 0; i < 60; i++) {
-      const angle = (Math.PI * 2 / 60) * i;
-      const speed = 2 + Math.random() * 4;
+  // 火箭：從底部隨機位置往上飛，到目標高度後爆炸
+  function spawnRocket() {
+    const color    = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const targetY  = canvas.height * (0.1 + Math.random() * 0.45);  // 爆炸高度：上方10~55%
+    const startX   = canvas.width  * (0.1 + Math.random() * 0.8);
+    rockets.push({
+      x: startX, y: canvas.height,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: -(10 + Math.random() * 5),
+      targetY, color,
+      trail: [],  // 尾跡
+    });
+  }
+
+  // 爆炸
+  function explode(x, y, color) {
+    const count = 80 + Math.floor(Math.random() * 40);
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.3;
+      const speed = 1.5 + Math.random() * 5;
       particles.push({
-        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        alpha: 1, radius: 2 + Math.random() * 2, color,
-        decay: 0.012 + Math.random() * 0.008,
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        radius: 1.5 + Math.random() * 2,
+        color,
+        decay: 0.014 + Math.random() * 0.01,
       });
     }
   }
 
-  const launches = [
-    [0.25, 0.35], [0.75, 0.25], [0.5, 0.45],
-    [0.2, 0.55],  [0.8, 0.4],
-  ];
-  launches.forEach(([rx, ry], i) => {
-    setTimeout(() => spawnBurst(canvas.width * rx, canvas.height * ry), i * 400);
-  });
+  // 10 秒內分散發射約 12 顆火箭
+  const DURATION    = 10000;
+  const ROCKET_TIMES = Array.from({ length: 12 }, (_, i) => 300 + i * 750 + Math.random() * 300);
+  ROCKET_TIMES.forEach(t => setTimeout(spawnRocket, t));
 
   let started = null;
-  const DURATION = 3500;
 
   function loop(ts) {
     if (!started) started = ts;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const elapsed = ts - started;
+
+    // 半透明覆蓋產生拖尾殘影效果
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // ── 火箭 ──
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i];
+      r.trail.push({ x: r.x, y: r.y });
+      if (r.trail.length > 12) r.trail.shift();
+
+      r.x += r.vx;
+      r.y += r.vy;
+      r.vy += 0.2;  // 重力減速
+
+      // 畫尾跡
+      r.trail.forEach((pt, ti) => {
+        ctx.globalAlpha = (ti / r.trail.length) * 0.6;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = r.color;
+        ctx.fill();
+      });
+      // 畫火箭頭
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      // 到達目標高度或開始下墜就爆炸
+      if (r.y <= r.targetY || r.vy >= 0) {
+        explode(r.x, r.y, r.color);
+        rockets.splice(i, 1);
+      }
+    }
+
+    // ── 爆炸粒子 ──
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vy += 0.07; p.vx *= 0.98;
+      p.x  += p.vx; p.y  += p.vy;
+      p.vy += 0.06; p.vx *= 0.97;
       p.alpha -= p.decay;
       if (p.alpha <= 0) { particles.splice(i, 1); continue; }
       ctx.globalAlpha = p.alpha;
@@ -1078,22 +1138,23 @@ function launchFireworks(birthdayShops) {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    if (ts - started < DURATION || particles.length > 0) {
+
+    if (elapsed < DURATION || rockets.length > 0 || particles.length > 0) {
       requestAnimationFrame(loop);
     } else {
+      canvas.style.transition = 'opacity 1s ease';
       canvas.style.opacity = '0';
-      setTimeout(() => canvas.remove(), 1000);
+      setTimeout(() => canvas.remove(), 1100);
     }
   }
   requestAnimationFrame(loop);
 
-  // ── 生日文字浮出 ──
+  // ── 生日文字浮出（第一波爆炸後 400ms 出現，停留約 4 秒後淡出）──
   const banner = document.createElement('div');
   banner.style.cssText = `
     position:fixed; inset:0; z-index:10000; pointer-events:none;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px; opacity:0;
-    transition: opacity 0.5s ease;
+    gap:10px; opacity:0; transition: opacity 0.6s ease;
   `;
 
   birthdayShops.forEach(name => {
@@ -1101,22 +1162,21 @@ function launchFireworks(birthdayShops) {
     line.style.cssText = `
       font-family:'Noto Serif TC',serif; font-weight:900;
       font-size:clamp(22px,5vw,40px); letter-spacing:0.12em;
-      color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.35),0 0 30px #f06292;
-      background:rgba(0,0,0,0.18); padding:10px 28px; border-radius:50px;
+      color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.5),0 0 30px #f06292;
+      background:rgba(0,0,0,0.28); padding:10px 28px; border-radius:50px;
       white-space:nowrap;
     `;
     line.textContent = `${name} 生日快樂！`;
     banner.appendChild(line);
   });
 
-  // checkbox：pointer-events 單獨開啟
+  // checkbox
   const skipLabel = document.createElement('label');
   skipLabel.style.cssText = `
     margin-top:14px; display:flex; align-items:center; gap:7px;
     pointer-events:auto; cursor:pointer;
     font-size:13px; letter-spacing:1px; color:rgba(255,255,255,0.85);
-    text-shadow:0 1px 4px rgba(0,0,0,0.4);
-    user-select:none;
+    text-shadow:0 1px 4px rgba(0,0,0,0.4); user-select:none;
   `;
   const cb = document.createElement('input');
   cb.type = 'checkbox';
@@ -1128,13 +1188,11 @@ function launchFireworks(birthdayShops) {
   skipLabel.appendChild(cb);
   skipLabel.appendChild(document.createTextNode('當日不再顯示'));
   banner.appendChild(skipLabel);
-
   document.body.appendChild(banner);
 
-  // 300ms 淡入，3.2s 後淡出
-  setTimeout(() => { banner.style.opacity = '1'; }, 300);
-  setTimeout(() => { banner.style.opacity = '0'; }, 3200);
-  setTimeout(() => banner.remove(), 3800);
+  setTimeout(() => { banner.style.opacity = '1'; }, 700);
+  setTimeout(() => { banner.style.opacity = '0'; }, 5000);
+  setTimeout(() => banner.remove(), 5700);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
