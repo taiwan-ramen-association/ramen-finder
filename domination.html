@@ -120,7 +120,7 @@ header a:hover { opacity: 1; }
 
   <div class="stats-bar" id="statsBar" style="display:none">
     <div class="stat-card"><div class="val" id="statScore">0</div><div class="lbl">制霸總分</div></div>
-    <div class="stat-card"><div class="val" id="statShops">0</div><div class="lbl">已採點店家</div></div>
+    <div class="stat-card"><div class="val" id="statShops">0</div><div class="lbl">已踩點店家</div></div>
     <div class="stat-card"><div class="val" id="statTowns">0</div><div class="lbl">已涉足鄉鎮</div></div>
     <div class="stat-card"><div class="val" id="statFull">0</div><div class="lbl">完全制霸</div></div>
   </div>
@@ -136,7 +136,7 @@ header a:hover { opacity: 1; }
       <div class="legend-labels"><span>0%</span><span>50%</span><span>100%</span></div>
     </div>
     <div class="legend-item"><div class="legend-swatch" style="background:#cccccc"></div>無拉麵店</div>
-    <div class="legend-item"><div class="legend-swatch" style="background:#fff0f0;border:1px solid #ddd"></div>未採點</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#fff0f0;border:1px solid #ddd"></div>未踩點</div>
   </div>
 </div>
 
@@ -246,13 +246,13 @@ async function loadAll(uid) {
     function townStats(key) {
       const ids = shopsByTown[key] || [];
       let score = 0;
-      let hasVisit = false; // 至少一間吃過一次以上（含從業，不含路過）
+      let visitedCount = 0; // 吃過一次以上（含從業）的店數
 
       for (const id of ids) {
         const s = visits[id];
         if (s != null && s > 0) {
-          if (s >= 1 || s === 20) hasVisit = true;
-          if (s === 20) continue; // 從業不計入完成度分數
+          if (s >= 1 || s === 20) visitedCount++;
+          if (s === 20) continue; // 從業不計入累積分數
           score += scoreFromStatus(s);
         }
       }
@@ -261,7 +261,8 @@ async function loadAll(uid) {
         count: ids.length,
         score,
         max: ids.length * 10,
-        hasVisit
+        hasVisit: visitedCount > 0,
+        visitedCount
       };
     }
 
@@ -329,17 +330,17 @@ function renderMap(geo, shopsByTown, visits, townStats, cb) {
     .attr('d', path)
     .attr('fill', d => {
       const key = norm(d.properties.COUNTYNAME) + '_' + norm(d.properties.TOWNNAME);
-      const { count, score, max, hasVisit } = townStats(key);
+      const { count, score, max, hasVisit, visitedCount } = townStats(key);
 
       if (count > 0 && hasVisit) visitedTowns++;
-      if (count > 0 && score >= max && score > 0) fullTowns++;
+      if (count > 0 && visitedCount === count) fullTowns++;
 
       return getFill(count, score, max);
     })
     .on('mousemove', function(event, d) {
       const key = norm(d.properties.COUNTYNAME) + '_' + norm(d.properties.TOWNNAME);
-      const { count, score, max } = townStats(key);
-      const pct = max > 0 ? Math.round(score / max * 100) : 0;
+      const { count, score, max, visitedCount } = townStats(key);
+      const pct = count > 0 ? Math.round(visitedCount / count * 100) : 0;
 
       document.getElementById('ttName').textContent =
         d.properties.COUNTYNAME + ' ' + d.properties.TOWNNAME;
