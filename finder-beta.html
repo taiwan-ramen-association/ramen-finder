@@ -485,7 +485,7 @@
 
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
-  <button class="drawer-item" id="favFilterBtn">♥ 收藏清單</button>
+  <button class="drawer-item" id="favFilterBtn" style="display:none">♥ 收藏清單</button>
   <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
 </div>
@@ -557,12 +557,24 @@ let serverTimeOffset = 0;
 let selectedDay      = '';
 let isNowOpen        = false;
 let showFavOnly      = false;
-let favSet           = new Set(JSON.parse(localStorage.getItem('tw-ramen-favs') || '[]'));
+let favSet           = new Set();   // 儲存 shop ID，由 Firestore 載入
 const BD_SKIP_KEY    = 'tw-ramen-bd-skip';
 
 function serverNow() { return new Date(Date.now() + serverTimeOffset); }
-function saveFavs()  { localStorage.setItem('tw-ramen-favs', JSON.stringify([...favSet])); }
 function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+async function toggleFav(shopId) {
+  const user = typeof auth !== 'undefined' && auth.currentUser;
+  if (!user || !shopId) return;
+  const ref = db.collection('users').doc(user.uid);
+  if (favSet.has(shopId)) {
+    favSet.delete(shopId);
+    await ref.update({ favorites: firebase.firestore.FieldValue.arrayRemove(shopId) });
+  } else {
+    favSet.add(shopId);
+    await ref.update({ favorites: firebase.firestore.FieldValue.arrayUnion(shopId) });
+  }
+}
 
 let expandedCard = null;
 let currentView  = 'list';
@@ -744,7 +756,7 @@ function getFiltered() {
   selectedDay   = document.getElementById('dayFilter').value;
 
   const result = ALL_DATA.filter(shop => {
-    if (showFavOnly && !favSet.has(shop['店名'])) return false;
+    if (showFavOnly && !favSet.has(shop['ID'])) return false;
     if (city && shop['縣市'] !== city) return false;
 
     if (selectedDay) {
@@ -1055,7 +1067,7 @@ function renderCard(shop) {
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
         ${statusBadge(shop['營業狀態'])}
-        <button class="fav-btn" data-name="${escapeAttr(shop['店名'])}">${favSet.has(shop['店名']) ? '♥' : '♡'}</button>
+        <button class="fav-btn" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>
       </div>
     </div>
     <div class="card-meta">
@@ -1103,12 +1115,12 @@ function render() {
     });
   });
   list.querySelectorAll('.fav-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', async e => {
       e.stopPropagation();
-      const name = btn.dataset.name;
-      if (favSet.has(name)) { favSet.delete(name); btn.textContent = '♡'; }
-      else { favSet.add(name); btn.textContent = '♥'; }
-      saveFavs();
+      const id = btn.dataset.id;
+      if (!id) return;
+      await toggleFav(id);
+      btn.textContent = favSet.has(id) ? '♥' : '♡';
       if (showFavOnly) render();
     });
   });
@@ -1587,10 +1599,21 @@ auth.onAuthStateChanged(async user => {
       pdEmail.textContent       = user.email || '';
       nicknameInput.value       = userData.nickname || '';
       adminLink.style.display   = userData.role === 'admin' ? 'flex' : 'none';
+
+      // 載入收藏清單（Firestore favorites 陣列）
+      const favIds = userData.favorites || [];
+      favSet = new Set(favIds);
+      document.getElementById('favFilterBtn').style.display = 'flex';
+      render();
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
+      favSet = new Set();
+      document.getElementById('favFilterBtn').style.display = 'none';
+      showFavOnly = false;
+      document.getElementById('favFilterBtn').classList.remove('active');
       closeProfileDropdown();
+      render();
     }
   } catch (err) {
     console.error('auth state 處理失敗', err);
