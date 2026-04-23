@@ -1366,36 +1366,45 @@ const logoutBtn      = document.getElementById('logoutBtn');
 
 // 登入狀態變化時更新 UI，並同步 Firestore 用戶文件
 auth.onAuthStateChanged(async user => {
-  if (user) {
-    loginBtn.style.display        = 'none';
-    userAvatar.style.display      = 'block';
-    userAvatar.src                = user.photoURL || 'assets/icons/03.png';
-    drawerUserInfo.style.display  = 'block';
-    drawerUserName.textContent    = user.displayName || '';
-    drawerUserEmail.textContent   = user.email || '';
-    logoutBtn.style.display       = 'block';
+  try {
+    if (user) {
+      loginBtn.style.display        = 'none';
+      userAvatar.style.display      = 'block';
+      userAvatar.src                = user.photoURL || 'assets/icons/03.png';
+      drawerUserInfo.style.display  = 'block';
+      drawerUserName.textContent    = user.displayName || '';
+      drawerUserEmail.textContent   = user.email || '';
+      logoutBtn.style.display       = 'block';
 
-    // 寫入 / 更新 Firestore users 文件（merge 模式：不覆蓋現有 role/level）
-    const userRef = db.collection('users').doc(user.uid);
-    await userRef.set({
-      displayName: user.displayName || '',
-      email:       user.email || '',
-      photoURL:    user.photoURL || '',
-      lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+      // 寫入 / 更新 Firestore users 文件（merge 模式：不覆蓋現有 role/level）
+      const userRef = db.collection('users').doc(user.uid);
+      await userRef.set({
+        displayName: user.displayName || '',
+        email:       user.email || '',
+        photoURL:    user.photoURL || '',
+        lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
 
-    // 若文件是第一次建立，補上預設欄位
-    const snap = await userRef.get();
-    if (!snap.data().role) {
-      await userRef.update({
-        role:      'viewer',
-        level:     0,
-        postCount: 0,
-        likeCount: 0,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
+      // 若文件是第一次建立，補上預設欄位
+      const snap = await userRef.get();
+      if (!snap.data().role) {
+        await userRef.update({
+          role:      'viewer',
+          level:     0,
+          postCount: 0,
+          likeCount: 0,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    } else {
+      loginBtn.style.display        = 'flex';
+      userAvatar.style.display      = 'none';
+      drawerUserInfo.style.display  = 'none';
+      logoutBtn.style.display       = 'none';
     }
-  } else {
+  } catch (err) {
+    // Firestore 寫入失敗時，至少確保 UI 正常顯示，不讓頁面卡死
+    console.error('auth state 處理失敗', err);
     loginBtn.style.display        = 'flex';
     userAvatar.style.display      = 'none';
     drawerUserInfo.style.display  = 'none';
@@ -1403,20 +1412,27 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// iOS Safari 的 ITP 會阻擋 redirect flow，只有 Android 才用 redirect
+const isAndroid = /Android/i.test(navigator.userAgent);
 
 loginBtn.addEventListener('click', () => {
-  if (isMobile) {
+  if (isAndroid) {
     auth.signInWithRedirect(provider).catch(err => console.error('登入失敗', err));
   } else {
+    // iOS Safari 及桌面均使用 popup
     auth.signInWithPopup(provider).catch(err => {
       if (err.code !== 'auth/popup-closed-by-user') console.error('登入失敗', err);
     });
   }
 });
 
-// 手機 redirect 登入後，頁面重新載入時處理結果
-auth.getRedirectResult().catch(err => console.error('redirect 登入失敗', err));
+// Android redirect 回來時處理結果（錯誤時登出殘留 session 避免卡死）
+if (isAndroid) {
+  auth.getRedirectResult().catch(err => {
+    console.error('redirect 登入失敗', err);
+    auth.signOut();
+  });
+}
 
 userAvatar.addEventListener('click', () => auth.signOut());
 logoutBtn.addEventListener('click', () => {
