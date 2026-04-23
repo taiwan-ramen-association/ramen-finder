@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/icons/03.png">
+<title>會員管理 ─ 台灣拉麵協會</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #C8272D;
+    --red-dark: #9b1e23;
+    --ink: #1a1209;
+    --paper: #faf7f2;
+    --stone: #8a7d6e;
+    --line: #e8e0d4;
+    --white: #ffffff;
+  }
+  body {
+    font-family: 'Noto Sans TC', -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--red);
+    color: var(--white);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+  header a { color: var(--white); font-size: 13px; text-decoration: none; opacity: 0.85; }
+  header a:hover { opacity: 1; }
+
+  #gate {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 60vh; gap: 16px;
+  }
+  #gate p { color: var(--stone); font-size: 14px; }
+  .btn-google {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); border: 1px solid var(--line);
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 14px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .btn-google:hover { background: #f5f5f5; }
+  .btn-google svg { width: 18px; height: 18px; }
+
+  #app { display: none; max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+  }
+  .toolbar h2 { font-size: 18px; font-weight: 700; }
+  .toolbar select {
+    padding: 6px 12px; border: 1px solid var(--line);
+    border-radius: 6px; font-size: 13px; background: var(--white);
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--white);
+    border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+  thead { background: var(--red); color: var(--white); }
+  th { padding: 11px 14px; text-align: left; font-size: 13px; font-weight: 500; }
+  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fdf5f5; }
+
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    object-fit: cover; vertical-align: middle; margin-right: 8px;
+  }
+  .name-cell { display: flex; align-items: center; }
+
+  .role-select {
+    padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 6px; font-size: 12px; background: var(--white);
+    cursor: pointer;
+  }
+  .role-select:focus { outline: 2px solid var(--red); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-viewer          { background: #f0f0f0; color: #555; }
+  .badge-store           { background: #e8f4fd; color: #1a6fa8; }
+  .badge-member_individual { background: #fff3cd; color: #856404; }
+  .badge-member_group    { background: #d1ecf1; color: #0c5460; }
+  .badge-member_sponsor  { background: #d4edda; color: #155724; }
+  .badge-member_honorary { background: #f8d7da; color: #721c24; }
+  .badge-director        { background: #e2d9f3; color: #4a235a; }
+  .badge-admin           { background: var(--red); color: var(--white); }
+
+  .save-btn {
+    padding: 4px 12px; background: var(--red); color: var(--white);
+    border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .save-btn.visible { opacity: 1; }
+  .save-btn:hover { background: var(--red-dark); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+
+  #loading { text-align: center; padding: 60px; color: var(--stone); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍜 台灣拉麵協會 ─ 會員管理</h1>
+  <a href="finder.html">← 回查詢頁</a>
+</header>
+
+<!-- 未登入 / 非管理員畫面 -->
+<div id="gate">
+  <p id="gateMsg">驗證中…</p>
+  <button class="btn-google" id="loginBtn" style="display:none">
+    <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 6.9-10.1 6.9-17z"/><path fill="#FBBC05" d="M10.8 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.4 10.6l8.4-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+    以 Google 帳號登入
+  </button>
+</div>
+
+<!-- 管理員主畫面 -->
+<div id="app">
+  <div class="toolbar">
+    <h2>會員清單</h2>
+    <select id="roleFilter">
+      <option value="">全部身份</option>
+      <option value="viewer">viewer</option>
+      <option value="store">store</option>
+      <option value="member_individual">個人會員</option>
+      <option value="member_group">團體會員</option>
+      <option value="member_sponsor">贊助會員</option>
+      <option value="member_honorary">榮譽會員</option>
+      <option value="director">理事／監事</option>
+      <option value="admin">admin</option>
+    </select>
+  </div>
+  <div id="loading">載入中…</div>
+  <table id="userTable" style="display:none">
+    <thead>
+      <tr>
+        <th>用戶</th>
+        <th>Email</th>
+        <th>目前身份</th>
+        <th>等級</th>
+        <th>最後登入</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="userTbody"></tbody>
+  </table>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
+  authDomain: "taiwan-ramen-association.firebaseapp.com",
+  projectId: "taiwan-ramen-association",
+  storageBucket: "taiwan-ramen-association.firebasestorage.app",
+  messagingSenderId: "66234065738",
+  appId: "1:66234065738:web:eb9fc4348a942da66ad7b3"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+const ROLES = [
+  { value: 'viewer',           label: 'viewer（一般用戶）' },
+  { value: 'store',            label: 'store（店家）' },
+  { value: 'member_individual',label: '個人會員' },
+  { value: 'member_group',     label: '團體會員' },
+  { value: 'member_sponsor',   label: '贊助會員' },
+  { value: 'member_honorary',  label: '榮譽會員' },
+  { value: 'director',         label: '理事／監事' },
+  { value: 'admin',            label: 'admin' },
+];
+
+const ROLE_LABELS = {
+  viewer: '一般用戶', store: '店家',
+  member_individual: '個人會員', member_group: '團體會員',
+  member_sponsor: '贊助會員', member_honorary: '榮譽會員',
+  director: '理事／監事', admin: 'Admin',
+};
+
+let allUsers = [];
+
+document.getElementById('loginBtn').addEventListener('click', () => {
+  auth.signInWithPopup(provider).catch(console.error);
+});
+
+auth.onAuthStateChanged(async user => {
+  const gate   = document.getElementById('gate');
+  const app    = document.getElementById('app');
+  const gateMsg= document.getElementById('gateMsg');
+  const loginBtn = document.getElementById('loginBtn');
+
+  if (!user) {
+    gateMsg.textContent = '請以管理員 Google 帳號登入';
+    loginBtn.style.display = 'flex';
+    gate.style.display = 'flex';
+    app.style.display  = 'none';
+    return;
+  }
+
+  // 確認是否為 admin
+  const snap = await db.collection('users').doc(user.uid).get();
+  const data = snap.data();
+
+  if (!data || data.role !== 'admin') {
+    gateMsg.textContent = `⛔ 權限不足（${user.email}）`;
+    loginBtn.style.display = 'none';
+    gate.style.display = 'flex';
+    app.style.display  = 'none';
+    return;
+  }
+
+  gate.style.display = 'none';
+  app.style.display  = 'block';
+  loadUsers();
+});
+
+async function loadUsers() {
+  const snap = await db.collection('users').orderBy('lastLogin', 'desc').get();
+  allUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  renderTable(allUsers);
+}
+
+document.getElementById('roleFilter').addEventListener('change', e => {
+  const val = e.target.value;
+  renderTable(val ? allUsers.filter(u => u.role === val) : allUsers);
+});
+
+function renderTable(users) {
+  const tbody = document.getElementById('userTbody');
+  const table = document.getElementById('userTable');
+  const loading = document.getElementById('loading');
+  loading.style.display = 'none';
+  table.style.display = 'table';
+
+  tbody.innerHTML = users.map(u => {
+    const lastLogin = u.lastLogin
+      ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString('zh-TW')
+      : '─';
+    const roleOptions = ROLES.map(r =>
+      `<option value="${r.value}" ${u.role === r.value ? 'selected' : ''}>${r.label}</option>`
+    ).join('');
+    return `
+      <tr data-uid="${u.uid}">
+        <td>
+          <div class="name-cell">
+            <img class="avatar" src="${u.photoURL || 'assets/icons/03.png'}" onerror="this.src='assets/icons/03.png'">
+            ${u.displayName || '（未命名）'}
+          </div>
+        </td>
+        <td>${u.email || '─'}</td>
+        <td><span class="badge badge-${u.role}">${ROLE_LABELS[u.role] || u.role}</span></td>
+        <td>Lv.${u.level ?? 0}</td>
+        <td>${lastLogin}</td>
+        <td style="white-space:nowrap">
+          <select class="role-select" data-uid="${u.uid}" data-original="${u.role}">
+            ${roleOptions}
+          </select>
+          <button class="save-btn" data-uid="${u.uid}">儲存</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  // 下拉變更時顯示儲存按鈕
+  tbody.querySelectorAll('.role-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const btn = tbody.querySelector(`.save-btn[data-uid="${sel.dataset.uid}"]`);
+      btn.classList.toggle('visible', sel.value !== sel.dataset.original);
+    });
+  });
+
+  // 儲存按鈕
+  tbody.querySelectorAll('.save-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid = btn.dataset.uid;
+      const sel = tbody.querySelector(`.role-select[data-uid="${uid}"]`);
+      const newRole = sel.value;
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        await db.collection('users').doc(uid).update({ role: newRole });
+        sel.dataset.original = newRole;
+        btn.classList.remove('visible');
+        // 更新 badge
+        const row = tbody.querySelector(`tr[data-uid="${uid}"]`);
+        row.querySelector('.badge').className = `badge badge-${newRole}`;
+        row.querySelector('.badge').textContent = ROLE_LABELS[newRole] || newRole;
+        // 更新本地資料
+        const u = allUsers.find(x => x.uid === uid);
+        if (u) u.role = newRole;
+        showToast(`✓ ${sel.options[sel.selectedIndex].label} 已套用`);
+      } catch (e) {
+        showToast('❌ 儲存失敗：' + e.message);
+      }
+      btn.disabled = false;
+      btn.textContent = '儲存';
+    });
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

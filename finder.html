@@ -16,6 +16,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <title>台灣拉麵協會 店家查詢</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -1353,6 +1354,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth     = firebase.auth();
+const db       = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 const loginBtn       = document.getElementById('loginBtn');
@@ -1362,24 +1364,42 @@ const drawerUserName = document.getElementById('drawerUserName');
 const drawerUserEmail= document.getElementById('drawerUserEmail');
 const logoutBtn      = document.getElementById('logoutBtn');
 
-// 登入狀態變化時更新 UI
-auth.onAuthStateChanged(user => {
+// 登入狀態變化時更新 UI，並同步 Firestore 用戶文件
+auth.onAuthStateChanged(async user => {
   if (user) {
-    // 已登入：隱藏登入按鈕，顯示大頭貼
-    loginBtn.style.display  = 'none';
-    userAvatar.style.display = 'block';
-    userAvatar.src = user.photoURL || 'assets/icons/03.png';
-    // Drawer 顯示使用者資訊與登出
+    loginBtn.style.display        = 'none';
+    userAvatar.style.display      = 'block';
+    userAvatar.src                = user.photoURL || 'assets/icons/03.png';
     drawerUserInfo.style.display  = 'block';
     drawerUserName.textContent    = user.displayName || '';
     drawerUserEmail.textContent   = user.email || '';
     logoutBtn.style.display       = 'block';
+
+    // 寫入 / 更新 Firestore users 文件（merge 模式：不覆蓋現有 role/level）
+    const userRef = db.collection('users').doc(user.uid);
+    await userRef.set({
+      displayName: user.displayName || '',
+      email:       user.email || '',
+      photoURL:    user.photoURL || '',
+      lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    // 若文件是第一次建立，補上預設欄位
+    const snap = await userRef.get();
+    if (!snap.data().role) {
+      await userRef.update({
+        role:      'viewer',
+        level:     0,
+        postCount: 0,
+        likeCount: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
   } else {
-    // 未登入：顯示登入按鈕，隱藏大頭貼
-    loginBtn.style.display  = 'flex';
-    userAvatar.style.display = 'none';
-    drawerUserInfo.style.display = 'none';
-    logoutBtn.style.display      = 'none';
+    loginBtn.style.display        = 'flex';
+    userAvatar.style.display      = 'none';
+    drawerUserInfo.style.display  = 'none';
+    logoutBtn.style.display       = 'none';
   }
 });
 
