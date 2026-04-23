@@ -1403,11 +1403,20 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 loginBtn.addEventListener('click', () => {
-  auth.signInWithPopup(provider).catch(err => {
-    if (err.code !== 'auth/popup-closed-by-user') console.error('登入失敗', err);
-  });
+  if (isMobile) {
+    auth.signInWithRedirect(provider).catch(err => console.error('登入失敗', err));
+  } else {
+    auth.signInWithPopup(provider).catch(err => {
+      if (err.code !== 'auth/popup-closed-by-user') console.error('登入失敗', err);
+    });
+  }
 });
+
+// 手機 redirect 登入後，頁面重新載入時處理結果
+auth.getRedirectResult().catch(err => console.error('redirect 登入失敗', err));
 
 userAvatar.addEventListener('click', () => auth.signOut());
 logoutBtn.addEventListener('click', () => {
