@@ -129,10 +129,50 @@ jobs:
                   if not str(row.get('鄉鎮市區','')).strip():
                       row['鄉鎮市區'] = dist
 
+          # ── 分配 / 補齊 ID ──────────────────────────────────────────────
+          import re as _re
+
+          CITY_CODE = {
+              '臺北市': 'A', '台北市': 'A', '新北市': 'B', '桃園市': 'C',
+              '臺中市': 'D', '台中市': 'D', '臺南市': 'E', '台南市': 'E',
+              '高雄市': 'F', '基隆市': 'G', '新竹市': 'H', '新竹縣': 'I',
+              '苗栗縣': 'J', '彰化縣': 'K', '南投縣': 'L', '雲林縣': 'M',
+              '嘉義市': 'N', '嘉義縣': 'O', '屏東縣': 'P', '宜蘭縣': 'Q',
+              '花蓮縣': 'R', '臺東縣': 'S', '台東縣': 'S',
+              '澎湖縣': 'T', '金門縣': 'U', '連江縣': 'V',
+          }
+          ID_RE = _re.compile(r'^[A-Z]\d{5}$')
+
+          def _get_city(row):
+              city = str(row.get('縣市', '')).strip().replace('台', '臺')
+              if not city:
+                  addr = _re.sub(r'^\d{3,6}', '', str(row.get('地址', ''))).strip()
+                  city = addr[:3].replace('台', '臺')
+              return city
+
+          city_max = {}
+          for row in rows:
+              eid = str(row.get('ID', '')).strip()
+              if ID_RE.match(eid):
+                  city_max[eid[0]] = max(city_max.get(eid[0], 0), int(eid[1:]))
+
+          new_ids = 0
+          for row in rows:
+              if ID_RE.match(str(row.get('ID', '')).strip()):
+                  continue
+              letter = CITY_CODE.get(_get_city(row), 'Z')
+              n = city_max.get(letter, 0) + 1
+              city_max[letter] = n
+              row['ID'] = f'{letter}{n:05d}'
+              new_ids += 1
+
+          # ID 移至第一欄
+          rows = [{'ID': r.get('ID', ''), **{k: v for k, v in r.items() if k != 'ID'}} for r in rows]
+
           with open('data/data.json', 'w', encoding='utf-8') as f:
               json.dump(rows, f, ensure_ascii=False, indent=2)
 
-          print(f'Done: {len(rows)} rows saved to data.json')
+          print(f'Done: {len(rows)} rows saved to data.json (new IDs assigned: {new_ids})')
           EOF
 
       - name: Geocode missing lat/lng

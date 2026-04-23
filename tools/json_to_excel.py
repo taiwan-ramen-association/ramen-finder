@@ -43,8 +43,8 @@ from openpyxl.styles import PatternFill, Font, Alignment, numbers
 header_fill = PatternFill(start_color='C8272D', end_color='C8272D', fill_type='solid')
 header_font = Font(color='FFFFFF', bold=True, size=11)
 
-# 開幕日欄位強制設為文字格式，防止 Excel 自動轉型
-DATE_TEXT_FIELDS = {'開幕日'}
+# 強制文字格式的欄位（防止 Excel 自動轉型）
+DATE_TEXT_FIELDS = {'開幕日', 'ID'}
 
 for col_idx, h in enumerate(headers, 1):
     cell = ws.cell(row=1, column=col_idx, value=h)
