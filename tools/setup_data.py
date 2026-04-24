@@ -612,9 +612,10 @@ def show_menu():
     print('╔' + '═' * 52 + '╗')
     print('║{:^52}║'.format('資料處理工具　Setup Data'))
     print('╠' + '═' * 52 + '╣')
-    print('║  A  【開始編輯】JSON → Excel，開啟檔案{:<12}║'.format(''))
-    print('║  B  【完成編輯】Excel → JSON → 正規化 → Excel{:<6}║'.format(''))
-    print('║  C  【推上遠端】git push data.json + 計數器{:<8}║'.format(''))
+    print('║  A  【拉取最新】git pull{:<28}║'.format(''))
+    print('║  B  【開始編輯】JSON → Excel，開啟檔案{:<12}║'.format(''))
+    print('║  C  【完成編輯】Excel → JSON → 正規化 → Excel{:<6}║'.format(''))
+    print('║  D  【推上遠端】git push data.json + 計數器{:<8}║'.format(''))
     print('║  ' + '─' * 49 + '║')
     print('║  0  進階單步執行{:<35}║'.format(''))
     print('║  ' + '─' * 49 + '║')
@@ -633,14 +634,27 @@ def show_advanced_menu():
     print('╚' + '═' * 52 + '╝')
 
 def run_path_a():
-    print('\n▶ A【開始編輯】JSON → Excel → 開啟檔案')
+    print('\n▶ A【拉取最新】git pull')
+    result = subprocess.run(
+        ['git', 'pull'],
+        cwd=root_dir, capture_output=True, text=True, encoding='utf-8'
+    )
+    print(result.stdout.strip() or result.stderr.strip())
+    if result.returncode == 0:
+        print('  ✅ 完成')
+    else:
+        print('  ❌ git pull 失敗')
+
+def run_path_b():
+    print('\n▶ B【開始編輯】JSON → Excel → 開啟檔案')
     ok = step_json_to_excel()
     if ok:
         print('\n  📂 開啟 Excel...')
         subprocess.Popen(['cmd', '/c', 'start', '', xlsx_path])
 
-def run_path_c():
-    print('\n▶ C【推上遠端】git push data.json + id_counters.json')
+def run_path_d():
+    print('\n▶ D【推上遠端】git push data.json + id_counters.json')
+
     result = subprocess.run(
         ['git', 'add', 'data/data.json', 'data/id_counters.json'],
         cwd=root_dir, capture_output=True, text=True, encoding='utf-8'
@@ -682,8 +696,8 @@ def run_path_c():
     else:
         print(f'  ❌ push 失敗：{result.stderr.strip()}')
 
-def run_path_b():
-    print('\n▶ B【完成編輯】Excel → JSON → 正規化 → Excel')
+def run_path_c():
+    print('\n▶ C【完成編輯】Excel → JSON → 正規化 → Excel')
     if not step_excel_to_json():
         return
     step_assign_ids()
@@ -715,6 +729,10 @@ while True:
 
     elif choice == 'c':
         run_path_c()
+        input('\n按 Enter 繼續...')
+
+    elif choice == 'd':
+        run_path_d()
         input('\n按 Enter 繼續...')
 
     elif choice == '0':
