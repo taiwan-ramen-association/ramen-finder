@@ -359,6 +359,94 @@ def step_normalize_dates():
     return updated
 
 # ════════════════════════════════════════════════════════════════════════════════
+# STEP 7：分配店家 ID
+# ════════════════════════════════════════════════════════════════════════════════
+CITY_CODE = {
+    '臺北市': 'A', '台北市': 'A',
+    '新北市': 'B',
+    '桃園市': 'C',
+    '臺中市': 'D', '台中市': 'D',
+    '臺南市': 'E', '台南市': 'E',
+    '高雄市': 'F',
+    '基隆市': 'G',
+    '新竹市': 'H',
+    '新竹縣': 'I',
+    '苗栗縣': 'J',
+    '彰化縣': 'K',
+    '南投縣': 'L',
+    '雲林縣': 'M',
+    '嘉義市': 'N',
+    '嘉義縣': 'O',
+    '屏東縣': 'P',
+    '宜蘭縣': 'Q',
+    '花蓮縣': 'R',
+    '臺東縣': 'S', '台東縣': 'S',
+    '澎湖縣': 'T',
+    '金門縣': 'U',
+    '連江縣': 'V',
+}
+ID_RE = re.compile(r'^[A-Z]\d{5}$')
+
+CODE_TO_CITY = {
+    'A': '臺北市', 'B': '新北市', 'C': '桃園市', 'D': '臺中市',
+    'E': '臺南市', 'F': '高雄市', 'G': '基隆市', 'H': '新竹市',
+    'I': '新竹縣', 'J': '苗栗縣', 'K': '彰化縣', 'L': '南投縣',
+    'M': '雲林縣', 'N': '嘉義市', 'O': '嘉義縣', 'P': '屏東縣',
+    'Q': '宜蘭縣', 'R': '花蓮縣', 'S': '臺東縣', 'T': '澎湖縣',
+    'U': '金門縣', 'V': '連江縣', 'Z': '未知縣市',
+}
+
+def _get_city_for_id(row):
+    city = str(row.get('縣市', '')).strip()
+    if not city:
+        addr = str(row.get('地址', '')).strip()
+        addr = re.sub(r'^\d{3,6}', '', addr)
+        city = addr[:3]
+    return city.replace('台', '臺')
+
+def step_assign_ids():
+    section(7, '分配店家 ID（縣市代碼 + 5位流水號）')
+
+    rows = load_data()
+
+    # 掃描現有最大流水號
+    city_max = {}
+    for row in rows:
+        eid = str(row.get('ID', '')).strip()
+        if ID_RE.match(eid):
+            letter = eid[0]
+            city_max[letter] = max(city_max.get(letter, 0), int(eid[1:]))
+
+    assigned = 0
+    for row in rows:
+        eid = str(row.get('ID', '')).strip()
+        if ID_RE.match(eid):
+            continue
+        city   = _get_city_for_id(row)
+        letter = CITY_CODE.get(city, 'Z')
+        next_n = city_max.get(letter, 0) + 1
+        city_max[letter] = next_n
+        row['ID'] = f'{letter}{next_n:05d}'
+        assigned += 1
+        print(f'    ✓ {row["店名"]}  →  {row["ID"]}')
+
+    # 確保 ID 排在第一欄
+    rows = [{'ID': r.get('ID', ''), **{k: v for k, v in r.items() if k != 'ID'}} for r in rows]
+
+    save_data(rows)
+    print(f'\n  ✅ 完成：新分配 {assigned} 筆，共 {len(rows)} 筆')
+
+    city_counts = {}
+    for row in rows:
+        letter = row.get('ID', 'Z')[0] if row.get('ID') else 'Z'
+        city_counts[letter] = city_counts.get(letter, 0) + 1
+    print('\n  各縣市店家數量：')
+    for letter in sorted(city_counts):
+        print(f'    {letter} {CODE_TO_CITY.get(letter, letter)}: {city_counts[letter]} 間')
+
+    return assigned
+
+# ════════════════════════════════════════════════════════════════════════════════
 # 選單
 # ════════════════════════════════════════════════════════════════════════════════
 STEPS = [
@@ -368,6 +456,7 @@ STEPS = [
     (4, '正規化營業時段格式',             step_normalize_hours),
     (5, '正規化星期排序',                 step_normalize_days),
     (6, '正規化開幕日期（→ YYYY-MM-DD）', step_normalize_dates),
+    (7, '分配店家 ID',                    step_assign_ids),
 ]
 
 def show_menu():
