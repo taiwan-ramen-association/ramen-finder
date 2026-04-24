@@ -614,6 +614,7 @@ def show_menu():
     print('╠' + '═' * 52 + '╣')
     print('║  A  【開始編輯】JSON → Excel，開啟檔案{:<12}║'.format(''))
     print('║  B  【完成編輯】Excel → JSON → 正規化 → Excel{:<6}║'.format(''))
+    print('║  C  【推上遠端】git push data.json + 計數器{:<8}║'.format(''))
     print('║  ' + '─' * 49 + '║')
     print('║  0  進階單步執行{:<35}║'.format(''))
     print('║  ' + '─' * 49 + '║')
@@ -637,6 +638,49 @@ def run_path_a():
     if ok:
         print('\n  📂 開啟 Excel...')
         subprocess.Popen(['cmd', '/c', 'start', '', xlsx_path])
+
+def run_path_c():
+    print('\n▶ C【推上遠端】git push data.json + id_counters.json')
+    result = subprocess.run(
+        ['git', 'add', 'data/data.json', 'data/id_counters.json'],
+        cwd=root_dir, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f'  ❌ git add 失敗：{result.stderr.strip()}')
+        return
+
+    status = subprocess.run(
+        ['git', 'diff', '--cached', '--stat'],
+        cwd=root_dir, capture_output=True, text=True
+    ).stdout.strip()
+
+    if not status:
+        print('  ℹ  無變更，不需要 commit')
+        return
+
+    print(f'\n  變更內容：\n{status}\n')
+    msg = input('  請輸入 commit 訊息（直接 Enter 使用預設）：').strip()
+    if not msg:
+        msg = f'更新店家資料'
+
+    result = subprocess.run(
+        ['git', 'commit', '-m', msg],
+        cwd=root_dir, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f'  ❌ commit 失敗：{result.stderr.strip()}')
+        return
+    print(f'  ✅ Committed')
+
+    print('  🚀 git push...')
+    result = subprocess.run(
+        ['git', 'push'],
+        cwd=root_dir, capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        print('  ✅ Push 完成！')
+    else:
+        print(f'  ❌ push 失敗：{result.stderr.strip()}')
 
 def run_path_b():
     print('\n▶ B【完成編輯】Excel → JSON → 正規化 → Excel')
@@ -667,6 +711,10 @@ while True:
 
     elif choice == 'b':
         run_path_b()
+        input('\n按 Enter 繼續...')
+
+    elif choice == 'c':
+        run_path_c()
         input('\n按 Enter 繼續...')
 
     elif choice == '0':
