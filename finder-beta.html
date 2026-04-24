@@ -18,12 +18,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<title>[BETA] 台灣拉麵協會 店家查詢</title>
+<title>台灣拉麵協會 店家查詢</title>
 <meta property="og:type"        content="website">
 <meta property="og:title"       content="台灣拉麵協會 拉麵搜尋器">
 <meta property="og:description" content="查詢全台拉麵店家、踩點記錄、制霸地圖，一次搞定！">
 <meta property="og:image"       content="https://taiwan-ramen-association.github.io/assets/icons/06.jpeg">
-<meta property="og:url"         content="https://taiwan-ramen-association.github.io/finder-beta.html">
+<meta property="og:url"         content="https://taiwan-ramen-association.github.io/finder.html">
 <meta name="twitter:card"       content="summary_large_image">
 <meta name="twitter:image"      content="https://taiwan-ramen-association.github.io/assets/icons/06.jpeg">
 <style>
@@ -419,21 +419,30 @@
   .pd-header-info strong { display: block; font-size: 14px; color: var(--ink); }
   .pd-header-info span { font-size: 12px; color: var(--stone); }
 
-  .pd-section { padding: 12px 16px; border-bottom: 1px solid var(--line); }
-  .pd-section label { display: block; font-size: 11px; color: var(--stone); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pd-section input {
+  .pd-profile-grid {
+    display: grid; grid-template-columns: 64px 1fr;
+    gap: 10px 10px; padding: 14px 16px;
+    border-bottom: 1px solid var(--line); align-items: center;
+  }
+  .pd-grid-lbl {
+    font-size: 11px; color: var(--stone); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .pd-grid-input {
     width: 100%; padding: 7px 10px; border: 1.5px solid var(--line);
     border-radius: 8px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper); outline: none;
+    background: var(--paper); outline: none; box-sizing: border-box;
   }
-  .pd-section input:focus { border-color: var(--red); }
-
-  .pd-avatar-editor { display: flex; align-items: center; gap: 12px; }
+  .pd-grid-input:focus { border-color: var(--red); }
+  .pd-grid-avatar-cell {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 5px; align-self: start;
+  }
   .pd-avatar-big {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 48px; height: 48px; border-radius: 50%;
     object-fit: cover; border: 2px solid var(--line); flex-shrink: 0;
   }
-  .pd-avatar-btns { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .pd-avatar-btns { display: flex; flex-direction: column; gap: 6px; align-self: start; }
   .pd-avatar-btn {
     padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px;
     font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
@@ -692,19 +701,17 @@
     </div>
   </div>
 
-  <div class="pd-section">
-    <label>顯示名稱</label>
-    <input id="nicknameInput" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
-  </div>
+  <div class="pd-profile-grid">
+    <span class="pd-grid-lbl">顯示名稱</span>
+    <input id="nicknameInput" class="pd-grid-input" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
 
-  <div class="pd-section">
-    <label>頭像</label>
-    <div class="pd-avatar-editor">
+    <div class="pd-grid-avatar-cell">
+      <span class="pd-grid-lbl">頭像</span>
       <img class="pd-avatar-big" id="pdAvatarPreview" src="">
-      <div class="pd-avatar-btns">
-        <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
-        <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
-      </div>
+    </div>
+    <div class="pd-avatar-btns">
+      <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
+      <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
     </div>
   </div>
 

@@ -2,6 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<script>if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-early');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <link rel="icon" href="assets/icons/03.png">
 <link rel="manifest" href="manifest.json">
@@ -18,6 +19,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <title>台灣拉麵協會 店家查詢</title>
+<meta property="og:type"        content="website">
+<meta property="og:title"       content="台灣拉麵協會 拉麵搜尋器">
+<meta property="og:description" content="查詢全台拉麵店家、踩點記錄、制霸地圖，一次搞定！">
+<meta property="og:image"       content="https://taiwan-ramen-association.github.io/assets/icons/06.jpeg">
+<meta property="og:url"         content="https://taiwan-ramen-association.github.io/finder.html">
+<meta name="twitter:card"       content="summary_large_image">
+<meta name="twitter:image"      content="https://taiwan-ramen-association.github.io/assets/icons/06.jpeg">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
 
@@ -39,6 +47,71 @@
     --prep-bg: #edf3ff;
     --prep-txt: #3a5bbf;
   }
+
+  /* ── DARK MODE ── */
+  body.dark {
+    --red: #e04848;
+    --red-dark: #C8272D;
+    --red-light: #2e1515;
+    --ink: #e8e2d8;
+    --paper: #141210;
+    --stone: #9a8d7e;
+    --line: #2e2820;
+    --white: #1e1c18;
+    --open-bg: #0f200f;
+    --open-txt: #5db85d;
+    --pause-bg: #201808;
+    --pause-txt: #d4a030;
+    --prep-bg: #0e1828;
+    --prep-txt: #6080d0;
+  }
+
+  /* 防閃爍：html.dark-early 在 body.dark 套用前先讓背景變暗 */
+  html.dark-early { background: #141210; }
+
+  /* 硬編碼顏色在深色模式的覆寫 */
+  body.dark .card.member  { background: #1e1c10; border-color: #4a3e10; }
+  body.dark .card.member.expanded { border-color: #7a6010; }
+  body.dark .card.birthday { background: #200e14; border-color: #4a1e2e; }
+  body.dark .card.birthday.expanded { border-color: #7a2040; }
+  body.dark .tag-gray { background: #28221c; }
+  body.dark .note-box { background: #1e1a08; border-left-color: #806820; color: #c8a850; }
+  body.dark .link-ig { background: #2a1020; color: #e06090; }
+  body.dark .link-fb { background: #101830; color: #7090d8; }
+  body.dark .member-badge { background: #201a04; color: #c8a030; border-color: #604810; }
+  body.dark .birthday-badge { background: #200e18; color: #e06090; border-color: #501830; }
+  body.dark .locate-btn.located { background: #0e1828; color: #6090d8; border-color: #2040a0; }
+  body.dark .dist-badge { background: #0e1828; color: #6090d8; }
+  body.dark .sm-option:hover:not(.selected) { background: #281010; }
+  body.dark .sm-option.selected { background: #2e1010; }
+  body.dark .sm-slider-wrap { background: #2a1010; }
+  body.dark .sm-reset-btn { border-color: var(--line); }
+  body.dark .sm-cancel:hover { background: #383028; }
+  body.dark .map-popup-content-wrapper,
+  body.dark .leaflet-popup-content-wrapper { background: #1e1c18; color: var(--ink); }
+  body.dark .map-popup-note { background: #1e1a08; border-left-color: #806820; color: #c8a850; }
+  body.dark .map-ctrl-btn { background: #1e1c18; border-color: rgba(255,255,255,0.15); }
+  body.dark .map-ctrl-btn:active { background: #2e2c28; }
+  body.dark .map-ctrl-btn.following { background: #1a50a8; border-color: #1a50a8; }
+
+  /* 地圖 tile 反色成深色風格 */
+  body.dark #map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.88) saturate(0.7); }
+
+  /* 深色模式 toggle 開關樣式 */
+  .dark-toggle {
+    width: 38px; height: 22px; border-radius: 11px;
+    background: var(--line); position: relative;
+    transition: background 0.2s; flex-shrink: 0; margin-left: auto;
+    pointer-events: none;
+  }
+  .dark-toggle::after {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px;
+    transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  body.dark .dark-toggle { background: var(--red); }
+  body.dark .dark-toggle::after { transform: translateX(16px); }
 
   body {
     font-family: 'Noto Sans TC', sans-serif;
@@ -88,6 +161,20 @@
     border-radius: 8px; padding: 10px 22px;
     font-size: 14px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
   }
+  #betaGate {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 70vh; gap: 14px; text-align: center; padding: 30px 20px;
+  }
+  #betaGate p { color: var(--stone); font-size: 14px; line-height: 1.7; }
+  .btn-google {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); border: 1px solid var(--line);
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 14px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .btn-google:hover { background: #f5f5f5; }
 
   /* ── FILTER BAR ── */
   .filter-bar {
@@ -310,11 +397,16 @@
 
   /* ── PROFILE DROPDOWN ── */
   .profile-dropdown {
-    position: fixed; top: 52px; right: 52px; z-index: 99;
+    position: fixed; top: 52px; right: 52px; z-index: 1100;
     background: var(--white); border-radius: 14px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.18); width: 260px;
     overflow: hidden;
   }
+  .pd-actions {
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+  }
+  .pd-actions .pd-action:first-child { border-top: none; }
   .pd-header {
     display: flex; align-items: center; gap: 12px;
     padding: 16px; background: var(--red-light);
@@ -327,21 +419,30 @@
   .pd-header-info strong { display: block; font-size: 14px; color: var(--ink); }
   .pd-header-info span { font-size: 12px; color: var(--stone); }
 
-  .pd-section { padding: 12px 16px; border-bottom: 1px solid var(--line); }
-  .pd-section label { display: block; font-size: 11px; color: var(--stone); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pd-section input {
+  .pd-profile-grid {
+    display: grid; grid-template-columns: 64px 1fr;
+    gap: 10px 10px; padding: 14px 16px;
+    border-bottom: 1px solid var(--line); align-items: center;
+  }
+  .pd-grid-lbl {
+    font-size: 11px; color: var(--stone); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .pd-grid-input {
     width: 100%; padding: 7px 10px; border: 1.5px solid var(--line);
     border-radius: 8px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper); outline: none;
+    background: var(--paper); outline: none; box-sizing: border-box;
   }
-  .pd-section input:focus { border-color: var(--red); }
-
-  .pd-avatar-editor { display: flex; align-items: center; gap: 12px; }
+  .pd-grid-input:focus { border-color: var(--red); }
+  .pd-grid-avatar-cell {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 5px; align-self: start;
+  }
   .pd-avatar-big {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 48px; height: 48px; border-radius: 50%;
     object-fit: cover; border: 2px solid var(--line); flex-shrink: 0;
   }
-  .pd-avatar-btns { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .pd-avatar-btns { display: flex; flex-direction: column; gap: 6px; align-self: start; }
   .pd-avatar-btn {
     padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px;
     font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
@@ -405,6 +506,144 @@
     color: var(--red); flex-shrink: 0;
   }
 
+  /* ── FAV BUTTON locked ── */
+  .fav-btn.locked { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── STAMP BUTTON ── */
+  .stamp-btn {
+    border: none; background: none; cursor: pointer;
+    font-size: 17px; padding: 0 2px; line-height: 1;
+    flex-shrink: 0; opacity: 0.25; transition: opacity 0.15s;
+  }
+  .stamp-btn.can-stamp { opacity: 0.45; }
+  .stamp-btn.stamped   { opacity: 1; }
+  .stamp-btn.locked    { opacity: 0.25; cursor: not-allowed; }
+
+  /* ── STAMP MODAL ── */
+  .stamp-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 600; display: none;
+  }
+  .stamp-modal {
+    position: fixed; z-index: 601;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - 20px));
+    background: var(--white); border-radius: 18px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    padding: 22px 20px; display: none;
+    max-height: 92vh; overflow-y: auto;
+  }
+  .sm-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; margin-bottom: 18px; gap: 10px;
+  }
+  .sm-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px; font-weight: 700; line-height: 1.4; flex: 1;
+  }
+  .sm-reset-btn {
+    border: 1px solid #ddd; background: none; cursor: pointer;
+    font-size: 12px; color: var(--stone); padding: 4px 10px;
+    border-radius: 7px; white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
+  }
+  .sm-reset-btn:hover { border-color: #c00; color: #c00; }
+  .sm-option {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 14px; border: 1.5px solid var(--line);
+    border-radius: 13px; cursor: pointer; margin-bottom: 7px;
+    transition: all 0.15s; background: var(--paper); user-select: none;
+  }
+  .sm-option:hover:not(.selected) { border-color: var(--red); background: #fff8f8; }
+  .sm-option.selected { border-color: var(--red); background: #fff0f0; }
+  .sm-option-icon  { font-size: 26px; line-height: 1; width: 34px; text-align: center; }
+  .sm-option-label { font-size: 15px; font-weight: 500; flex: 1; color: var(--ink); }
+  .sm-option-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--line); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .sm-option.selected .sm-option-radio { border-color: var(--red); background: var(--red); }
+  .sm-option.selected .sm-option-radio::after {
+    content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%;
+  }
+  .sm-slider-wrap {
+    background: #fff0f0; border-left: 3px solid var(--red);
+    border-radius: 0 10px 10px 0; padding: 12px 16px;
+    margin: -7px 0 7px 18px; display: none;
+  }
+  .sm-slider-wrap.show { display: block; }
+  .sm-count-display {
+    font-size: 30px; font-weight: 800; color: var(--red);
+    text-align: center; line-height: 1; margin-bottom: 4px;
+  }
+  .sm-count-sub { font-size: 12px; color: var(--stone); text-align: center; margin-bottom: 10px; }
+  #smCountSlider { width: 100%; accent-color: var(--red); cursor: pointer; }
+  .sm-slider-ticks {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--stone); margin-top: 5px;
+  }
+  .sm-review-wrap { margin-top: 14px; }
+  .sm-review-label { font-size: 12px; color: var(--stone); display: block; margin-bottom: 5px; }
+  .sm-review-input {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+    resize: none; background: var(--paper); color: var(--ink); transition: border-color 0.15s;
+  }
+  .sm-review-input:focus { outline: none; border-color: var(--red); }
+  .sm-review-count { text-align: right; font-size: 11px; color: var(--stone); margin-top: 3px; }
+  .sm-footer { display: flex; gap: 8px; margin-top: 16px; }
+  .sm-btn {
+    flex: 1; padding: 13px; border: none; border-radius: 12px;
+    font-size: 15px; font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .sm-cancel  { background: var(--line); color: var(--stone); }
+  .sm-cancel:hover  { background: #d0c8bc; }
+  .sm-confirm { background: var(--red); color: #fff; }
+  .sm-confirm:hover { background: var(--red-dark); }
+
+  /* ── TOAST ── */
+  #stampToast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 8px 18px; border-radius: 8px;
+    font-size: 13px; z-index: 700; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; white-space: nowrap;
+  }
+  #stampToast.show { opacity: 1; }
+
+  /* ── CLEAR ALL DATA OVERLAY ── */
+  .clear-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.93);
+    z-index: 900; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  }
+  .clear-overlay.show { display: flex; }
+  .clear-ov-title { color: #fff; font-size: 20px; font-weight: 700; }
+  .clear-ov-warn {
+    color: #ff6b6b; font-size: 14px; font-weight: 600;
+    text-align: center; line-height: 1.8; background: rgba(255,0,0,0.1);
+    padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,100,100,0.3);
+  }
+  .clear-ov-count {
+    font-size: 80px; font-weight: 800; color: #fff; line-height: 1;
+    font-variant-numeric: tabular-nums; min-width: 1.5ch; text-align: center;
+  }
+  .clear-ov-count.ready { color: #ff4444; }
+  .clear-ov-btns { display: flex; gap: 12px; margin-top: 4px; }
+  .clear-ov-cancel {
+    padding: 13px 32px; background: #555; color: #fff;
+    border: none; border-radius: 12px; font-size: 15px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: background 0.15s;
+  }
+  .clear-ov-cancel:hover { background: #777; }
+  .clear-ov-confirm {
+    padding: 13px 32px; background: #cc0000; color: #fff;
+    border: none; border-radius: 12px; font-size: 15px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all 0.15s;
+  }
+  .clear-ov-confirm:disabled { background: #444; cursor: not-allowed; opacity: 0.5; }
+  .clear-ov-confirm:not(:disabled):hover { background: #aa0000; }
+
   .map-ctrl-btn {
     width: 34px; height: 34px; border-radius: 6px;
     border: 2px solid rgba(0,0,0,0.2); background: white;
@@ -436,7 +675,7 @@
 <body>
 
 <header>
-  <h1>🍜 台灣拉麵協會－拉麵搜尋器 </h1>
+  <h1>🍜 台灣拉麵協會－拉麵搜尋器 <span style="font-size:11px;background:rgba(255,255,255,0.25);padding:2px 7px;border-radius:10px;font-weight:400;letter-spacing:0;">BETA</span></h1>
   <div class="header-right">
     <button class="google-login-btn" id="loginBtn">
       <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
@@ -462,34 +701,108 @@
     </div>
   </div>
 
-  <button class="pd-action" id="favFilterBtn" style="display:none">♥ 收藏清單</button>
+  <div class="pd-profile-grid">
+    <span class="pd-grid-lbl">顯示名稱</span>
+    <input id="nicknameInput" class="pd-grid-input" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
 
-  <div class="pd-section">
-    <label>顯示名稱</label>
-    <input id="nicknameInput" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
-  </div>
-
-  <div class="pd-section">
-    <label>頭像</label>
-    <div class="pd-avatar-editor">
+    <div class="pd-grid-avatar-cell">
+      <span class="pd-grid-lbl">頭像</span>
       <img class="pd-avatar-big" id="pdAvatarPreview" src="">
-      <div class="pd-avatar-btns">
-        <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
-        <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
-      </div>
+    </div>
+    <div class="pd-avatar-btns">
+      <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
+      <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
     </div>
   </div>
 
   <button class="pd-save-btn" id="saveProfileBtn">儲存</button>
 
-  <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 會員管理</a>
-  <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
+  <div class="pd-actions">
+    <button class="pd-action" id="darkModeBtn">🌙 深色模式<span class="dark-toggle" id="darkToggle"></span></button>
+    <button class="pd-action" id="favFilterBtn" style="display:none">♥ 收藏清單</button>
+    <a class="pd-action" href="domination.html">🗾 制霸地圖</a>
+    <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 會員管理</a>
+    <button class="pd-action" id="clearDataBtn" style="color:#c00">🗑 清除我的所有記憶</button>
+    <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
+  </div>
 </div>
 
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
   <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
+</div>
+
+<!-- Stamp Modal -->
+<div id="stampBackdrop" class="stamp-backdrop"></div>
+<div id="stampModal" class="stamp-modal">
+  <div class="sm-header">
+    <div class="sm-title" id="smTitle"></div>
+    <button class="sm-reset-btn" id="smResetBtn">↺ 重置踩點</button>
+  </div>
+
+  <div class="sm-option" data-status="none">
+    <div class="sm-option-icon">🙅</div>
+    <div class="sm-option-label">沒去過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="pass">
+    <div class="sm-option-icon">🚶</div>
+    <div class="sm-option-label">路過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="once">
+    <div class="sm-option-icon">🍜</div>
+    <div class="sm-option-label">吃過1次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="many">
+    <div class="sm-option-icon">🔥</div>
+    <div class="sm-option-label">吃過很多次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-slider-wrap" id="smSliderWrap">
+    <div class="sm-count-display"><span id="smCountLabel">2</span>次</div>
+    <div class="sm-count-sub" id="smCountSub">繼續吃！</div>
+    <input type="range" id="smCountSlider" min="2" max="10" step="1" value="2">
+    <div class="sm-slider-ticks"><span>2次</span><span>5次</span><span>10次以上</span></div>
+  </div>
+  <div class="sm-option" data-status="work">
+    <div class="sm-option-icon">👨‍🍳</div>
+    <div class="sm-option-label">從業過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+
+  <div class="sm-review-wrap">
+    <label class="sm-review-label">踩點心得（選填，最多 50 字）</label>
+    <textarea class="sm-review-input" id="smReview" maxlength="50" rows="2" placeholder="你對這間店的印象或感受…"></textarea>
+    <div class="sm-review-count"><span id="smReviewCount">0</span> / 50</div>
+  </div>
+
+  <div class="sm-footer">
+    <button class="sm-btn sm-cancel" id="smCancelBtn">取消</button>
+    <button class="sm-btn sm-confirm" id="smConfirmBtn">確認踩點</button>
+  </div>
+</div>
+<div id="stampToast"></div>
+
+<!-- Clear All Data Overlay -->
+<div class="clear-overlay" id="clearOverlay">
+  <div class="clear-ov-title">🗑 清除所有記憶</div>
+  <div class="clear-ov-warn">收藏清單與踩點記錄將全部清除<br>⚠️ 此動作不可還原，請再次確認</div>
+  <div class="clear-ov-count" id="clearCountdown">10</div>
+  <div class="clear-ov-btns">
+    <button class="clear-ov-cancel" id="clearCancelBtn">取消</button>
+    <button class="clear-ov-confirm" id="clearConfirmBtn" disabled>確認清除</button>
+  </div>
+</div>
+
+<div id="betaGate">
+  <p id="betaGateMsg">此頁面需要登入才能瀏覽</p>
+  <button class="btn-google" id="betaLoginBtn" style="display:none">
+    <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 6.9-10.1 6.9-17z"/><path fill="#FBBC05" d="M10.8 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.4 10.6l8.4-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+    以 Google 帳號登入
+  </button>
 </div>
 
 <div id="loadingScreen" class="loading-screen">
@@ -567,7 +880,9 @@ function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); 
 
 async function toggleFav(shopId) {
   const user = typeof auth !== 'undefined' && auth.currentUser;
-  if (!user || !shopId) return;
+  if (!user) { showStampToast('請先登入才能使用收藏功能'); return; }
+  if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
+  if (!shopId) return;
   const ref = db.collection('users').doc(user.uid);
   if (favSet.has(shopId)) {
     favSet.delete(shopId);
@@ -585,6 +900,7 @@ let markerLayer  = null;
 let userLat      = null;
 let userLng      = null;
 let userMarker   = null;
+let userAccCircle = null;
 let watchId      = null;
 let followMode   = false;
 
@@ -824,12 +1140,32 @@ function shopDist(shop) {
   return haversine(userLat, userLng, parseFloat(shop.lat), parseFloat(shop.lng));
 }
 
-function showUserMarker() {
+function showUserMarker(accuracy) {
   if (!leafletMap || userLat === null) return;
-  if (userMarker) leafletMap.removeLayer(userMarker);
+  if (userMarker)    leafletMap.removeLayer(userMarker);
+  if (userAccCircle) leafletMap.removeLayer(userAccCircle);
   userMarker = L.circleMarker([userLat, userLng], {
     radius: 8, color: '#fff', weight: 2.5, fillColor: '#1a73e8', fillOpacity: 1
   }).addTo(leafletMap).bindPopup('你在這裡');
+  if (accuracy && accuracy < 800) {
+    userAccCircle = L.circle([userLat, userLng], {
+      radius: accuracy,
+      color: '#1a73e8', weight: 1, fillColor: '#1a73e8', fillOpacity: 0.1,
+      interactive: false
+    }).addTo(leafletMap);
+  }
+}
+
+function fitLocate() {
+  if (!leafletMap || userLat === null) return;
+  leafletMap.invalidateSize();
+  const R    = 900;
+  const dLat = R / 111320;
+  const dLng = R / (111320 * Math.cos(userLat * Math.PI / 180));
+  leafletMap.fitBounds([
+    [userLat - dLat, userLng - dLng],
+    [userLat + dLat, userLng + dLng]
+  ]);
 }
 
 function locateUser() {
@@ -837,13 +1173,14 @@ function locateUser() {
   if (userLat !== null) {
     userLat = userLng = null;
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; followMode = false; }
-    if (userMarker && leafletMap) { leafletMap.removeLayer(userMarker); userMarker = null; }
+    if (userMarker    && leafletMap) { leafletMap.removeLayer(userMarker);    userMarker    = null; }
+    if (userAccCircle && leafletMap) { leafletMap.removeLayer(userAccCircle); userAccCircle = null; }
     btn.textContent = '📍 定位';
     btn.classList.remove('located');
     render();
     return;
   }
-  if (!navigator.geolocation) { alert('此瀏覽器不支援 GPS 定位'); return; }
+  if (!navigator.geolocation) { showToast('此瀏覽器不支援 GPS 定位'); return; }
   btn.textContent = '⏳ 定位中…';
   btn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
@@ -852,7 +1189,7 @@ function locateUser() {
     btn.textContent = '📍 已定位';
     btn.classList.add('located');
     btn.disabled = false;
-    if (leafletMap) { showUserMarker(); leafletMap.setView([userLat, userLng], 15); }
+    if (leafletMap) { showUserMarker(pos.coords.accuracy); fitLocate(); }
     render();
   }, () => {
     btn.textContent = '📍 定位';
@@ -894,19 +1231,24 @@ function toggleFollow() {
     followMode = true;
     const followBtn = document.getElementById('followMapBtn');
     if (followBtn) followBtn.classList.add('following');
+    let firstFix = true;
     watchId = navigator.geolocation.watchPosition(pos => {
       userLat = pos.coords.latitude;
       userLng = pos.coords.longitude;
       document.getElementById('locateBtn').textContent = '📍 已定位';
       document.getElementById('locateBtn').classList.add('located');
-      showUserMarker();
-      if (followMode && leafletMap) leafletMap.setView([userLat, userLng]);
+      showUserMarker(pos.coords.accuracy);
+      if (followMode && leafletMap) {
+        if (firstFix) { fitLocate(); firstFix = false; }
+        else leafletMap.panTo([userLat, userLng]);
+      }
       render();
     }, () => {
       followMode = false;
       if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
       const followBtn = document.getElementById('followMapBtn');
       if (followBtn) followBtn.classList.remove('following');
+      showToast('定位失敗，請確認定位權限');
     }, { enableHighAccuracy: true });
   }
 }
@@ -929,29 +1271,38 @@ function initMap() {
     maxZoom: 19
   }).addTo(leafletMap);
 
-  // 右下角控制組：定位 + 跟隨
-  const MapControls = L.Control.extend({
-    options: { position: 'bottomright' },
+  // 左下角：縮放到自身位置（半徑約 1km）
+  const LocateMeControl = L.Control.extend({
+    options: { position: 'bottomleft' },
     onAdd() {
-      const wrap = L.DomUtil.create('div', 'map-ctrl-group');
-
-      const locBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
-      locBtn.title = '定位到我的位置';
-      locBtn.innerHTML = '📍';
-      L.DomEvent.on(locBtn, 'click', L.DomEvent.stop);
-      L.DomEvent.on(locBtn, 'click', locateUser);
-
-      const followBtn = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
-      followBtn.id    = 'followMapBtn';
-      followBtn.title = '跟隨我的位置';
-      followBtn.innerHTML = '🧭';
-      L.DomEvent.on(followBtn, 'click', L.DomEvent.stop);
-      L.DomEvent.on(followBtn, 'click', toggleFollow);
-
-      return wrap;
+      const btn = L.DomUtil.create('button', 'map-ctrl-btn map-ctrl-locate');
+      btn.title = '縮放到我的位置（約 1 公里範圍）';
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>`;
+      L.DomEvent.on(btn, 'click', L.DomEvent.stop);
+      L.DomEvent.on(btn, 'click', () => {
+        if (!navigator.geolocation) { showToast('此瀏覽器不支援 GPS 定位'); return; }
+        btn.style.opacity = '0.5';
+        btn.disabled = true;
+        navigator.geolocation.getCurrentPosition(pos => {
+          userLat = pos.coords.latitude;
+          userLng = pos.coords.longitude;
+          btn.style.opacity = '';
+          btn.disabled = false;
+          showUserMarker(pos.coords.accuracy);
+          fitLocate();
+          const lb = document.getElementById('locateBtn');
+          if (lb) { lb.textContent = '📍 已定位'; lb.classList.add('located'); }
+          render();
+        }, () => {
+          btn.style.opacity = '';
+          btn.disabled = false;
+          showToast('無法取得位置，請確認已允許定位權限');
+        }, { enableHighAccuracy: true, timeout: 8000 });
+      });
+      return btn;
     }
   });
-  new MapControls().addTo(leafletMap);
+  new LocateMeControl().addTo(leafletMap);
 
   // 手動拖曳地圖時退出跟隨模式
   leafletMap.on('dragstart', () => { if (followMode) toggleFollow(); });
@@ -1069,7 +1420,8 @@ function renderCard(shop) {
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
         ${statusBadge(shop['營業狀態'])}
-        <button class="fav-btn" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>
+        <button class="fav-btn${!auth.currentUser || isWarned ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>
+        <button class="stamp-btn${!auth.currentUser || isWarned ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>
       </div>
     </div>
     <div class="card-meta">
@@ -1109,7 +1461,7 @@ function render() {
   list.innerHTML = filtered.map(renderCard).join('');
   list.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
-      if (e.target.closest('a') || e.target.closest('.fav-btn')) return;
+      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
       card.classList.toggle('expanded');
       expandedCard = card.classList.contains('expanded') ? card : null;
@@ -1124,6 +1476,12 @@ function render() {
       await toggleFav(id);
       btn.textContent = favSet.has(id) ? '♥' : '♡';
       if (showFavOnly) render();
+    });
+  });
+  list.querySelectorAll('.stamp-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openStampModal(btn.dataset.id, btn.dataset.name);
     });
   });
 }
@@ -1179,6 +1537,10 @@ function bdToday() {
 
 function launchFireworks(birthdayShops) {
   if (localStorage.getItem(BD_SKIP_KEY) === bdToday()) return;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:auto;';
+  document.body.appendChild(overlay);
 
   const canvas = document.createElement('canvas');
   canvas.id = 'fireworks-canvas';
@@ -1298,6 +1660,7 @@ function launchFireworks(birthdayShops) {
 
   function dismiss() {
     dismissed = true;
+    overlay.remove();
     canvas.style.transition = 'opacity 0.4s ease';
     canvas.style.opacity = '0';
     setTimeout(() => canvas.remove(), 450);
@@ -1369,6 +1732,7 @@ function launchFireworks(birthdayShops) {
     if (!dismissed && (elapsed < DURATION || rockets.length > 0 || particles.length > 0)) {
       requestAnimationFrame(loop);
     } else if (!dismissed) {
+      overlay.remove();
       canvas.style.transition = 'opacity 1s ease';
       canvas.style.opacity = '0';
       setTimeout(() => canvas.remove(), 1100);
@@ -1389,10 +1753,16 @@ function launchFireworks(birthdayShops) {
       font-family:'Noto Serif TC',serif; font-weight:900;
       font-size:clamp(22px,5vw,40px); letter-spacing:0.12em;
       color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.5),0 0 30px #f06292;
-      background:rgba(0,0,0,0.28); padding:10px 28px; border-radius:50px;
-      white-space:nowrap;
+      background:rgba(0,0,0,0.28); padding:10px 28px; border-radius:20px;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      text-align:center;
     `;
-    line.textContent = `${name} 生日快樂！`;
+    const nameLine = document.createElement('span');
+    nameLine.textContent = name;
+    const bdLine = document.createElement('span');
+    bdLine.textContent = '生日快樂！';
+    line.appendChild(nameLine);
+    line.appendChild(bdLine);
     banner.appendChild(line);
   });
 
@@ -1554,7 +1924,239 @@ logoutBtn.addEventListener('click', () => {
   auth.signOut();
 });
 
+// ── 深色模式 ────────────────────────────────────────────────────────────────
+(function () {
+  const saved = localStorage.getItem('darkMode') === '1';
+  if (saved) document.body.classList.add('dark');
+  document.documentElement.classList.remove('dark-early');
+
+  document.getElementById('darkModeBtn').addEventListener('click', () => {
+    const isDark = document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+  });
+})();
+
+// ── Stamp (踩點) ───────────────────────────────────────────────────────────
+// Encoding: 0=沒去過, 0.2=路過, 1=吃過1次, 2-10=吃過N次, 20=從業過
+let stampMap  = {};  // shopId → numeric score value
+let reviewMap = {};  // shopId → string
+let isWarned  = false;
+let _stampShopId   = null;
+let _stampShopName = '';
+let _stampStatus   = 'once'; // 'none'|'pass'|'once'|'many'|'work'
+let _stampCount    = 2;
+
+const STATUS_TO_VAL = { none: 0, pass: 0.2, once: 1, work: 20 };
+const STATUS_LABELS = { none:'沒去過', pass:'路過', once:'吃過1次', work:'從業過' };
+const COUNT_SUBS = ['','','好評常客！','熱愛此店！','忠實顧客！','拉麵信徒！','絕對常客！','高度上癮！','難以自拔！','快要從業了！','傳說中的常客！'];
+
+function valToStatus(val) {
+  if (val == null) return null;
+  if (val === 0)             return 'none';
+  if (val === 0.2)           return 'pass';
+  if (val === 1)             return 'once';
+  if (val >= 2 && val <= 10) return 'many';
+  if (val === 20)            return 'work';
+  return null;
+}
+function getStampVal() {
+  return _stampStatus === 'many' ? _stampCount : (STATUS_TO_VAL[_stampStatus] ?? 1);
+}
+
+function showStampToast(msg) {
+  const t = document.getElementById('stampToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function loadStamps(uid) {
+  const snap = await db.collection('userVisits').doc(uid).get();
+  if (snap.exists) {
+    stampMap  = snap.data().visits  || {};
+    reviewMap = snap.data().reviews || {};
+  } else {
+    stampMap = {}; reviewMap = {};
+  }
+}
+
+function openStampModal(shopId, shopName) {
+  if (!auth.currentUser) { showStampToast('請先登入才能踩點'); return; }
+  if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
+  _stampShopId   = shopId;
+  _stampShopName = shopName;
+  const stored = stampMap[shopId];
+  _stampStatus = valToStatus(stored) || 'once';
+  _stampCount  = (_stampStatus === 'many') ? stored : 2;
+  document.getElementById('smTitle').textContent   = shopName;
+  document.getElementById('smReview').value        = reviewMap[shopId] || '';
+  document.getElementById('smReviewCount').textContent = (reviewMap[shopId] || '').length;
+  updateSmOptions();
+  updateSlider();
+  document.getElementById('stampBackdrop').style.display = 'block';
+  document.getElementById('stampModal').style.display   = 'block';
+}
+
+function closeStampModal() {
+  document.getElementById('stampBackdrop').style.display = 'none';
+  document.getElementById('stampModal').style.display   = 'none';
+}
+
+function updateSmOptions() {
+  document.querySelectorAll('.sm-option').forEach(el =>
+    el.classList.toggle('selected', el.dataset.status === _stampStatus)
+  );
+}
+
+function updateSlider() {
+  const wrap = document.getElementById('smSliderWrap');
+  wrap.classList.toggle('show', _stampStatus === 'many');
+  if (_stampStatus === 'many') {
+    document.getElementById('smCountSlider').value = _stampCount;
+    updateSliderLabel(_stampCount);
+  }
+}
+
+function updateSliderLabel(n) {
+  document.getElementById('smCountLabel').textContent = n >= 10 ? '10+' : n;
+  document.getElementById('smCountSub').textContent   = n >= 10 ? '傳說！你是這裡的傳說！' : (COUNT_SUBS[n] || '');
+}
+
+document.getElementById('stampBackdrop').addEventListener('click', closeStampModal);
+document.getElementById('smCancelBtn').addEventListener('click', closeStampModal);
+
+document.querySelectorAll('.sm-option').forEach(el => {
+  el.addEventListener('click', () => {
+    _stampStatus = el.dataset.status;
+    if (_stampStatus === 'many' && _stampCount < 2) _stampCount = 2;
+    updateSmOptions();
+    updateSlider();
+  });
+});
+
+document.getElementById('smCountSlider').addEventListener('input', e => {
+  _stampCount = parseInt(e.target.value);
+  updateSliderLabel(_stampCount);
+});
+
+document.getElementById('smReview').addEventListener('input', e => {
+  document.getElementById('smReviewCount').textContent = e.target.value.length;
+});
+
+document.getElementById('smConfirmBtn').addEventListener('click', async () => {
+  const shopId = _stampShopId;
+  if (!shopId || !auth.currentUser) return;
+  const val    = getStampVal();
+  const review = document.getElementById('smReview').value.trim();
+  stampMap[shopId] = val;
+  if (review) reviewMap[shopId] = review; else delete reviewMap[shopId];
+  try {
+    const uid = auth.currentUser.uid;
+    await db.collection('userVisits').doc(uid).set({ visits: { [shopId]: val } }, { merge: true });
+    if (review) {
+      await db.collection('userVisits').doc(uid).set({ reviews: { [shopId]: review } }, { merge: true });
+    } else {
+      await db.collection('userVisits').doc(uid).update({
+        [`reviews.${shopId}`]: firebase.firestore.FieldValue.delete()
+      }).catch(() => {});
+    }
+    document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.add('stamped'));
+    closeStampModal();
+    const lbl = _stampStatus === 'many'
+      ? `吃過${_stampCount >= 10 ? '10+' : _stampCount}次`
+      : STATUS_LABELS[_stampStatus];
+    showStampToast(`✓ 踩點：${lbl}`);
+  } catch (e) { showStampToast('踩點失敗：' + e.message); }
+});
+
+document.getElementById('smResetBtn').addEventListener('click', async () => {
+  if (!confirm(`確定要清除「${_stampShopName}」的踩點記錄嗎？\n此操作無法復原。`)) return;
+  const shopId = _stampShopId;
+  if (!shopId || !auth.currentUser) return;
+  delete stampMap[shopId]; delete reviewMap[shopId];
+  try {
+    await db.collection('userVisits').doc(auth.currentUser.uid).update({
+      [`visits.${shopId}`]:  firebase.firestore.FieldValue.delete(),
+      [`reviews.${shopId}`]: firebase.firestore.FieldValue.delete(),
+    });
+    document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.remove('stamped'));
+    closeStampModal();
+    showStampToast('已清除踩點記錄');
+  } catch (e) { showStampToast('重置失敗：' + e.message); }
+});
+
+// ── Clear All Data ─────────────────────────────────────────────────────────
+let _clearTimer = null;
+
+document.getElementById('clearDataBtn').addEventListener('click', () => {
+  closeProfileDropdown();
+  const el = document.getElementById('clearOverlay');
+  const btn = document.getElementById('clearConfirmBtn');
+  const cnt = document.getElementById('clearCountdown');
+  el.classList.add('show');
+  btn.disabled = true;
+  btn.textContent = '確認清除';
+  cnt.className = 'clear-ov-count';
+  let n = 10;
+  cnt.textContent = n;
+  clearInterval(_clearTimer);
+  _clearTimer = setInterval(() => {
+    n--;
+    cnt.textContent = n;
+    if (n <= 0) {
+      clearInterval(_clearTimer);
+      btn.disabled = false;
+      cnt.classList.add('ready');
+    }
+  }, 1000);
+});
+
+document.getElementById('clearCancelBtn').addEventListener('click', () => {
+  clearInterval(_clearTimer);
+  document.getElementById('clearOverlay').classList.remove('show');
+});
+
+document.getElementById('clearConfirmBtn').addEventListener('click', async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  const btn = document.getElementById('clearConfirmBtn');
+  btn.disabled = true; btn.textContent = '清除中…';
+  try {
+    await db.collection('users').doc(user.uid).update({
+      favorites: firebase.firestore.FieldValue.delete()
+    });
+    await db.collection('userVisits').doc(user.uid).delete();
+    favSet = new Set(); stampMap = {}; reviewMap = {};
+    showFavOnly = false;
+    document.getElementById('favFilterBtn').classList.remove('active');
+    render();
+    document.getElementById('clearOverlay').classList.remove('show');
+    showStampToast('✓ 所有記憶已清除');
+  } catch (e) {
+    showStampToast('清除失敗：' + e.message);
+    btn.disabled = false; btn.textContent = '確認清除';
+  }
+});
+
 // ── onAuthStateChanged ─────────────────────────────────────────────────────
+const BETA_ALLOWED_ROLES = ['admin', 'director'];
+
+function showBetaGate(msg, showLogin = false) {
+  document.getElementById('betaGate').style.display = 'flex';
+  document.getElementById('betaGateMsg').textContent = msg;
+  document.getElementById('betaLoginBtn').style.display = showLogin ? 'flex' : 'none';
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+}
+
+document.getElementById('betaLoginBtn').addEventListener('click', () => {
+  auth.signInWithPopup(provider).catch(err => {
+    if (err.code === 'auth/popup-blocked') auth.signInWithRedirect(provider);
+    else if (err.code !== 'auth/popup-closed-by-user') console.error(err);
+  });
+});
+
 auth.onAuthStateChanged(async user => {
   try {
     if (user) {
@@ -1591,6 +2193,15 @@ auth.onAuthStateChanged(async user => {
         Object.assign(userData, snap2.data());
       }
 
+      // 權限檢查：只有 admin / 協會幹部 可瀏覽
+      if (!BETA_ALLOWED_ROLES.includes(userData.role)) {
+        showBetaGate('此頁面僅開放協會幹部及管理員瀏覽');
+        userAvatar.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('betaGate').style.display = 'none';
+
       // 頭像：優先用 Firestore avatarUrl，否則 Google 照片
       const avatar = getAvatarUrl(userData, user.photoURL);
       userAvatar.src       = avatar;
@@ -1600,21 +2211,25 @@ auth.onAuthStateChanged(async user => {
       pdEmail.textContent       = user.email || '';
       nicknameInput.value       = userData.nickname || '';
       adminLink.style.display   = userData.role === 'admin' ? 'flex' : 'none';
+      isWarned = userData.role === 'warned';
 
-      // 載入收藏清單（Firestore favorites 陣列）
+      // 載入收藏清單 + 踩點記錄
       const favIds = userData.favorites || [];
       favSet = new Set(favIds);
       document.getElementById('favFilterBtn').style.display = 'flex';
+      await loadStamps(user.uid);
       render();
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
+      isWarned = false;
       favSet = new Set();
+      stampMap = {}; reviewMap = {};
       document.getElementById('favFilterBtn').style.display = 'none';
       showFavOnly = false;
       document.getElementById('favFilterBtn').classList.remove('active');
       closeProfileDropdown();
-      render();
+      showBetaGate('此頁面需要登入後才能瀏覽', true);
     }
   } catch (err) {
     console.error('auth state 處理失敗', err);
@@ -1624,7 +2239,6 @@ auth.onAuthStateChanged(async user => {
 });
 
 // ── Login ──────────────────────────────────────────────────────────────────
-// 優先 popup（所有平台），被擋住才 fallback 到 redirect
 loginBtn.addEventListener('click', () => {
   auth.signInWithPopup(provider).catch(err => {
     if (err.code === 'auth/popup-blocked') {
@@ -1634,7 +2248,6 @@ loginBtn.addEventListener('click', () => {
     }
   });
 });
-// 處理 redirect fallback 的回傳結果
 auth.getRedirectResult().catch(err => {
   if (err.code && err.code !== 'auth/no-auth-event') {
     console.error('redirect 登入失敗', err);
