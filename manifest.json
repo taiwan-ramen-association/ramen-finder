@@ -9,13 +9,13 @@
   "lang": "zh-TW",
   "icons": [
     {
-      "src": "assets/icons/03.png",
+      "src": "assets/icons/06.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/icons/03.png",
+      "src": "assets/icons/06.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
