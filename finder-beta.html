@@ -2858,10 +2858,8 @@ document.getElementById('clearConfirmBtn').addEventListener('click', async () =>
 });
 
 // ── onAuthStateChanged ─────────────────────────────────────────────────────
-const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
-
 function hasPermission(userRole, requiredRole) {
-  return (ROLE_LEVEL[userRole] ?? 0) >= (ROLE_LEVEL[requiredRole] ?? 99);
+  return getRoleLevel(userRole) >= (ROLE_LEVEL[requiredRole] ?? 99);
 }
 
 function showBetaGate(msg, showLogin = false) {
