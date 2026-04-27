@@ -2884,8 +2884,7 @@ auth.onAuthStateChanged(async user => {
       loginBtn.style.display = 'none';
       userAvatar.style.display = 'block';
 
-      const userRef    = db.collection('users').doc(user.uid);
-      const counterRef = db.collection('meta').doc('counters');
+      const userRef = db.collection('users').doc(user.uid);
       await userRef.set({
         displayName: user.displayName || '',
         email:       user.email || '',
