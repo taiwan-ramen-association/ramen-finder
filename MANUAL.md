@@ -62,6 +62,7 @@
 ├── ads.txt                 Google AdSense 驗證（必須在根目錄）
 ├── sitemap.xml             SEO 網站地圖（必須在根目錄）
 ├── google5be78957398a1c67.html  Search Console 驗證（必須在根目錄）
+│   [apps script.json]     Apps Script 中繼用，本機暫存，不納入版控
 │
 ├── assets/
 │   ├── css/style.css       共用樣式

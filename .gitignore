@@ -27,3 +27,6 @@ Thumbs.db
 
 # Claude Code 本機設定
 .claude/
+
+# Apps Script 中繼站（本機用，不上版控）
+apps script.json
