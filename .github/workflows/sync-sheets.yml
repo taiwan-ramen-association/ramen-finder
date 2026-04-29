@@ -101,7 +101,7 @@ jobs:
                   row['開幕月份'] = int(d.split('-')[1])
               # 歇業日已過 → 自動設為已歇業
               closing = str(row.get('歇業日', '')).strip()
-              if re.match(r'^\d{4}-\d{2}-\d{2}$', closing) and row.get('營業狀態') != '已歇業':
+              if re.match(r'^\d{4}-\d{2}-\d{2}$', closing) and row.get('營業狀態') == '營業中':
                   if today_str > closing:
                       row['營業狀態'] = '已歇業'
 

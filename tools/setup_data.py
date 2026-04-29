@@ -644,7 +644,7 @@ def step_auto_close():
         closing = str(row.get('歇業日', '')).strip()
         if not re.match(r'^\d{4}-\d{2}-\d{2}$', closing):
             continue
-        if row.get('營業狀態') == '已歇業':
+        if row.get('營業狀態') != '營業中':
             continue
         if today > closing:
             old = row.get('營業狀態', '（空）')
