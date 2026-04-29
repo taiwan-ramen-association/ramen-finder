@@ -302,6 +302,37 @@
   }
   .detail-value { font-size: 13px; color: var(--ink); line-height: 1.5; }
 
+  /* ── CARD TABS ── */
+  .card-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid var(--line);
+    margin: -11px -13px 12px; padding: 0 13px;
+  }
+  .card-tab {
+    flex: 1; padding: 9px 4px 8px; border: none; background: none; cursor: pointer;
+    font-size: 12px; font-weight: 500; color: var(--stone);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .card-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .card-tab-panel { display: none; }
+  .card-tab-panel.active { display: block; }
+  .tab-placeholder {
+    text-align: center; padding: 22px 0 10px;
+    font-size: 13px; color: var(--stone); line-height: 1.7;
+  }
+  /* Info tab: clean table layout */
+  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .info-table tr { border-bottom: 1px solid var(--line); }
+  .info-table tr:last-child { border-bottom: none; }
+  .info-table td { padding: 8px 4px; font-size: 13px; color: var(--ink); vertical-align: top; }
+  .info-table td.info-label {
+    width: 56px; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--stone); padding-right: 10px; white-space: nowrap; padding-top: 9px;
+  }
+  body.dark .info-table tr { border-color: #333; }
+  body.dark .card-tab.active { color: var(--red); }
+
   .note-box {
     background: #fffae8; border-left: 3px solid #f0c84a;
     border-radius: 0 6px 6px 0; padding: 7px 10px;
@@ -1053,15 +1084,25 @@
   <div class="qm-issue-panel" id="qmIssuePanel">
     <select class="qm-issue-select" id="qmIssueCat">
       <option value="">選擇問題分類…</option>
-      <option value="營業時間修正">🕐 營業時間修正</option>
-      <option value="公休日有誤">📅 公休日有誤</option>
-      <option value="支付方式修正">💳 支付方式修正</option>
-      <option value="地址有誤">📍 地址有誤</option>
-      <option value="電話有誤">📞 電話有誤</option>
-      <option value="店家已歇業">🚫 店家已歇業</option>
-      <option value="店家已搬遷">🚚 店家已搬遷</option>
-      <option value="名稱有誤">✏️ 名稱有誤</option>
-      <option value="其他">💬 其他問題</option>
+      <optgroup label="基本資訊">
+        <option value="名稱有誤">✏️ 名稱有誤</option>
+        <option value="地址有誤">📍 地址有誤</option>
+        <option value="地圖定位有誤">🗺️ 地圖定位有誤</option>
+        <option value="營業時間修正">🕐 營業時間修正</option>
+        <option value="公休日有誤">📅 公休日有誤</option>
+      </optgroup>
+      <optgroup label="用餐資訊">
+        <option value="排隊／點餐／支付方式有誤">💳 排隊／點餐／支付方式有誤</option>
+        <option value="座位配置有誤">💺 座位配置有誤</option>
+        <option value="拉麵類型／口味有誤">🍜 拉麵類型／口味有誤</option>
+      </optgroup>
+      <optgroup label="店家狀態">
+        <option value="店家已歇業">🚫 店家已歇業</option>
+        <option value="店家已搬遷">🚚 店家已搬遷</option>
+      </optgroup>
+      <optgroup label="其他">
+        <option value="其他">💬 其他問題</option>
+      </optgroup>
     </select>
     <textarea class="qm-issue-textarea" id="qmIssueNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
   </div>
@@ -1692,8 +1733,9 @@ function renderCard(shop) {
     shop['點餐方式'] ? {l:'點餐', v:shop['點餐方式']} : null,
     shop['醬底']     ? {l:'醬底', v:shop['醬底']}     : null,
     (shop['吧台數'] || shop['桌位數']) ? {l:'座位', v:
-      [shop['吧台數'] ? `吧台 ${shop['吧台數']}` : '',
-       shop['桌位數'] ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　')} : null,
+      [shop['吧台數'] && shop['吧台數'] !== '0' ? `吧台 ${shop['吧台數']}` : '',
+       shop['桌位數'] && shop['桌位數'] !== '0' ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　') || '無'} : null,
+    (shop['洗手間'] && shop['洗手間'] !== '未知') ? {l:'洗手間', v:shop['洗手間']} : null,
   ].filter(Boolean);
 
   const birthday = isBirthday(shop);
@@ -1722,15 +1764,32 @@ function renderCard(shop) {
       ${factions.map(t=>`<span class="tag tag-gray">${t}</span>`).join('')}
     </div>` : ''}
     <div class="card-detail">
-      ${canView('queueReport') ? `<div class="queue-section" data-shop-id="${escapeAttr(shop['ID'] || '')}">
-        <span class="queue-sec-label">🕐 目前排隊狀況</span>
-        <div class="queue-count-row"><span class="queue-no-data">展開後載入...</span></div>
-        <button class="queue-report-btn" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報人數</button>
-      </div>` : ''}
-      ${mapBtn}
-      ${detailItems.length ? `<div class="detail-grid">${detailItems.map(d=>`<div><div class="detail-label">${d.l}</div><div class="detail-value">${d.v}</div></div>`).join('')}</div>` : ''}
-      ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
-      ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
+      <div class="card-tabs">
+        <button class="card-tab active" data-tab-target="overview">大綱</button>
+        <button class="card-tab" data-tab-target="info">資訊</button>
+        <button class="card-tab" data-tab-target="menu">菜單</button>
+        <button class="card-tab" data-tab-target="reviews">評論</button>
+      </div>
+      <div class="card-tab-panel active" data-tab-panel="overview">
+        ${canView('queueReport') ? `<div class="queue-section" data-shop-id="${escapeAttr(shop['ID'] || '')}">
+          <span class="queue-sec-label">🕐 目前排隊狀況</span>
+          <div class="queue-count-row"><span class="queue-no-data">展開後載入...</span></div>
+          <button class="queue-report-btn" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報</button>
+        </div>` : ''}
+        ${mapBtn}
+        ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
+        ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
+        ${!canView('queueReport') && !mapBtn && !shop['營業備註'] && !links.length ? `<p class="tab-placeholder" style="padding:14px 0 4px">— 無額外資訊 —</p>` : ''}
+      </div>
+      <div class="card-tab-panel" data-tab-panel="info">
+        ${detailItems.length ? `<table class="info-table">${detailItems.map(d=>`<tr><td class="info-label">${d.l}</td><td>${d.v}</td></tr>`).join('')}</table>` : `<p class="tab-placeholder">尚無詳細資訊</p>`}
+      </div>
+      <div class="card-tab-panel" data-tab-panel="menu">
+        <p class="tab-placeholder">🍜 菜單功能<br>即將上線</p>
+      </div>
+      <div class="card-tab-panel" data-tab-panel="reviews">
+        <p class="tab-placeholder">💬 評論功能<br>即將上線</p>
+      </div>
     </div>
   </div>`;
 }
@@ -1755,7 +1814,7 @@ function render() {
   list.innerHTML = filtered.map(renderCard).join('');
   list.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
-      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn')) return;
+      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.card-tab')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
       card.classList.toggle('expanded');
       expandedCard = card.classList.contains('expanded') ? card : null;
@@ -1764,6 +1823,20 @@ function render() {
         const shopId = card.dataset.shopId;
         if (shopId) refreshQueueSection(shopId);
       }
+    });
+    card.querySelectorAll('.card-tab').forEach(tab => {
+      tab.addEventListener('click', e => {
+        e.stopPropagation();
+        const target = tab.dataset.tabTarget;
+        const detail = card.querySelector('.card-detail');
+        detail.querySelectorAll('.card-tab').forEach(t => t.classList.toggle('active', t.dataset.tabTarget === target));
+        detail.querySelectorAll('.card-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tabPanel === target));
+        // 切到大綱時補刷新排隊資料
+        if (target === 'overview') {
+          const shopId = card.dataset.shopId;
+          if (shopId) refreshQueueSection(shopId);
+        }
+      });
     });
   });
   list.querySelectorAll('.fav-btn').forEach(btn => {
@@ -2454,7 +2527,7 @@ async function refreshQueueSection(shopId) {
     btn.disabled = true;
     btn.textContent = `${Math.ceil(remaining / 60000)} 分鐘後可再次回報`;
   } else {
-    btn.disabled = false; btn.textContent = '我要回報人數';
+    btn.disabled = false; btn.textContent = '我要回報';
   }
 }
 
