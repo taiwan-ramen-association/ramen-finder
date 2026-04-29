@@ -382,8 +382,47 @@
   body.dark .queue-sec-label { color: #c07020; }
   body.dark .queue-count-unit { color: #c07020; }
   body.dark .queue-badge-header { background: #2a1e0e; color: #f0943a; border-color: #8a5010; }
+  .qm-divider { border: none; border-top: 1px dashed var(--line); margin: 8px 0 7px; }
+  .qm-opt-issue {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border: 1.5px solid var(--line);
+    border-radius: 11px; cursor: pointer; margin-bottom: 7px;
+    transition: all 0.15s; background: var(--paper); user-select: none;
+  }
+  .qm-opt-issue:hover:not(.selected) { border-color: #5b8ef0; background: #f0f4ff; }
+  .qm-opt-issue.selected { border-color: #5b8ef0; background: #eef2ff; }
+  .qm-opt-issue .qm-opt-label { color: #3358c4; }
+  .qm-opt-issue .qm-opt-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--line); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .qm-opt-issue.selected .qm-opt-radio { border-color: #5b8ef0; background: #5b8ef0; }
+  .qm-opt-issue.selected .qm-opt-radio::after { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+  .qm-issue-panel {
+    display: none; background: #f4f6ff; border-radius: 10px;
+    padding: 12px 14px 8px; margin-bottom: 4px; border: 1px solid #c8d4f8;
+  }
+  .qm-issue-panel.open { display: block; }
+  .qm-issue-select {
+    width: 100%; padding: 8px 10px; margin-bottom: 8px;
+    border: 1px solid #c8d4f8; border-radius: 8px; font-size: 13px;
+    background: var(--white); font-family: inherit; color: var(--ink); box-sizing: border-box;
+  }
+  .qm-issue-select:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .qm-issue-textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #c8d4f8;
+    border-radius: 8px; font-size: 13px; font-family: inherit;
+    resize: none; height: 68px; box-sizing: border-box; color: var(--ink); background: var(--white);
+  }
+  .qm-issue-textarea:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .queue-modal { max-height: 90vh; overflow-y: auto; }
   body.dark .qm-opt { background: #2a2017; }
   body.dark .qm-opt.selected { background: #3a2810; }
+  body.dark .qm-opt-issue { background: #1a1e35; }
+  body.dark .qm-opt-issue.selected { background: #1e2848; }
+  body.dark .qm-issue-panel { background: #1a1e35; border-color: #334; }
+  body.dark .qm-issue-select, body.dark .qm-issue-textarea { background: #22253a; border-color: #334; color: #e8e8e8; }
 
   /* RANKINGS MODAL */
   .rk-backdrop {
@@ -1005,6 +1044,26 @@
   <div class="qm-opt" data-value="25">
     <span class="qm-opt-label">🔴🔴 20 人以上</span>
     <div class="qm-opt-radio"></div>
+  </div>
+  <hr class="qm-divider">
+  <div class="qm-opt-issue" id="qmIssueOpt">
+    <span class="qm-opt-label">📝 回報問題</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-issue-panel" id="qmIssuePanel">
+    <select class="qm-issue-select" id="qmIssueCat">
+      <option value="">選擇問題分類…</option>
+      <option value="營業時間修正">🕐 營業時間修正</option>
+      <option value="公休日有誤">📅 公休日有誤</option>
+      <option value="支付方式修正">💳 支付方式修正</option>
+      <option value="地址有誤">📍 地址有誤</option>
+      <option value="電話有誤">📞 電話有誤</option>
+      <option value="店家已歇業">🚫 店家已歇業</option>
+      <option value="店家已搬遷">🚚 店家已搬遷</option>
+      <option value="名稱有誤">✏️ 名稱有誤</option>
+      <option value="其他">💬 其他問題</option>
+    </select>
+    <textarea class="qm-issue-textarea" id="qmIssueNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
   </div>
   <div class="qm-footer">
     <button class="qm-btn qm-cancel" id="qmCancelBtn">取消</button>
@@ -2198,7 +2257,9 @@ let stampMap  = {};  // shopId → numeric score value
 let reviewMap = {};  // shopId → string
 const queueCache = {};  // shopId → { entries, updatedAt }
 let _queueShopId   = null;
+let _queueShopName = null;
 let _queueSelected = null;
+let _queueMode     = 'queue'; // 'queue' | 'issue'
 let _queueGps      = null; // { lat, lng, confirmed }
 
 // ── Feature Flags ───────────────────────────────────────────────────────────
@@ -2441,9 +2502,14 @@ async function openQueueModal(shopId, shopName) {
     _queueGps = { lat: gpsResult.lat, lng: gpsResult.lng, confirmed: false };
   }
 
-  _queueShopId = shopId; _queueSelected = null;
+  _queueShopId = shopId; _queueShopName = shopName;
+  _queueSelected = null; _queueMode = 'queue';
   document.getElementById('qmTitle').textContent = '回報排隊人數　' + shopName;
   document.querySelectorAll('.qm-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById('qmIssueOpt').classList.remove('selected');
+  document.getElementById('qmIssuePanel').classList.remove('open');
+  document.getElementById('qmIssueCat').value  = '';
+  document.getElementById('qmIssueNote').value = '';
   document.getElementById('qmConfirmBtn').disabled = true;
   document.getElementById('queueBackdrop').style.display = 'block';
   document.getElementById('queueModal').style.display    = 'block';
@@ -2564,15 +2630,59 @@ document.getElementById('smCancelBtn').addEventListener('click', closeStampModal
 
 document.getElementById('queueBackdrop').addEventListener('click', closeQueueModal);
 document.getElementById('qmCancelBtn').addEventListener('click', closeQueueModal);
-document.getElementById('qmConfirmBtn').addEventListener('click', submitQueueReport);
+document.getElementById('qmConfirmBtn').addEventListener('click', () => {
+  if (_queueMode === 'issue') submitIssueReport();
+  else submitQueueReport();
+});
 document.querySelectorAll('.qm-opt').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.qm-opt').forEach(o => o.classList.remove('selected'));
+    document.getElementById('qmIssueOpt').classList.remove('selected');
+    document.getElementById('qmIssuePanel').classList.remove('open');
     el.classList.add('selected');
     _queueSelected = parseInt(el.dataset.value, 10);
+    _queueMode = 'queue';
     document.getElementById('qmConfirmBtn').disabled = false;
   });
 });
+document.getElementById('qmIssueOpt').addEventListener('click', () => {
+  document.querySelectorAll('.qm-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('qmIssueOpt').classList.add('selected');
+  document.getElementById('qmIssuePanel').classList.add('open');
+  _queueSelected = null;
+  _queueMode = 'issue';
+  document.getElementById('qmConfirmBtn').disabled = false;
+});
+
+async function submitIssueReport() {
+  const cat  = document.getElementById('qmIssueCat').value.trim();
+  const note = document.getElementById('qmIssueNote').value.trim();
+  if (!cat) { showStampToast('請選擇問題分類'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入才能回報'); return; }
+
+  const confirmBtn = document.getElementById('qmConfirmBtn');
+  confirmBtn.disabled = true; confirmBtn.textContent = '送出中…';
+
+  try {
+    const user = auth.currentUser;
+    await db.collection('issueReports').add({
+      shopId:      _queueShopId,
+      shopName:    _queueShopName,
+      category:    cat,
+      note:        note,
+      uid:         user.uid,
+      displayName: user.displayName || '',
+      email:       user.email       || '',
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeQueueModal();
+    showStampToast('✅ 問題已回報，感謝你的協助！');
+  } catch (e) {
+    showStampToast('❌ 送出失敗，請稍後再試');
+    console.error('submitIssueReport 失敗', e);
+  }
+  confirmBtn.disabled = false; confirmBtn.textContent = '確認送出';
+}
 
 document.querySelectorAll('.sm-option').forEach(el => {
   el.addEventListener('click', () => {

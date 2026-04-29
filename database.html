@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<script>if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-early');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="icon" href="assets/icons/03.png">
+<title>資料庫 ─ 台灣拉麵協會</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:      #1e3a5f;
+    --navy-dark: #152d4a;
+    --ink:  #1a1209;
+    --paper:#faf7f2;
+    --stone:#8a7d6e;
+    --line: #e8e0d4;
+    --white:#ffffff;
+    --closed-bg:  #f4f4f4;
+    --closed-txt: #888;
+    --open-txt:   #2d7a2d;
+  }
+  body.dark {
+    --ink:  #e8e2d8;
+    --paper:#141210;
+    --stone:#9a8d7e;
+    --line: #2e2820;
+    --white:#1e1c18;
+    --closed-bg:  #1a1a1a;
+    --closed-txt: #666;
+  }
+  html.dark-early body { background: #141210; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper); color: var(--ink);
+    min-height: 100vh; transition: background 0.2s, color 0.2s;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy); color: #fff;
+    padding: 0 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px; font-weight: 700; letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .header-link {
+    color: rgba(255,255,255,0.85); font-size: 12px;
+    text-decoration: none; background: rgba(255,255,255,0.12);
+    padding: 4px 10px; border-radius: 6px; transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .header-link:hover { background: rgba(255,255,255,0.22); }
+  #darkModeBtn {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; padding: 4px; line-height: 1;
+  }
+  #userAvatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    object-fit: cover; display: none; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+  #loginBtn {
+    display: none; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; padding: 5px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-family: inherit;
+  }
+  #loginBtn:hover { background: rgba(255,255,255,0.25); }
+
+  /* ── GATE ── */
+  #gate {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; min-height: calc(100vh - 52px);
+    gap: 14px; padding: 20px;
+  }
+  #gate p { color: var(--stone); font-size: 14px; text-align: center; line-height: 1.7; }
+  .btn-google {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid #ddd; color: #333;
+    padding: 10px 18px; border-radius: 10px; cursor: pointer;
+    font-size: 14px; font-family: inherit; font-weight: 500;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  /* ── FILTER BAR ── */
+  #filterBar {
+    display: none;
+    padding: 10px 14px 8px; background: var(--white);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 52px; z-index: 90;
+  }
+  .search-box { margin-bottom: 8px; }
+  .search-box input {
+    width: 100%; padding: 9px 14px;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    font-size: 14px; background: var(--paper); color: var(--ink);
+    font-family: inherit; outline: none;
+  }
+  .search-box input:focus { border-color: var(--navy); }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filter-group { display: flex; flex-direction: column; gap: 2px; }
+  .filter-group label { font-size: 10px; color: var(--stone); font-weight: 500; }
+  .filter-group select {
+    padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px;
+    font-size: 13px; background: var(--paper); color: var(--ink);
+    font-family: inherit; cursor: pointer; min-width: 90px;
+  }
+  .filter-group select:focus { outline: 2px solid var(--navy); border-color: transparent; }
+  .result-count { font-size: 12px; color: var(--stone); margin-left: auto; align-self: flex-end; white-space: nowrap; }
+
+  /* ── CARDS ── */
+  #cardList {
+    padding: 12px 14px; max-width: 780px; margin: 0 auto;
+    flex-direction: column; gap: 10px; display: none;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700; color: var(--stone);
+    letter-spacing: 0.8px; text-transform: uppercase;
+    padding: 6px 0 2px; border-bottom: 1px solid var(--line);
+    margin-bottom: 2px;
+  }
+  .card {
+    background: var(--white); border-radius: 14px;
+    border: 1.5px solid var(--line);
+    overflow: hidden; cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: var(--navy); box-shadow: 0 2px 10px rgba(30,58,95,0.1); }
+  .card.expanded { border-color: var(--navy); box-shadow: 0 4px 16px rgba(30,58,95,0.15); }
+  /* Closed shop card */
+  .card.closed {
+    background: var(--closed-bg); border-color: var(--line);
+    opacity: 0.75;
+  }
+  .card.closed:hover { border-color: #999; opacity: 0.9; }
+  .card.closed.expanded { opacity: 1; }
+
+  .card-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 8px; padding: 13px 14px 10px;
+  }
+  .card-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px; font-weight: 700; line-height: 1.35;
+  }
+  .card.closed .card-name { color: var(--stone); }
+  .card-badges { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
+  .badge-status {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 6px; white-space: nowrap;
+  }
+  .bs-open     { background: #eef7ee; color: #2d7a2d; }
+  .bs-closed   { background: #f4f4f4; color: #888; }
+  .bs-moved    { background: #fff0e0; color: #c07000; }
+  .bs-pause    { background: #fff8ec; color: #c07a00; }
+  .bs-temp     { background: #edf3ff; color: #3a5bbf; }
+  .badge-id { font-size: 10px; color: var(--stone); font-family: monospace; }
+
+  .card-meta { padding: 0 14px 8px; }
+  .meta-row { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 3px; font-size: 13px; }
+  .meta-icon { flex-shrink: 0; }
+  .meta-text { color: var(--stone); line-height: 1.5; }
+
+  .card-detail { display: none; border-top: 1px solid var(--line); padding: 12px 14px; }
+  .card.expanded .card-detail { display: block; }
+
+  .tags { padding: 0 14px 8px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    background: #f0e8dc; color: #6a4a20; font-weight: 500;
+  }
+  .tag-gray { background: #eeeeee; color: #555; }
+  body.dark .tag { background: #2e2216; color: #c8a878; }
+  body.dark .tag-gray { background: #2a2a2a; color: #aaa; }
+
+  .map-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: inherit; text-decoration: none;
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 10px; margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .map-btn:hover { border-color: var(--navy); }
+  .map-btn-icon { flex-shrink: 0; }
+
+  .detail-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px; margin-bottom: 8px;
+  }
+  .detail-label { font-size: 10px; color: var(--stone); margin-bottom: 2px; }
+  .detail-value { font-size: 13px; font-weight: 500; }
+
+  .dates-row { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+  .dates-item { font-size: 12px; color: var(--stone); }
+  .dates-item span { font-weight: 600; color: var(--ink); margin-left: 4px; }
+
+  .note-box {
+    font-size: 12px; color: var(--stone); background: var(--paper);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
+    border-left: 3px solid var(--navy); line-height: 1.6;
+  }
+  .link-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .link-btn {
+    font-size: 12px; padding: 5px 10px; border-radius: 8px;
+    text-decoration: none; border: 1px solid var(--line);
+    transition: border-color 0.15s; color: var(--ink);
+  }
+  .link-btn:hover { border-color: var(--navy); }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--stone);
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── LOADING / TOAST ── */
+  #loadingScreen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: calc(100vh - 52px); gap: 12px;
+  }
+  .loader {
+    width: 36px; height: 36px; border: 3px solid var(--line);
+    border-top-color: var(--navy); border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--stone); }
+
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  body.dark #toast { background: #333; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 資料庫</h1>
+  <div class="header-right">
+    <a class="header-link" href="admin.html">⚙️ 後台</a>
+    <a class="header-link" href="finder-beta.html">🧪 BETA</a>
+    <a class="header-link" href="finder.html">← 查詢</a>
+    <button id="darkModeBtn" title="深色模式">🌙</button>
+    <img id="userAvatar" src="assets/icons/03.png" alt="avatar">
+    <button id="loginBtn">
+      <svg viewBox="0 0 48 48" width="16" height="16"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 6.9-10.1 6.9-17z"/><path fill="#FBBC05" d="M10.8 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.4 10.6l8.4-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+      登入
+    </button>
+  </div>
+</header>
+
+<div id="gate">
+  <p id="gateMsg">驗證中…</p>
+  <button class="btn-google" id="gateLoginBtn" style="display:none">
+    <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 6.9-10.1 6.9-17z"/><path fill="#FBBC05" d="M10.8 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.4 10.6l8.4-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+    以 Google 帳號登入
+  </button>
+</div>
+
+<div id="loadingScreen">
+  <div class="loader"></div>
+  <div class="loading-text">載入資料中…</div>
+</div>
+
+<div id="filterBar">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜尋店名、地址、ID、派系、類型…" autocomplete="off">
+  </div>
+  <div class="filter-row">
+    <div class="filter-group">
+      <label>縣市</label>
+      <select id="cityFilter"><option value="">全部縣市</option></select>
+    </div>
+    <div class="filter-group">
+      <label>營業狀態</label>
+      <select id="statusFilter">
+        <option value="">全部狀態</option>
+        <option value="營業中">營業中</option>
+        <option value="已歇業">已歇業</option>
+        <option value="已搬遷">已搬遷</option>
+        <option value="暫時關閉">暫時關閉</option>
+        <option value="暫停營業">暫停營業</option>
+        <option value="籌備中">籌備中</option>
+      </select>
+    </div>
+    <span class="result-count" id="resultCount">0 筆</span>
+  </div>
+</div>
+
+<div id="cardList"></div>
+
+<div id="toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
+  authDomain: "taiwan-ramen-association.firebaseapp.com",
+  projectId: "taiwan-ramen-association",
+  storageBucket: "taiwan-ramen-association.firebasestorage.app",
+  messagingSenderId: "66234065738",
+  appId: "1:66234065738:web:eb9fc4348a942da66ad7b3"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+// ── Dark mode ───────────────────────────────────────────────────────────────
+(function () {
+  const saved = localStorage.getItem('darkMode') === '1';
+  if (saved) document.body.classList.add('dark');
+  document.documentElement.classList.remove('dark-early');
+  document.getElementById('darkModeBtn').addEventListener('click', () => {
+    const isDark = document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+  });
+})();
+
+// ── Feature flags & roles ────────────────────────────────────────────────────
+const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
+const MEMBER_ROLES = ['member_individual','member_group','member_sponsor','member_honorary'];
+
+function getRoleLevel(role) {
+  if (role === 'admin')    return 4;
+  if (role === 'director') return 3;
+  if (MEMBER_ROLES.includes(role)) return 2;
+  if (role === 'viewer' || role === 'store') return 1;
+  return 0;
+}
+
+function hasPermission(role, required) {
+  return getRoleLevel(role) >= (ROLE_LEVEL[required] ?? 4);
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const loginBtn     = document.getElementById('loginBtn');
+const gateLoginBtn = document.getElementById('gateLoginBtn');
+const userAvatar   = document.getElementById('userAvatar');
+const gate         = document.getElementById('gate');
+const gateMsg      = document.getElementById('gateMsg');
+const loadingScreen= document.getElementById('loadingScreen');
+const filterBar    = document.getElementById('filterBar');
+const cardList     = document.getElementById('cardList');
+
+[loginBtn, gateLoginBtn].forEach(b => b.addEventListener('click', () =>
+  auth.signInWithPopup(provider).catch(e => showToast('登入失敗：' + e.message))
+));
+
+function showGate(msg, showLogin = false) {
+  loadingScreen.style.display = 'none';
+  filterBar.style.display = 'none';
+  cardList.style.display  = 'none';
+  gate.style.display = 'flex';
+  gateMsg.textContent = msg;
+  gateLoginBtn.style.display = showLogin ? 'flex' : 'none';
+  loginBtn.style.display = showLogin ? 'flex' : 'none';
+}
+
+let ALL_DATA = [];
+
+auth.onAuthStateChanged(async user => {
+  try {
+    if (!user) {
+      userAvatar.style.display = 'none';
+      showGate('此頁面需要登入才能瀏覽', true);
+      return;
+    }
+
+    userAvatar.src     = user.photoURL || 'assets/icons/03.png';
+    userAvatar.style.display = 'block';
+    loginBtn.style.display   = 'none';
+
+    // 取得用戶角色
+    const userSnap = await db.collection('users').doc(user.uid).get();
+    const userData = userSnap.exists ? userSnap.data() : {};
+    const userRole = userData.role || 'viewer';
+
+    // 讀取 featureFlags
+    let dbPermRole = 'admin'; // 預設
+    try {
+      const ffSnap = await db.collection('meta').doc('featureFlags').get();
+      if (ffSnap.exists && ffSnap.data().database?.perm) {
+        dbPermRole = ffSnap.data().database.perm;
+      }
+    } catch(e) {}
+
+    if (!hasPermission(userRole, dbPermRole)) {
+      showGate('此頁面僅開放特定身份瀏覽（' + userRole + '）');
+      return;
+    }
+
+    // 權限通過 → 載入資料
+    gate.style.display      = 'none';
+    loadingScreen.style.display = 'flex';
+
+    if (!ALL_DATA.length) {
+      const res  = await fetch('data/data.json?' + Date.now());
+      ALL_DATA   = await res.json();
+    }
+
+    // 填入縣市選單
+    const cities = [...new Set(ALL_DATA.map(s => s['縣市']).filter(Boolean))];
+    const cityFilter = document.getElementById('cityFilter');
+    cities.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = c;
+      cityFilter.appendChild(opt);
+    });
+
+    loadingScreen.style.display = 'none';
+    filterBar.style.display  = 'block';
+    cardList.style.display   = 'flex';
+    render();
+
+  } catch (err) {
+    console.error('auth 處理失敗', err);
+    showGate('載入失敗，請重新整理頁面');
+  }
+});
+
+// ── Render ──────────────────────────────────────────────────────────────────
+const STATUS_ORDER = { '營業中': 0, '暫停營業': 1, '籌備中': 2, '暫時關閉': 3, '已搬遷': 4, '已歇業': 5 };
+
+function isOpen(shop) {
+  return shop['營業狀態'] === '營業中' || !shop['營業狀態'];
+}
+
+function getFiltered() {
+  const q        = document.getElementById('searchInput').value.trim().toLowerCase();
+  const city     = document.getElementById('cityFilter').value;
+  const status   = document.getElementById('statusFilter').value;
+
+  return ALL_DATA.filter(s => {
+    if (city   && s['縣市']     !== city)   return false;
+    if (status && s['營業狀態'] !== status) return false;
+    if (q) {
+      const hay = [s['店名'], s['地址'], s['縣市'], s['鄉鎮市區'],
+                   s['派系'], s['類型'], s['ID']].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    const oa = STATUS_ORDER[a['營業狀態']] ?? 3;
+    const ob = STATUS_ORDER[b['營業狀態']] ?? 3;
+    if (oa !== ob) return oa - ob;
+    return (a['店名'] || '').localeCompare(b['店名'] || '', 'zh-TW');
+  });
+}
+
+function statusBadgeClass(s) {
+  if (!s || s === '營業中') return 'bs-open';
+  if (s === '已歇業')       return 'bs-closed';
+  if (s === '已搬遷')       return 'bs-moved';
+  if (s === '暫停營業')     return 'bs-pause';
+  return 'bs-temp';
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;');
+}
+
+function isValidUrl(s) {
+  return s && s.startsWith('http');
+}
+
+function renderCard(shop) {
+  const closed   = !isOpen(shop);
+  const status   = shop['營業狀態'] || '營業中';
+  const bsCls    = statusBadgeClass(status);
+  const openDate = shop['開幕日']   || '';
+  const closeDate= shop['歇業日']   || '';
+
+  const types    = (shop['類型']  || '').split(',').map(t=>t.trim()).filter(Boolean);
+  const factions = (shop['派系']  || '').split(',').map(t=>t.trim()).filter(Boolean);
+
+  const hasMap   = isValidUrl(shop['Map']);
+  const mapUrl   = hasMap ? shop['Map']
+    : `https://www.google.com/maps/search/${encodeURIComponent(shop['地址'] || shop['店名'])}`;
+  const mapBtn   = shop['地址']
+    ? `<a href="${mapUrl}" target="_blank" class="map-btn" onclick="event.stopPropagation()">
+         <span class="map-btn-icon">📍</span>${shop['地址']}
+       </a>` : '';
+
+  const ALL_DAYS = ['一','二','三','四','五','六','日'];
+  const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
+  const openTimes = [...new Set(ALL_DAYS.map(d => shop['週'+d]).filter(Boolean))];
+  const hours = openTimes.length === 1 ? openTimes[0].replace(/\n/g,'　')
+    : openTimes.length > 1 ? '依日而異' : (shop['營業時段'] || '').replace(/\n/g,'　');
+  const offDay = hasWeekData
+    ? ALL_DAYS.filter(d => !shop['週'+d]).join('、')
+    : (shop['店休日'] || '').replace(/,/g,'、');
+
+  const detailItems = [
+    shop['支付方式'] ? {l:'支付', v:shop['支付方式']} : null,
+    shop['排隊方式'] ? {l:'排隊', v:shop['排隊方式']} : null,
+    shop['點餐方式'] ? {l:'點餐', v:shop['點餐方式']} : null,
+    shop['醬底']     ? {l:'醬底', v:shop['醬底']}     : null,
+    (shop['吧台數'] || shop['桌位數']) ? {l:'座位', v:
+      [shop['吧台數'] ? `吧台 ${shop['吧台數']}` : '',
+       shop['桌位數'] ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　')} : null,
+  ].filter(Boolean);
+
+  const links = [];
+  if (isValidUrl(shop['Instagram'])) links.push(`<a href="${shop['Instagram']}" target="_blank" class="link-btn" onclick="event.stopPropagation()">📷 Instagram</a>`);
+  if (isValidUrl(shop['Facebook']))  links.push(`<a href="${shop['Facebook']}"  target="_blank" class="link-btn" onclick="event.stopPropagation()">👥 Facebook</a>`);
+
+  return `
+  <div class="card${closed ? ' closed' : ''}">
+    <div class="card-header">
+      <div class="card-name">${shop['店名'] || '（未命名）'}</div>
+      <div class="card-badges">
+        <span class="badge-status ${bsCls}">${status}</span>
+        <span class="badge-id">${shop['ID'] || ''}</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      ${shop['縣市'] || shop['鄉鎮市區'] ? `<div class="meta-row"><span class="meta-icon">🗺</span><span class="meta-text">${[shop['縣市'], shop['鄉鎮市區']].filter(Boolean).join(' ')}</span></div>` : ''}
+      ${hours ? `<div class="meta-row"><span class="meta-icon">🕐</span><span class="meta-text">${hours}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></div>` : ''}
+    </div>
+    ${types.length || factions.length ? `<div class="tags">
+      ${types.map(t=>`<span class="tag">${t}</span>`).join('')}
+      ${factions.map(t=>`<span class="tag tag-gray">${t}</span>`).join('')}
+    </div>` : ''}
+    <div class="card-detail">
+      ${mapBtn}
+      ${openDate || closeDate ? `<div class="dates-row">
+        ${openDate  ? `<div class="dates-item">開幕日<span>${openDate}</span></div>`  : ''}
+        ${closeDate ? `<div class="dates-item">歇業日<span>${closeDate}</span></div>` : ''}
+      </div>` : ''}
+      ${detailItems.length ? `<div class="detail-grid">${detailItems.map(d=>`<div><div class="detail-label">${d.l}</div><div class="detail-value">${d.v}</div></div>`).join('')}</div>` : ''}
+      ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
+      ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+let expandedCard = null;
+
+function render() {
+  const filtered = getFiltered();
+  document.getElementById('resultCount').textContent = filtered.length + ' 筆';
+
+  if (!filtered.length) {
+    cardList.innerHTML = `<div class="empty-state"><div class="big">🍜</div><p>找不到符合的店家<br>請調整篩選條件</p></div>`;
+    return;
+  }
+
+  // 分組：營業中 vs 其他
+  const openShops   = filtered.filter(s => isOpen(s));
+  const closedShops = filtered.filter(s => !isOpen(s));
+
+  let html = '';
+  if (openShops.length)   html += `<div class="section-label">🟢 營業中（${openShops.length}）</div>` + openShops.map(renderCard).join('');
+  if (closedShops.length) html += `<div class="section-label">⬜ 其他狀態（${closedShops.length}）</div>` + closedShops.map(renderCard).join('');
+  cardList.innerHTML = html;
+
+  cardList.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
+      card.classList.toggle('expanded');
+      expandedCard = card.classList.contains('expanded') ? card : null;
+      if (expandedCard) setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+    });
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('cityFilter').addEventListener('change', render);
+document.getElementById('statusFilter').addEventListener('change', render);
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

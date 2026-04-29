@@ -184,13 +184,57 @@
   }
   .ff-save:hover { opacity: 0.85; }
   .ff-status { font-size: 12px; color: var(--stone); }
+
+  /* Issue Reports */
+  .reports-card {
+    background: var(--white); border-radius: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    padding: 20px 24px; margin-top: 20px;
+  }
+  .reports-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .reports-desc { font-size: 11px; color: var(--stone); margin-bottom: 14px; }
+  .reports-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .reports-count { font-size: 12px; color: var(--stone); flex: 1; }
+  .reports-reload-btn {
+    padding: 5px 12px; background: var(--paper); color: var(--stone);
+    border: 1px solid var(--line); border-radius: 6px; font-size: 12px;
+    cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+  }
+  .reports-reload-btn:hover { opacity: 0.75; }
+  .reports-clear-btn {
+    padding: 5px 12px; background: #e74c3c; color: var(--white);
+    border: none; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+  }
+  .reports-clear-btn:hover { opacity: 0.82; }
+  .reports-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .reports-table th {
+    font-size: 11px; font-weight: 600; color: var(--stone);
+    text-align: left; padding: 6px 8px; border-bottom: 2px solid var(--line);
+    letter-spacing: 0.4px;
+  }
+  .reports-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .reports-table tr:last-child td { border-bottom: none; }
+  .reports-empty { text-align: center; color: var(--stone); padding: 24px; font-size: 13px; }
+  .report-shop { font-weight: 600; }
+  .report-cat {
+    display: inline-block; background: #f0f4ff; border-radius: 4px;
+    padding: 1px 7px; font-size: 11px; color: #445;
+  }
+  .report-del-btn {
+    padding: 3px 9px; background: transparent; border: 1px solid var(--line);
+    border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--stone);
+    font-family: inherit; transition: all 0.15s;
+  }
+  .report-del-btn:hover { background: #fee; border-color: #e74c3c; color: #e74c3c; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🍜 台灣拉麵協會 ─ 會員管理</h1>
-  <div style="display:flex;gap:16px;align-items:center">
+  <div style="display:flex;gap:10px;align-items:center">
+    <a href="database.html" target="_blank" style="color:#ffd;font-size:13px;text-decoration:none;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:6px;">📊 資料庫</a>
     <a href="finder-beta.html" target="_blank" style="color:#ffd;font-size:13px;text-decoration:none;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:6px;">🧪 開啟 BETA</a>
     <a href="finder.html">← 回查詢頁</a>
   </div>
@@ -280,6 +324,11 @@
         <td class="center"><select class="ff-select" data-col="vis"></select></td>
         <td class="center"><select class="ff-select" data-col="perm"></select></td>
       </tr>
+      <tr data-feat="database">
+        <td><span class="ff-feat-icon">📊</span><span class="ff-feat-name">資料庫（全筆顯示）</span></td>
+        <td class="center"><select class="ff-select" data-col="vis"></select></td>
+        <td class="center"><select class="ff-select" data-col="perm"></select></td>
+      </tr>
       <tr data-feat="favorites">
         <td><span class="ff-feat-icon">♡</span><span class="ff-feat-name">收藏</span></td>
         <td class="center"><select class="ff-select" data-col="vis"></select></td>
@@ -311,6 +360,30 @@
     <button class="ff-save" id="ffSaveBtn">儲存權限設定</button>
     <span class="ff-status" id="ffStatus"></span>
   </div>
+</div>
+
+<div class="reports-card" id="reportsCard" style="display:none">
+  <h3>📨 問題回報</h3>
+  <p class="reports-desc">來自前台用戶的問題回報。確認處理後可單筆刪除，或清除全部資料。</p>
+  <div class="reports-toolbar">
+    <span class="reports-count" id="reportsCount">載入中…</span>
+    <button class="reports-reload-btn" id="reportsReloadBtn">🔄 重新載入</button>
+    <button class="reports-clear-btn" id="reportsClearBtn">🗑 清除全部</button>
+  </div>
+  <table class="reports-table" id="reportsTable" style="display:none">
+    <thead>
+      <tr>
+        <th style="width:130px">時間</th>
+        <th>店家</th>
+        <th style="width:130px">問題分類</th>
+        <th>說明內容</th>
+        <th style="width:90px">回報者</th>
+        <th style="width:52px"></th>
+      </tr>
+    </thead>
+    <tbody id="reportsTbody"></tbody>
+  </table>
+  <div class="reports-empty" id="reportsEmpty" style="display:none">目前沒有問題回報 🎉</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -385,6 +458,7 @@ auth.onAuthStateChanged(async user => {
   loadUsers();
   loadQueueSettings();
   loadFeatureFlags();
+  loadIssueReports();
 });
 
 async function loadUsers() {
@@ -553,6 +627,7 @@ const FF_ROLES = [
 ];
 const FF_DEFAULTS = {
   betaAccess:  { vis: 'director', perm: 'director' },
+  database:    { vis: 'admin',    perm: 'admin'    },
   favorites:   { vis: 'viewer',   perm: 'viewer'   },
   stamps:      { vis: 'viewer',   perm: 'viewer'   },
   queueReport: { vis: 'director', perm: 'director' },
@@ -643,6 +718,112 @@ document.getElementById('settingsSaveBtn').addEventListener('click', async () =>
     showToast('❌ 儲存失敗：' + e.message);
   }
   btn.disabled = false; btn.textContent = '儲存設定';
+});
+
+// ── 問題回報 ────────────────────────────────────────────────────
+async function loadIssueReports() {
+  const card  = document.getElementById('reportsCard');
+  const tbody = document.getElementById('reportsTbody');
+  const table = document.getElementById('reportsTable');
+  const empty = document.getElementById('reportsEmpty');
+  const count = document.getElementById('reportsCount');
+  card.style.display = '';
+
+  count.textContent = '載入中…';
+  tbody.innerHTML   = '';
+  table.style.display = 'none';
+  empty.style.display = 'none';
+
+  try {
+    const snap = await db.collection('issueReports')
+      .orderBy('createdAt', 'desc').limit(300).get();
+    const docs = snap.docs;
+    count.textContent = `共 ${docs.length} 筆`;
+
+    if (docs.length === 0) {
+      empty.style.display = '';
+      return;
+    }
+    table.style.display = 'table';
+
+    tbody.innerHTML = docs.map(doc => {
+      const d  = doc.data();
+      const ts = d.createdAt
+        ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW', { hour12: false })
+        : '─';
+      const shopName = d.shopName || d.shopId || '─';
+      const category = d.category || '─';
+      const note     = d.note ? d.note.replace(/</g, '&lt;') : '';
+      const reporter = d.displayName || (d.uid ? d.uid.slice(0, 8) + '…' : '─');
+      return `
+        <tr data-docid="${doc.id}">
+          <td style="white-space:nowrap;font-size:11px;color:var(--stone)">${ts}</td>
+          <td><span class="report-shop">${shopName}</span></td>
+          <td><span class="report-cat">${category}</span></td>
+          <td style="max-width:280px;word-break:break-all">${note || '<span style="color:#bbb">（無說明）</span>'}</td>
+          <td style="font-size:11px;color:var(--stone)">${reporter}</td>
+          <td><button class="report-del-btn" data-docid="${doc.id}">刪除</button></td>
+        </tr>`;
+    }).join('');
+
+    // 單筆刪除
+    tbody.querySelectorAll('.report-del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('確定刪除這筆回報？')) return;
+        btn.disabled = true; btn.textContent = '…';
+        try {
+          await db.collection('issueReports').doc(btn.dataset.docid).delete();
+          btn.closest('tr').remove();
+          const remaining = tbody.querySelectorAll('tr').length;
+          count.textContent = `共 ${remaining} 筆`;
+          if (remaining === 0) { table.style.display = 'none'; empty.style.display = ''; }
+          showToast('✓ 已刪除');
+        } catch (e) {
+          showToast('❌ 刪除失敗：' + e.message);
+          btn.disabled = false; btn.textContent = '刪除';
+        }
+      });
+    });
+
+  } catch (e) {
+    count.textContent = '載入失敗';
+    console.error('loadIssueReports 失敗', e);
+    showToast('❌ 載入回報失敗：' + e.message);
+  }
+}
+
+document.getElementById('reportsReloadBtn').addEventListener('click', loadIssueReports);
+
+document.getElementById('reportsClearBtn').addEventListener('click', async () => {
+  const rows = document.querySelectorAll('#reportsTbody tr');
+  if (rows.length === 0) { showToast('目前沒有資料'); return; }
+  if (!confirm(`確定清除全部 ${rows.length} 筆問題回報？\n此操作無法復原。`)) return;
+
+  const btn    = document.getElementById('reportsClearBtn');
+  const count  = document.getElementById('reportsCount');
+  const tbody  = document.getElementById('reportsTbody');
+  const table  = document.getElementById('reportsTable');
+  const empty  = document.getElementById('reportsEmpty');
+  btn.disabled = true; btn.textContent = '清除中…';
+
+  try {
+    // 分批處理（Firestore batch 上限 500 筆）
+    const snap = await db.collection('issueReports').get();
+    const allDocs = snap.docs;
+    for (let i = 0; i < allDocs.length; i += 400) {
+      const batch = db.batch();
+      allDocs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    tbody.innerHTML = '';
+    table.style.display = 'none';
+    empty.style.display = '';
+    count.textContent = '共 0 筆';
+    showToast('✅ 已清除全部問題回報');
+  } catch (e) {
+    showToast('❌ 清除失敗：' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '🗑 清除全部';
 });
 </script>
 </body>
