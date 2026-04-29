@@ -910,7 +910,7 @@ document.getElementById('clearTokensBtn').addEventListener('click', async () => 
   if (!confirm('清除全部裝置 token 並重新訂閱本裝置？')) return;
   try {
     await db.collection('users').doc(_fcmUid).update({
-      fcmTokens: [],
+      fcmTokens: firebase.firestore.FieldValue.delete(),
       fcmToken:  firebase.firestore.FieldValue.delete(),
     });
     showToast('已清除，重新訂閱中…');
