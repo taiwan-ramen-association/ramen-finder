@@ -686,8 +686,91 @@
   .empty-state .big { font-size: 38px; margin-bottom: 10px; }
   .empty-state p { font-size: 14px; }
 
-  #mainContent { display: none; }
+  /* ── PAGES OUTER（左右滑動容器）── */
+  html { overflow-x: hidden; }
+  .pages-outer {
+    display: flex; flex-direction: row;
+    width: 200vw;
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+  .pages-outer.at-reviews { transform: translateX(-50%); }
+  #mainContent { flex-shrink: 0; width: 100vw; display: none; }
   #mainContent.mc-show { display: block; }
+  #pageReviews {
+    flex-shrink: 0; width: 100vw;
+    overflow-y: auto;
+    height: calc(100vh - var(--header-h, 56px) - 52px);
+    padding: 14px 12px 80px; box-sizing: border-box;
+  }
+
+  /* ── REVIEWS FEED ── */
+  .rf-feed-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px; font-weight: 700; color: var(--ink);
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .rf-card {
+    background: var(--white); border-radius: 14px;
+    padding: 13px 14px; margin-bottom: 10px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+    border-left: 3px solid transparent;
+    position: relative; transition: border-color 0.2s;
+  }
+  .rf-card.unread { border-left-color: var(--red); background: #fffafa; }
+  .rf-card-header {
+    display: flex; align-items: flex-start;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .rf-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0; border: 2px solid var(--line);
+  }
+  .rf-avatar-ph {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--paper); display: flex; align-items: center;
+    justify-content: center; font-size: 17px; flex-shrink: 0;
+  }
+  .rf-user-info { flex: 1; min-width: 0; }
+  .rf-username { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .rf-shopname { display: block; font-size: 12px; color: var(--red); font-weight: 500; margin-top: 2px; }
+  .rf-right { text-align: right; flex-shrink: 0; }
+  .rf-stars { display: block; font-size: 13px; color: #f59e0b; letter-spacing: 1px; }
+  .rf-date { display: block; font-size: 11px; color: var(--stone); margin-top: 2px; }
+  .rf-text { font-size: 14px; color: var(--ink); line-height: 1.65; margin-bottom: 8px; word-break: break-word; }
+  .rf-photos { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rf-thumb { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+  .rf-unread-dot {
+    position: absolute; top: 12px; right: 12px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); display: none;
+  }
+  .rf-card.unread .rf-unread-dot { display: block; }
+  .rf-empty { text-align: center; color: var(--stone); font-size: 14px; padding: 48px 0; }
+  .rf-load-more {
+    display: block; width: 100%; padding: 12px;
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-radius: 10px; color: var(--stone); cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 13px; margin-top: 4px;
+  }
+  .rf-load-more:active { background: var(--line); }
+
+  /* 底部導覽紅點 */
+  .bnav-badge {
+    position: absolute; top: 6px; right: calc(50% - 14px);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); border: 1.5px solid rgba(255,255,255,0.88);
+    display: none; pointer-events: none;
+  }
+  .bnav-item.has-badge .bnav-badge { display: block; }
+
+  /* Dark mode */
+  body.dark .rf-card { background: #252220; box-shadow: none; }
+  body.dark .rf-card.unread { background: #2a1c1c; border-left-color: var(--red); }
+  body.dark .rf-unread-dot { border: 1.5px solid #252220; }
+  body.dark .rf-feed-title { border-color: #3a3330; }
+  body.dark .bnav-badge { border-color: rgba(26,24,22,0.92); }
 
   /* ── DESKTOP SIDEBAR LAYOUT (≥900px) ── */
   @media (min-width: 900px) {
@@ -733,6 +816,14 @@
       grid-column: 2;
       grid-row: 2;
     }
+
+    /* Reviews feed on desktop */
+    #pageReviews {
+      height: calc(100vh - var(--header-h, 56px) - 40px);
+      padding: 20px 24px 60px;
+    }
+    .rf-list-inner { max-width: 680px; margin: 0 auto; }
+    .rf-feed-title { font-size: 19px; }
   }
 
   /* ── LOCATE ── */
@@ -1365,6 +1456,7 @@
   <button class="retry-btn" id="retryBtn">重新載入</button>
 </div>
 
+<div class="pages-outer" id="pagesOuter">
 <div id="mainContent">
   <div class="filter-bar">
     <div class="search-box">
@@ -1407,17 +1499,25 @@
 
   <div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
+</div><!-- end #mainContent -->
+
+<div id="pageReviews">
+  <div class="rf-feed-title">📝 評論合集</div>
+  <div class="rf-list-inner" id="rfList"></div>
 </div>
+
+</div><!-- end .pages-outer -->
 
 <!-- Bottom Navigation Bar -->
 <nav class="bottom-nav" id="bottomNav">
-  <a class="bnav-item active" href="finder-beta.html">
+  <button class="bnav-item active" id="bnavFinder">
     <span class="bnav-icon">🔍</span>
     <span class="bnav-label">搜尋器</span>
-  </a>
+  </button>
   <button class="bnav-item" id="bnavPosts">
     <span class="bnav-icon">📝</span>
     <span class="bnav-label">貼文</span>
+    <span class="bnav-badge" id="bnavPostsBadge"></span>
   </button>
   <button class="bnav-item" id="bnavSearch">
     <span class="bnav-icon">🔎</span>
@@ -3566,6 +3666,7 @@ auth.onAuthStateChanged(async user => {
       await loadStamps(user.uid);
       applyFeatureFlags();
       render();
+      checkUnreadBadge();
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
@@ -3622,6 +3723,7 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.
 const REVIEW_MAX_PHOTOS = 5;
 const REVIEW_PAGE_SIZE  = 5;
 let _rvShopId   = null;
+let _rvShopName = '';
 let _rvRating   = 0;
 let _rvFiles    = [];       // { file, previewUrl }
 let _rvCursors  = {};       // shopId → lastDoc for pagination
@@ -3817,9 +3919,10 @@ document.getElementById('rvLightbox').addEventListener('click', e => {
 function openReviewModal(shopId, shopName) {
   if (!canUse('reviews')) { showStampToast('🔒 評論功能暫不開放'); return; }
   if (!auth.currentUser)  { showStampToast('請先登入才能留評論'); return; }
-  _rvShopId  = shopId;
-  _rvRating  = 0;
-  _rvFiles   = [];
+  _rvShopId   = shopId;
+  _rvShopName = shopName;
+  _rvRating   = 0;
+  _rvFiles    = [];
   document.getElementById('rvTitle').textContent = `✍ 寫評論 — ${shopName}`;
   document.getElementById('rvText').value = '';
   document.getElementById('rvPreviewGrid').innerHTML = '';
@@ -3920,11 +4023,14 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
 
     progress.textContent = '送出評論…';
     const u = auth.currentUser;
+    // 頭像：優先用本機上傳
+    const localAv = _localAvatarUid && localStorage.getItem(localAvatarKey(_localAvatarUid));
     await db.collection('reviews').doc(reviewId).set({
       shopId:      _rvShopId,
+      shopName:    _rvShopName,
       uid:         u.uid,
       displayName: u.displayName || '匿名',
-      avatarUrl:   u.photoURL    || '',
+      avatarUrl:   localAv || u.photoURL || '',
       rating:      _rvRating,
       text,
       photos,
@@ -3933,6 +4039,10 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
 
     showStampToast('✅ 評論已送出！');
     closeReviewModal();
+
+    // 重置評論合集（下次切換時重新載入）
+    _rfLoaded = false;
+    _rfLastDoc = null;
 
     // 重新載入該 shop 的評論 panel
     const panel = document.querySelector(`.card[data-shop-id="${_rvShopId}"] [data-tab-panel="reviews"]`);
@@ -3954,24 +4064,167 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
   window.addEventListener('resize', setHH);
 })();
 
+// ── Reviews Feed ──────────────────────────────────────────────────────────────
+const RF_SEEN_KEY  = 'rvFeedSeen';
+const RF_PAGE_SIZE = 15;
+let _rfLastDoc  = null;
+let _rfLoaded   = false;
+let _currentPage = 'finder';
+
+function getFeedSeen() {
+  try { return new Set(JSON.parse(localStorage.getItem(RF_SEEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function addFeedSeen(ids) {
+  const seen = getFeedSeen();
+  ids.forEach(id => seen.add(id));
+  let arr = [...seen];
+  if (arr.length > 500) arr = arr.slice(arr.length - 500);
+  localStorage.setItem(RF_SEEN_KEY, JSON.stringify(arr));
+}
+function updateUnreadBadge() {
+  const hasUnread = !!document.querySelector('#rfList .rf-card.unread');
+  document.getElementById('bnavPosts').classList.toggle('has-badge', hasUnread);
+}
+function markFeedPageSeen() {
+  const ids = [...document.querySelectorAll('#rfList .rf-card[data-docid]')]
+    .map(el => el.dataset.docid);
+  if (ids.length) {
+    addFeedSeen(ids);
+    ids.forEach(id => {
+      const el = document.querySelector(`#rfList .rf-card[data-docid="${id}"]`);
+      if (el) el.classList.remove('unread');
+    });
+  }
+  document.getElementById('bnavPosts').classList.remove('has-badge');
+}
+async function checkUnreadBadge() {
+  if (!auth.currentUser) return;
+  try {
+    const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(20).get();
+    const seen = getFeedSeen();
+    const hasUnread = snap.docs.some(d => !seen.has(d.id));
+    document.getElementById('bnavPosts').classList.toggle('has-badge', hasUnread);
+  } catch {}
+}
+
+async function loadReviewsFeed(append = false) {
+  const list = document.getElementById('rfList');
+  if (!append) {
+    list.innerHTML = '<div class="rf-empty">載入中…</div>';
+    _rfLastDoc = null;
+  }
+  try {
+    let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(RF_PAGE_SIZE);
+    if (_rfLastDoc) q = q.startAfter(_rfLastDoc);
+    const snap = await q.get();
+    const docs = snap.docs;
+    if (docs.length) _rfLastDoc = docs[docs.length - 1];
+
+    if (!append) list.innerHTML = '';
+    if (!docs.length && !append) {
+      list.innerHTML = '<div class="rf-empty">目前還沒有評論</div>';
+      _rfLoaded = true;
+      return;
+    }
+
+    const seen = getFeedSeen();
+    docs.forEach(doc => {
+      const d = doc.data();
+      const isUnread = !seen.has(doc.id);
+      const ts = d.createdAt?.toDate?.();
+      const dateStr = ts
+        ? ts.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
+        : '';
+      const stars = '★'.repeat(d.rating || 0) + '☆'.repeat(5 - (d.rating || 0));
+      const photosHtml = (d.photos || []).slice(0, 3).map(p =>
+        `<img class="rf-thumb" src="${p.thumb}" data-original="${p.original}" alt="" loading="lazy">`
+      ).join('');
+
+      const card = document.createElement('div');
+      card.className = 'rf-card' + (isUnread ? ' unread' : '');
+      card.dataset.docid = doc.id;
+      card.innerHTML = `
+        <div class="rf-card-header">
+          ${d.avatarUrl
+            ? `<img class="rf-avatar" src="${d.avatarUrl}" alt="">`
+            : `<div class="rf-avatar-ph">👤</div>`}
+          <div class="rf-user-info">
+            <span class="rf-username">${d.displayName || '匿名'}</span>
+            <span class="rf-shopname">📍 ${d.shopName || ''}</span>
+          </div>
+          <div class="rf-right">
+            <span class="rf-stars">${stars}</span>
+            <span class="rf-date">${dateStr}</span>
+          </div>
+        </div>
+        ${d.text ? `<div class="rf-text">${d.text}</div>` : ''}
+        ${photosHtml ? `<div class="rf-photos">${photosHtml}</div>` : ''}
+        <span class="rf-unread-dot"></span>`;
+
+      card.querySelectorAll('.rf-thumb').forEach(img =>
+        img.addEventListener('click', () => openLightbox(img.dataset.original))
+      );
+      list.appendChild(card);
+    });
+
+    // 載入更多
+    const old = list.querySelector('.rf-load-more');
+    if (old) old.remove();
+    if (docs.length >= RF_PAGE_SIZE) {
+      const more = document.createElement('button');
+      more.className = 'rf-load-more';
+      more.textContent = '載入更多…';
+      more.addEventListener('click', () => loadReviewsFeed(true));
+      list.appendChild(more);
+    }
+    _rfLoaded = true;
+    updateUnreadBadge();
+  } catch (e) {
+    console.error('loadReviewsFeed 失敗', e);
+    if (!append) list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
+  }
+}
+
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
+function switchPage(page) {
+  const outer = document.getElementById('pagesOuter');
+  _currentPage = page;
+  if (page === 'finder') {
+    outer.classList.remove('at-reviews');
+    document.getElementById('bnavFinder').classList.add('active');
+    document.getElementById('bnavPosts').classList.remove('active');
+  } else {
+    outer.classList.add('at-reviews');
+    document.getElementById('bnavFinder').classList.remove('active');
+    document.getElementById('bnavPosts').classList.add('active');
+    if (!_rfLoaded) loadReviewsFeed();
+    else markFeedPageSeen();
+    markFeedPageSeen();
+  }
+}
+
+document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
+document.getElementById('bnavPosts').addEventListener('click', () => switchPage('reviews'));
+
 document.getElementById('bnavSearch').addEventListener('click', () => {
+  if (_currentPage !== 'finder') switchPage('finder');
   const si = document.getElementById('searchInput');
   if (!si) return;
   if (window.innerWidth >= 900) {
     si.focus();
   } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => si.focus(), 320);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => si.focus(), 320);
+    }, _currentPage !== 'finder' ? 380 : 0);
   }
 });
 
-document.getElementById('bnavPosts').addEventListener('click', () => {
-  showStampToast('📝 評論合輯 — 敬請期待');
-});
-
 document.getElementById('bnavTop').addEventListener('click', () => {
-  if (window.innerWidth >= 900) {
+  if (_currentPage === 'reviews') {
+    document.getElementById('pageReviews').scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (window.innerWidth >= 900) {
     const cl = document.getElementById('cardList');
     if (cl) cl.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
