@@ -1050,6 +1050,48 @@
     z-index: 9999; opacity: 1;
     transition: opacity 1s ease;
   }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+    display: flex;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px;
+    padding: 8px 4px; min-height: 52px;
+    border: none; background: none; cursor: pointer;
+    text-decoration: none; color: var(--stone);
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: color 0.15s; -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-item:active { background: rgba(0,0,0,0.04); }
+  .bnav-item.active { color: var(--red); }
+  .bnav-icon { font-size: 20px; line-height: 1; }
+  .bnav-icon-up { font-size: 22px; font-weight: 700; line-height: 1; }
+  .bnav-label { font-size: 11px; font-weight: 500; letter-spacing: 0.3px; }
+  /* Mobile: extra bottom padding for card list + filter bar */
+  .card-list { padding-bottom: 80px !important; }
+  body.dark .bottom-nav {
+    background: rgba(26,24,22,0.92);
+    border-top-color: rgba(255,255,255,0.1);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
+  }
+  body.dark .bnav-item { color: #888; }
+  body.dark .bnav-item.active { color: var(--red); }
+  @media (min-width: 900px) {
+    .bottom-nav { left: 300px; } /* 對齊電腦版右側內容欄 */
+    .bnav-label { display: none; }
+    .bnav-item { min-height: 40px; padding: 6px 8px; }
+    .bnav-icon { font-size: 17px; }
+    .bnav-icon-up { font-size: 19px; }
+    .card-list { padding-bottom: 60px !important; }
+  }
 </style>
 </head>
 <body>
@@ -1091,6 +1133,8 @@
     </div>
     <div class="pd-avatar-btns">
       <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
+      <button class="pd-avatar-btn" id="uploadAvatarBtn">📷 上傳照片</button>
+      <input type="file" id="localAvatarInput" accept="image/*" style="display:none">
       <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
     </div>
   </div>
@@ -1364,6 +1408,25 @@
   <div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
 </div>
+
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav">
+  <a class="bnav-item active" href="finder-beta.html">
+    <span class="bnav-icon">🔍</span>
+    <span class="bnav-label">搜尋器</span>
+  </a>
+  <button class="bnav-item" id="bnavPosts">
+    <span class="bnav-icon">📝</span>
+    <span class="bnav-label">貼文</span>
+  </button>
+  <button class="bnav-item" id="bnavSearch">
+    <span class="bnav-icon">🔎</span>
+    <span class="bnav-label">查詢</span>
+  </button>
+  <button class="bnav-item" id="bnavTop">
+    <span class="bnav-icon-up">↑</span>
+  </button>
+</nav>
 
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
@@ -2425,12 +2488,29 @@ const nicknameInput    = document.getElementById('nicknameInput');
 const saveProfileBtn   = document.getElementById('saveProfileBtn');
 const rollAvatarBtn    = document.getElementById('rollAvatarBtn');
 const resetAvatarBtn   = document.getElementById('resetAvatarBtn');
+const uploadAvatarBtn  = document.getElementById('uploadAvatarBtn');
+const localAvatarInput = document.getElementById('localAvatarInput');
 
 let _googlePhotoURL = '';   // 保存 Google 原始頭像
 let _pendingAvatar  = null; // 暫存尚未儲存的頭像選擇（null = 未修改）
+let _localAvatarUid = null; // 登入使用者 uid，供 localStorage key 使用
+
+function localAvatarKey(uid) { return 'localAvatar_' + uid; }
 
 function getAvatarUrl(userData, googlePhotoURL) {
   return userData?.avatarUrl || googlePhotoURL || 'assets/icons/03.png';
+}
+
+// 套用本機頭像（如果有的話），覆蓋 Firestore / Google 頭像
+function applyLocalAvatar(uid) {
+  const data = uid && localStorage.getItem(localAvatarKey(uid));
+  if (data) {
+    userAvatar.src     = data;
+    pdHeaderAvatar.src = data;
+    pdAvatarPreview.src = data;
+    return true;
+  }
+  return false;
 }
 
 function dicebearUrl(seed) {
@@ -2471,10 +2551,46 @@ rollAvatarBtn.addEventListener('click', () => {
   pdAvatarPreview.src = _pendingAvatar;
 });
 
-// ↩ 還原 Google 預設
+// ↩ 還原 Google 預設（同時清除本機上傳頭像）
 resetAvatarBtn.addEventListener('click', () => {
   _pendingAvatar = _googlePhotoURL || '';
   pdAvatarPreview.src = _pendingAvatar || 'assets/icons/03.png';
+  if (_localAvatarUid) localStorage.removeItem(localAvatarKey(_localAvatarUid));
+});
+
+// 📷 上傳本機照片（僅存 localStorage，不上傳 Firebase）
+uploadAvatarBtn.addEventListener('click', () => localAvatarInput.click());
+localAvatarInput.addEventListener('change', async () => {
+  const file = localAvatarInput.files[0];
+  if (!file) return;
+  localAvatarInput.value = '';
+  uploadAvatarBtn.textContent = '壓縮中…';
+  uploadAvatarBtn.disabled = true;
+  try {
+    const blob = await compressImage(file, { maxPx: 400, maxKB: 80 });
+    await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const dataUrl = e.target.result;
+        if (_localAvatarUid) {
+          localStorage.removeItem(localAvatarKey(_localAvatarUid)); // 清除舊快取
+          localStorage.setItem(localAvatarKey(_localAvatarUid), dataUrl);
+        }
+        // 立即套用，不經儲存按鈕
+        userAvatar.src      = dataUrl;
+        pdHeaderAvatar.src  = dataUrl;
+        pdAvatarPreview.src = dataUrl;
+        _pendingAvatar = null; // 本機照片不走 Firestore 儲存流程
+        resolve();
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error('頭像壓縮失敗', err);
+  }
+  uploadAvatarBtn.textContent = '📷 上傳照片';
+  uploadAvatarBtn.disabled = false;
 });
 
 // 💾 儲存
@@ -3338,6 +3454,7 @@ document.getElementById('clearConfirmBtn').addEventListener('click', async () =>
     favSet = new Set(); stampMap = {}; reviewMap = {};
     showFavOnly = false;
     document.getElementById('favFilterBtn').classList.remove('active');
+    if (_localAvatarUid) localStorage.removeItem(localAvatarKey(_localAvatarUid));
     render();
     document.getElementById('clearOverlay').classList.remove('show');
     showStampToast('✓ 所有記憶已清除');
@@ -3429,11 +3546,13 @@ auth.onAuthStateChanged(async user => {
 
       document.getElementById('betaGate').style.display = 'none';
 
-      // 頭像：優先用 Firestore avatarUrl，否則 Google 照片
+      // 頭像：優先用本機上傳（localStorage），其次 Firestore avatarUrl，最後 Google 照片
+      _localAvatarUid = user.uid;
       const avatar = getAvatarUrl(userData, user.photoURL);
       userAvatar.src       = avatar;
       pdHeaderAvatar.src   = avatar;
       pdAvatarPreview.src  = avatar;
+      applyLocalAvatar(user.uid); // 若有本機頭像則覆蓋
       pdDisplayName.textContent = userData.nickname || user.displayName || '';
       pdEmail.textContent       = user.email || '';
       nicknameInput.value       = userData.nickname || '';
@@ -3452,6 +3571,7 @@ auth.onAuthStateChanged(async user => {
       userAvatar.style.display = 'none';
       isWarned = false;
       currentUserRole = '';
+      _localAvatarUid = null;
       favSet = new Set();
       stampMap = {}; reviewMap = {};
       showFavOnly = false;
@@ -3833,6 +3953,31 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
   setHH();
   window.addEventListener('resize', setHH);
 })();
+
+// ── Bottom Nav ────────────────────────────────────────────────────────────────
+document.getElementById('bnavSearch').addEventListener('click', () => {
+  const si = document.getElementById('searchInput');
+  if (!si) return;
+  if (window.innerWidth >= 900) {
+    si.focus();
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => si.focus(), 320);
+  }
+});
+
+document.getElementById('bnavPosts').addEventListener('click', () => {
+  showStampToast('📝 評論合輯 — 敬請期待');
+});
+
+document.getElementById('bnavTop').addEventListener('click', () => {
+  if (window.innerWidth >= 900) {
+    const cl = document.getElementById('cardList');
+    if (cl) cl.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
 </script>
 </body>
 </html>
