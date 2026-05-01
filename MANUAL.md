@@ -28,6 +28,8 @@
 | `finder-beta.html` | 拉麵搜尋器（**測試版**） | 新功能驗證後才同步至 finder.html |
 | `domination.html` | 制霸地圖 | 全台 368 鄉鎮踩點視覺化 |
 | `admin.html` | 後台管理 | 需 admin 身份 |
+| `database.html` | 資料庫檢視 | |
+| `RFS.html` | 申請表單 | |
 | `news.html` | 最新消息 | |
 | `about.html` | 關於協會 | |
 | `charter.html` | 協會章程 | |
@@ -62,7 +64,13 @@
 ├── ads.txt                 Google AdSense 驗證（必須在根目錄）
 ├── sitemap.xml             SEO 網站地圖（必須在根目錄）
 ├── google5be78957398a1c67.html  Search Console 驗證（必須在根目錄）
+├── firebase.json           Firebase Hosting / Functions 設定
+├── firebase-messaging-sw.js  FCM Service Worker（推播）
 │   [apps script.json]     Apps Script 中繼用，本機暫存，不納入版控
+│
+├── functions/              Firebase Cloud Functions
+│   ├── index.js            Function 主程式
+│   └── package.json        相依套件
 │
 ├── assets/
 │   ├── css/style.css       共用樣式
@@ -162,16 +170,19 @@ python tools/compare_hours.py
 
 ### 用戶角色（role）
 
-| 角色 | 說明 | 層級 |
+| 角色 | 說明 | featureFlags 層級 |
 |---|---|---|
-| `viewer` | 一般訪客（首次登入預設） | 0 |
-| `member_individual` | 個人會員 | 1 |
-| `member_group` | 團體會員 | 1 |
-| `member_sponsor` | 贊助會員 | 1 |
-| `member_honorary` | 榮譽會員 | 1 |
-| `director` | 理事 | 2 |
-| `admin` | 管理員 | 9 |
+| `viewer` | 一般訪客（首次登入預設） | 1 |
+| `store` | 店家帳號 | 1 |
+| `member_individual` | 個人會員 | 2 |
+| `member_group` | 團體會員 | 2 |
+| `member_sponsor` | 贊助會員 | 2 |
+| `member_honorary` | 榮譽會員 | 2 |
+| `director` | 協會幹部 | 3 |
+| `admin` | 管理員 | 4 |
 | `warned` | 警告用戶（限制功能） | — |
+
+> featureFlags 層級使用 `all(0) < viewer(1) < member(2) < director(3) < admin(4)` 數值比較。
 
 ### Firestore 資料結構
 
@@ -181,6 +192,8 @@ users/{uid}
   role, level                    — 身份與等級
   memberNo                       — 會員流水號（admin 手動補填）
   postCount, likeCount           — 活動統計
+  reportCount                    — 累計排隊回報次數
+  trustScore                     — 隱藏信任分（預設 100，回報異常時扣分）
   createdAt, lastLogin           — 時間戳記
   favorites: [shopId, ...]       — 收藏清單
   nickname, avatarUrl            — 自訂資料
@@ -190,10 +203,18 @@ userVisits/{uid}
   reviews: { shopId: {...} }     — 評論
 
 meta/featureFlags                — 功能開關（admin 在後台管理）
+meta/queueSettings               — 排隊回報設定（preOpenHours, gpsRadiusMeters）
 meta/counters                    — memberNo 自動遞增計數器
-queues/{shopId}                  — 排隊候位狀態
-rankings/{monthKey}              — 月排行榜
-reportLogs/{logId}               — 檢舉紀錄
+
+queues/{shopId}
+  entries: [{ uid, count, gpsConfirmed, timestamp }, ...]  — 排隊回報清單
+
+reportLogs/{logId}               — 排隊回報原始紀錄（uid, shopId, count, gps, timestamp）
+
+rankings/{YYYY-MM}               — 月排行榜（Apps Script 每月 1 日計算寫入）
+  topReporters: [{ uid, displayName, count, ... }]
+  drawnWinners: [...]            — 抽獎結果
+  calculatedAt                   — 計算時間
 ```
 
 ### 首次登入流程
@@ -228,6 +249,7 @@ reportLogs/{logId}               — 檢舉紀錄
 | 功能 | 說明 |
 |---|---|
 | **用戶管理** | 查看所有用戶、修改角色、補填 memberNo、標記警告 |
+| **排隊回報設定** | `preOpenHours`（開店前幾小時可回報）、`gpsRadiusMeters`（GPS 範圍限制，最小 100m，無上限） |
 | **功能權限設定（featureFlags）** | 控制各功能的可見門檻與使用門檻 |
 
 ### featureFlags 說明
@@ -237,16 +259,70 @@ reportLogs/{logId}               — 檢舉紀錄
 | 欄位 | 說明 |
 |---|---|
 | `vis`（可見門檻） | 低於此角色的用戶**看不到**此功能的 UI 元件 |
-| `perm`（使用門檻） | 低於此角色的用戶**無法使用**此功能（顯示鎖定狀態） |
+| `perm`（使用門檻） | 低於此角色的用戶**無法使用**此功能（顯示鎖定或 toast 提示） |
 
-| 功能 | Firestore key |
+可用角色值：`all` / `viewer` / `member` / `director` / `admin`
+
+| 功能 | Firestore key | 預設 vis | 預設 perm |
+|---|---|---|---|
+| 收藏 | `favorites` | viewer | viewer |
+| 踩點 | `stamps` | viewer | viewer |
+| 排隊回報 | `queueReport` | director | director |
+| 排行榜 | `rankings` | viewer | viewer |
+| 制霸地圖 | `domination` | viewer | viewer |
+
+---
+
+## 排隊回報系統
+
+會員可在店家卡片內回報目前排隊人數。
+
+### 回報條件
+
+| 條件 | 說明 |
 |---|---|
-| 收藏 | `favorites` |
-| 踩點 | `stamps` |
-| 評論 | `reviews` |
-| 排隊 | `queue` |
-| 排行榜 | `rankings` |
-| Beta 測試版存取 | `betaAccess` |
+| 登入 | 需登入（viewer 以上） |
+| 功能權限 | 受 `featureFlags.queueReport` 控管（預設 director 以上） |
+| GPS | **必須**開啟定位，需在店家 `gpsRadiusMeters` 公尺內（預設 500m） |
+| 開店時間 | 距離開店時間需在 `preOpenHours` 小時內（預設 4 小時）；超過此時間回報視為無效，**隱藏扣 2 信任分** |
+| Rate limit | 同一家店 30 分鐘內只能回報一次（localStorage 記錄） |
+
+### 信任分機制（trustScore）
+
+| 事件 | 扣分 |
+|---|---|
+| 無法取得 GPS | -1 |
+| 開店前 4 小時以上回報 | -2 |
+
+- 初始值 100，隱藏不顯示給用戶
+- 低信任分用戶的回報不計入月排行資格（計算時過濾）
+
+### 顯示邏輯
+
+- 展開店家卡片後載入，顯示當日有效回報的**中位數人數**
+- Header 顯示 `~N人` badge
+
+---
+
+## 月排行榜
+
+### 前端（finder-beta.html）
+
+- 位置：個人資料下拉選單 → 「🏆 回報排行榜」按鈕
+- 受 `featureFlags.rankings.vis/perm` 控管
+- 分「本月」與「上月」兩個 tab
+- 顯示本人回報統計 + 前三名獎台 + 完整排名清單
+
+### 計算方式（Apps Script）
+
+每月 1 日 02:00 由 Apps Script 觸發 `calculateMonthlyRankings()`：
+
+1. 讀取上個月所有 `reportLogs`
+2. 統計各 uid 回報次數（過濾 trustScore < 60 的用戶）
+3. 寫入 `rankings/{YYYY-MM}`
+4. 執行抽獎 `drawRankingWinners()`（Fisher-Yates shuffle，回報 20 次以上才具資格）
+
+手動觸發：Apps Script 編輯器 → 選單「台灣拉麵協會 ⑧ 計算上月排行」。
 
 ---
 
@@ -256,6 +332,7 @@ reportLogs/{logId}               — 檢舉紀錄
 |---|---|
 | 每 12 小時 | Google Sheets → data/data.json 同步、補座標 |
 | 每月 1 日 02:00 | 更新行政區劃清單（districts.json） |
+| 每月 1 日 02:00 | Apps Script 計算上月排行榜（寫入 Firestore rankings） |
 | 推送 data/data.json 時 | data.json → 回寫 Google Sheets |
 
 手動觸發：GitHub → Actions → Sync Google Sheets → Run workflow
