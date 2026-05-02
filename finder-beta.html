@@ -691,14 +691,15 @@
   #mainContent.mc-show { display: block; }
 
   /* Fixed container that holds all pages below the header */
-  /* 兩頁面都是 body 層 position:fixed，透過 z-index 決定誰在上面 */
+  /* 兩頁面都是 body 層 position:fixed，透過 z-index 決定誰在上面
+     不加 will-change，避免 fixed 子元素（modal/backdrop）的 containing block 變成本層
+     導致 backdrop 跟著內容捲動而非停在視窗上 */
   .page-layer {
     position: fixed;
     top: var(--header-h, 56px); left: 0; right: 0; bottom: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--bg);
-    will-change: transform, opacity;
     transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity   0.36s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -708,6 +709,8 @@
     z-index: 5;
     pointer-events: auto;
   }
+  /* modal 開啟時鎖定捲動 */
+  #mainContent.scroll-locked { overflow-y: hidden; }
   /* Departing page: shrinks & fades to the left */
   .page-layer.page-left {
     transform: translateX(-22%) scale(0.96);
@@ -727,7 +730,7 @@
 
   /* 評論合集白底容器 */
   .rf-page-card {
-    background: var(--white);
+    background: var(--paper);
     border-radius: 16px;
     padding: 14px 12px;
     box-shadow: 0 1px 8px rgba(0,0,0,0.07);
@@ -1547,6 +1550,11 @@
   <div class="rf-page-card">
     <div class="rf-feed-title">📝 評論合集</div>
     <div class="rf-list-inner" id="rfList"></div>
+  </div>
+  <!-- 貼文頁專屬 lightbox，不跨 stacking context -->
+  <div class="rv-lightbox" id="rvLightboxFeed">
+    <button class="rv-lightbox-close" id="rvLightboxFeedClose">✕</button>
+    <img id="rvLightboxFeedImg" src="" alt="">
   </div>
 </div>
 
@@ -3174,11 +3182,13 @@ async function openQueueModal(shopId, shopName) {
   document.getElementById('qmConfirmBtn').disabled = true;
   document.getElementById('queueBackdrop').style.display = 'block';
   document.getElementById('queueModal').style.display    = 'block';
+  lockScroll();
 }
 
 function closeQueueModal() {
   document.getElementById('queueBackdrop').style.display = 'none';
   document.getElementById('queueModal').style.display    = 'none';
+  unlockScroll();
 }
 
 async function submitQueueReport() {
@@ -3259,11 +3269,13 @@ function openStampModal(shopId, shopName) {
   updateSlider();
   document.getElementById('stampBackdrop').style.display = 'block';
   document.getElementById('stampModal').style.display   = 'block';
+  lockScroll();
 }
 
 function closeStampModal() {
   document.getElementById('stampBackdrop').style.display = 'none';
   document.getElementById('stampModal').style.display   = 'none';
+  unlockScroll();
 }
 
 function updateSmOptions() {
@@ -3978,14 +3990,17 @@ async function loadReviews(shopId, panel, append = false) {
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 function openLightbox(url) {
-  document.getElementById('rvLightboxImg').src = url;
-  document.getElementById('rvLightbox').classList.add('open');
+  const id = _currentPage === 'reviews' ? 'rvLightboxFeed' : 'rvLightbox';
+  document.getElementById(id + 'Img').src = url;
+  document.getElementById(id).classList.add('open');
 }
-document.getElementById('rvLightboxClose').addEventListener('click', () => {
-  document.getElementById('rvLightbox').classList.remove('open');
-});
-document.getElementById('rvLightbox').addEventListener('click', e => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+['rvLightbox', 'rvLightboxFeed'].forEach(id => {
+  document.getElementById(id + 'Close').addEventListener('click', () => {
+    document.getElementById(id).classList.remove('open');
+  });
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+  });
 });
 
 // ── Review Modal ──────────────────────────────────────────────────────────────
@@ -4004,10 +4019,12 @@ function openReviewModal(shopId, shopName) {
   updateRvStars(0);
   document.getElementById('rvBackdrop').classList.add('open');
   document.getElementById('rvModal').classList.add('open');
+  lockScroll();
 }
 function closeReviewModal() {
   document.getElementById('rvBackdrop').classList.remove('open');
   document.getElementById('rvModal').classList.remove('open');
+  unlockScroll();
   _rvFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
   _rvFiles = [];
 }
@@ -4257,6 +4274,10 @@ async function loadReviewsFeed(append = false) {
     if (!append) list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
   }
 }
+
+// ── Scroll lock (modal 開啟時鎖定 mainContent 捲動，nav bar 不受影響) ─────────
+function lockScroll()   { document.getElementById('mainContent').classList.add('scroll-locked'); }
+function unlockScroll() { document.getElementById('mainContent').classList.remove('scroll-locked'); }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function switchPage(page) {
