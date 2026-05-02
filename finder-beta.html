@@ -686,26 +686,51 @@
   .empty-state .big { font-size: 38px; margin-bottom: 10px; }
   .empty-state p { font-size: 14px; }
 
-  /* ── PAGE SWITCHING ── */
+  /* ── PAGE STACK ─────────────────────────────────────────────────── */
   #mainContent { display: none; }
   #mainContent.mc-show { display: block; }
-  #pageReviews {
+
+  /* Fixed container that holds all pages below the header */
+  #pageStack {
     position: fixed;
-    top: var(--header-h, 56px); left: 0; right: 0;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
+    top: var(--header-h, 56px); left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    z-index: 2;
+  }
+
+  /* Each page fills the stack container and slides in/out */
+  .page-layer {
+    position: absolute;
+    inset: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background: var(--bg);
-    z-index: 800;
-    padding: 14px 12px 20px; box-sizing: border-box;
-    opacity: 0; visibility: hidden;
-    transform: translateY(10px);
-    transition: opacity 0.22s ease, transform 0.22s ease,
-                visibility 0s linear 0.22s;
+    will-change: transform, opacity;
+    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.36s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  #pageReviews.visible {
-    opacity: 1; visibility: visible; transform: translateY(0);
-    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s;
+  .page-layer.page-active {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    z-index: 1;
+    pointer-events: auto;
   }
+  /* Departing page: shrinks & fades to the left */
+  .page-layer.page-left {
+    transform: translateX(-22%) scale(0.96);
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  /* Waiting page: off-screen to the right */
+  .page-layer.page-right {
+    transform: translateX(100%);
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #pageReviews { padding: 14px 12px 90px; box-sizing: border-box; }
 
   /* ── REVIEWS FEED ── */
   .rf-feed-title {
@@ -783,7 +808,8 @@
       display: grid;
       grid-template-columns: 300px 1fr;
       grid-template-rows: auto 1fr;
-      height: calc(100vh - var(--header-h, 56px));
+      /* height/overflow handled by page-layer (inset:0 fills #pageStack) */
+      height: 100%;
       overflow: hidden;
     }
 
@@ -822,7 +848,7 @@
 
     .rf-list-inner { max-width: 680px; margin: 0 auto; }
     .rf-feed-title { font-size: 19px; }
-    #pageReviews { padding: 20px 24px 60px; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px); }
+    #pageReviews { padding: 20px 24px 80px; }
   }
 
   /* ── LOCATE ── */
@@ -1084,7 +1110,7 @@
   /* ── CLEAR ALL DATA OVERLAY ── */
   .clear-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.93);
-    z-index: 900; display: none;
+    z-index: 1050; display: none;
     flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
   .clear-overlay.show { display: flex; }
@@ -1147,7 +1173,7 @@
     bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
     left: 50%; transform: translateX(-50%);
     width: calc(100% - 24px); max-width: 480px;
-    z-index: 900;
+    z-index: 1000; /* above all page layers */
     display: flex; gap: 3px; padding: 5px;
     background: rgba(255,255,255,0.78);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -1190,17 +1216,17 @@
     color: var(--red);
   }
 
-  /* Desktop: align to right panel */
+  /* Desktop: centered floating pill */
   @media (min-width: 900px) {
     .bottom-nav {
-      left: calc(300px + 12px); right: 12px;
-      transform: none; width: auto; max-width: none;
-      border-radius: 16px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+      left: 50%; transform: translateX(-50%);
+      width: auto; min-width: 280px; max-width: 460px;
+      border-radius: 18px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
     }
     .bnav-label { display: none; }
-    .bnav-item { min-height: 36px; padding: 6px 10px; border-radius: 12px; }
-    .bnav-svg { width: 19px; height: 19px; }
+    .bnav-item { min-height: 40px; padding: 7px 18px; border-radius: 12px; }
+    .bnav-svg { width: 20px; height: 20px; }
     .card-list { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px) !important; }
   }
 </style>
@@ -1476,7 +1502,8 @@
   <button class="retry-btn" id="retryBtn">重新載入</button>
 </div>
 
-<div id="mainContent">
+<div id="pageStack">
+<div id="mainContent" class="page-layer">
   <div class="filter-bar">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
@@ -1520,10 +1547,11 @@
   <div id="mapContainer"></div>
 </div><!-- end #mainContent -->
 
-<div id="pageReviews">
+<div id="pageReviews" class="page-layer page-right">
   <div class="rf-feed-title">📝 評論合集</div>
   <div class="rf-list-inner" id="rfList"></div>
 </div>
+</div><!-- end #pageStack -->
 
 <!-- Bottom Navigation Bar -->
 <nav class="bottom-nav" id="bottomNav">
@@ -1659,7 +1687,11 @@ async function loadData() {
     });
 
     document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('mainContent').classList.add('mc-show');
+    const mc = document.getElementById('mainContent');
+    mc.classList.add('mc-show');
+    // Ensure finder is the active page layer on first load
+    mc.classList.remove('page-left', 'page-right');
+    mc.classList.add('page-active');
     render();
     const bdShops = ALL_DATA.filter(s => isBirthday(s)).map(s => s['店名']);
     if (bdShops.length) launchFireworks(bdShops);
@@ -4232,13 +4264,23 @@ async function loadReviewsFeed(append = false) {
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function switchPage(page) {
   _currentPage = page;
+  const finderEl  = document.getElementById('mainContent');
   const reviewsEl = document.getElementById('pageReviews');
+
   if (page === 'finder') {
-    reviewsEl.classList.remove('visible');
+    // Finder slides in (active), reviews slides back to the right
+    finderEl.classList.remove('page-left', 'page-right');
+    finderEl.classList.add('page-active');
+    reviewsEl.classList.remove('page-active', 'page-left');
+    reviewsEl.classList.add('page-right');
     document.getElementById('bnavFinder').classList.add('active');
     document.getElementById('bnavPosts').classList.remove('active');
   } else {
-    reviewsEl.classList.add('visible');
+    // Reviews slides in from the right (active), finder shrinks to the left
+    reviewsEl.classList.remove('page-left', 'page-right');
+    reviewsEl.classList.add('page-active');
+    finderEl.classList.remove('page-active', 'page-right');
+    finderEl.classList.add('page-left');
     document.getElementById('bnavFinder').classList.remove('active');
     document.getElementById('bnavPosts').classList.add('active');
     if (!_rfLoaded) loadReviewsFeed();
@@ -4257,7 +4299,7 @@ document.getElementById('bnavSearch').addEventListener('click', () => {
     si.focus();
   } else {
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => si.focus(), 320);
     }, _currentPage !== 'finder' ? 380 : 0);
   }
@@ -4270,7 +4312,7 @@ document.getElementById('bnavTop').addEventListener('click', () => {
     const cl = document.getElementById('cardList');
     if (cl) cl.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
 </script>
