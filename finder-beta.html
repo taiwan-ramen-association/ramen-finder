@@ -166,7 +166,7 @@
   .rv-btn-cancel { padding: 9px 20px; background: var(--line); color: var(--stone); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .rv-btn-submit { padding: 9px 22px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
   .rv-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-  .rv-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 600; display: none; align-items: center; justify-content: center; }
+  .rv-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 700; display: none; align-items: center; justify-content: center; }
   .rv-lightbox.open { display: flex; }
   .rv-lightbox img { max-width: 94vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
   .rv-lightbox-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
@@ -711,6 +711,8 @@
   }
   /* modal 開啟時鎖定捲動 */
   #mainContent.scroll-locked { overflow-y: hidden; }
+  /* 貼文頁 active 時蓋過 body-level modals (z-600/601) */
+  #pageReviews.page-active { z-index: 650; }
   /* Departing page: shrinks & fades to the left */
   .page-layer.page-left {
     transform: translateX(-22%) scale(0.96);
@@ -1388,162 +1390,6 @@
 
   <div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
-
-  <!-- Stamp Modal (屬於 mainContent stacking context) -->
-  <div id="stampBackdrop" class="stamp-backdrop"></div>
-  <div id="stampModal" class="stamp-modal">
-    <div class="sm-header">
-      <div class="sm-title" id="smTitle"></div>
-      <button class="sm-reset-btn" id="smResetBtn">↺ 重置踩點</button>
-    </div>
-    <div class="sm-option" data-status="none">
-      <div class="sm-option-icon">🙅</div>
-      <div class="sm-option-label">沒去過</div>
-      <div class="sm-option-radio"></div>
-    </div>
-    <div class="sm-option" data-status="pass">
-      <div class="sm-option-icon">🚶</div>
-      <div class="sm-option-label">路過</div>
-      <div class="sm-option-radio"></div>
-    </div>
-    <div class="sm-option" data-status="once">
-      <div class="sm-option-icon">🍜</div>
-      <div class="sm-option-label">吃過1次</div>
-      <div class="sm-option-radio"></div>
-    </div>
-    <div class="sm-option" data-status="many">
-      <div class="sm-option-icon">🔥</div>
-      <div class="sm-option-label">吃過很多次</div>
-      <div class="sm-option-radio"></div>
-    </div>
-    <div class="sm-slider-wrap" id="smSliderWrap">
-      <div class="sm-count-display"><span id="smCountLabel">2</span>次</div>
-      <div class="sm-count-sub" id="smCountSub">繼續吃！</div>
-      <input type="range" id="smCountSlider" min="2" max="10" step="1" value="2">
-      <div class="sm-slider-ticks"><span>2次</span><span>5次</span><span>10次以上</span></div>
-    </div>
-    <div class="sm-option" data-status="work">
-      <div class="sm-option-icon">👨‍🍳</div>
-      <div class="sm-option-label">從業過</div>
-      <div class="sm-option-radio"></div>
-    </div>
-    <div class="sm-review-wrap">
-      <label class="sm-review-label">踩點心得（選填，最多 50 字）</label>
-      <textarea class="sm-review-input" id="smReview" maxlength="50" rows="2" placeholder="你對這間店的印象或感受…"></textarea>
-      <div class="sm-review-count"><span id="smReviewCount">0</span> / 50</div>
-    </div>
-    <div class="sm-footer">
-      <button class="sm-btn sm-cancel" id="smCancelBtn">取消</button>
-      <button class="sm-btn sm-confirm" id="smConfirmBtn">確認踩點</button>
-    </div>
-  </div>
-  <div id="stampToast"></div>
-
-  <!-- Queue Report Modal (屬於 mainContent stacking context) -->
-  <div class="queue-backdrop" id="queueBackdrop"></div>
-  <div id="queueModal" class="queue-modal">
-    <div class="qm-title" id="qmTitle"></div>
-    <div class="qm-opt" data-value="0">
-      <span class="qm-opt-label">🟢 不用排 / 已清空</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <div class="qm-opt" data-value="3">
-      <span class="qm-opt-label">🟡 約 1–5 人</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <div class="qm-opt" data-value="8">
-      <span class="qm-opt-label">🟠 約 6–10 人</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <div class="qm-opt" data-value="15">
-      <span class="qm-opt-label">🔴 約 11–20 人</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <div class="qm-opt" data-value="25">
-      <span class="qm-opt-label">🔴🔴 20 人以上</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <hr class="qm-divider">
-    <div class="qm-opt-issue" id="qmIssueOpt">
-      <span class="qm-opt-label">📝 回報問題</span>
-      <div class="qm-opt-radio"></div>
-    </div>
-    <div class="qm-issue-panel" id="qmIssuePanel">
-      <select class="qm-issue-select" id="qmIssueCat">
-        <option value="">選擇問題分類…</option>
-        <optgroup label="基本資訊">
-          <option value="名稱有誤">✏️ 名稱有誤</option>
-          <option value="地址有誤">📍 地址有誤</option>
-          <option value="地圖定位有誤">🗺️ 地圖定位有誤</option>
-          <option value="營業時間修正">🕐 營業時間修正</option>
-          <option value="公休日有誤">📅 公休日有誤</option>
-        </optgroup>
-        <optgroup label="用餐資訊">
-          <option value="排隊／點餐／支付方式有誤">💳 排隊／點餐／支付方式有誤</option>
-          <option value="座位配置有誤">💺 座位配置有誤</option>
-          <option value="拉麵類型／口味有誤">🍜 拉麵類型／口味有誤</option>
-        </optgroup>
-        <optgroup label="店家狀態">
-          <option value="店家已歇業">🚫 店家已歇業</option>
-          <option value="店家已搬遷">🚚 店家已搬遷</option>
-        </optgroup>
-        <optgroup label="其他">
-          <option value="其他">💬 其他問題</option>
-        </optgroup>
-      </select>
-      <textarea class="qm-issue-textarea" id="qmIssueNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
-    </div>
-    <div class="qm-footer">
-      <button class="qm-btn qm-cancel" id="qmCancelBtn">取消</button>
-      <button class="qm-btn qm-confirm" id="qmConfirmBtn" disabled>確認送出</button>
-    </div>
-  </div>
-
-  <!-- Review Modal (屬於 mainContent stacking context) -->
-  <div class="rv-backdrop" id="rvBackdrop"></div>
-  <div class="rv-modal" id="rvModal">
-    <div class="rv-box">
-      <div class="rv-header">
-        <span class="rv-title" id="rvTitle">✍ 寫評論</span>
-        <button class="rv-close" id="rvClose">✕</button>
-      </div>
-      <div class="rv-body">
-        <div>
-          <span class="rv-label">評分</span>
-          <div class="star-picker" id="rvStarPicker">
-            <button class="star-btn" data-v="1">★</button>
-            <button class="star-btn" data-v="2">★</button>
-            <button class="star-btn" data-v="3">★</button>
-            <button class="star-btn" data-v="4">★</button>
-            <button class="star-btn" data-v="5">★</button>
-          </div>
-        </div>
-        <div>
-          <span class="rv-label">評論內容</span>
-          <textarea class="rv-textarea" id="rvText" placeholder="分享你的用餐體驗（選填，最多 1000 字）" maxlength="1000"></textarea>
-        </div>
-        <div>
-          <span class="rv-label">照片（最多 5 張）</span>
-          <div class="rv-upload-area" id="rvUploadArea">
-            <input type="file" id="rvFileInput" accept="image/*" multiple>
-            📷 點擊或拖放圖片上傳
-          </div>
-          <div class="rv-preview-grid" id="rvPreviewGrid" style="margin-top:10px"></div>
-        </div>
-        <div class="rv-progress" id="rvProgress"></div>
-      </div>
-      <div class="rv-footer">
-        <button class="rv-btn-cancel" id="rvCancelBtn">取消</button>
-        <button class="rv-btn-submit" id="rvSubmitBtn" disabled>送出評論</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Photo Lightbox (屬於 mainContent stacking context) -->
-  <div class="rv-lightbox" id="rvLightbox">
-    <button class="rv-lightbox-close" id="rvLightboxClose">✕</button>
-    <img id="rvLightboxImg" src="" alt="">
-  </div>
 </div><!-- end #mainContent -->
 
 <div id="pageReviews" class="page-layer page-right">
@@ -1551,11 +1397,168 @@
     <div class="rf-feed-title">📝 評論合集</div>
     <div class="rf-list-inner" id="rfList"></div>
   </div>
-  <!-- 貼文頁專屬 lightbox，不跨 stacking context -->
-  <div class="rv-lightbox" id="rvLightboxFeed">
-    <button class="rv-lightbox-close" id="rvLightboxFeedClose">✕</button>
-    <img id="rvLightboxFeedImg" src="" alt="">
+</div>
+
+<!-- ── body 層 modal：position:fixed 在 overflow:auto 容器內會失效，一律放這裡 ── -->
+
+<!-- Stamp Modal -->
+<div id="stampBackdrop" class="stamp-backdrop"></div>
+<div id="stampModal" class="stamp-modal">
+  <div class="sm-header">
+    <div class="sm-title" id="smTitle"></div>
+    <button class="sm-reset-btn" id="smResetBtn">↺ 重置踩點</button>
   </div>
+  <div class="sm-option" data-status="none">
+    <div class="sm-option-icon">🙅</div>
+    <div class="sm-option-label">沒去過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="pass">
+    <div class="sm-option-icon">🚶</div>
+    <div class="sm-option-label">路過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="once">
+    <div class="sm-option-icon">🍜</div>
+    <div class="sm-option-label">吃過1次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="many">
+    <div class="sm-option-icon">🔥</div>
+    <div class="sm-option-label">吃過很多次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-slider-wrap" id="smSliderWrap">
+    <div class="sm-count-display"><span id="smCountLabel">2</span>次</div>
+    <div class="sm-count-sub" id="smCountSub">繼續吃！</div>
+    <input type="range" id="smCountSlider" min="2" max="10" step="1" value="2">
+    <div class="sm-slider-ticks"><span>2次</span><span>5次</span><span>10次以上</span></div>
+  </div>
+  <div class="sm-option" data-status="work">
+    <div class="sm-option-icon">👨‍🍳</div>
+    <div class="sm-option-label">從業過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-review-wrap">
+    <label class="sm-review-label">踩點心得（選填，最多 50 字）</label>
+    <textarea class="sm-review-input" id="smReview" maxlength="50" rows="2" placeholder="你對這間店的印象或感受…"></textarea>
+    <div class="sm-review-count"><span id="smReviewCount">0</span> / 50</div>
+  </div>
+  <div class="sm-footer">
+    <button class="sm-btn sm-cancel" id="smCancelBtn">取消</button>
+    <button class="sm-btn sm-confirm" id="smConfirmBtn">確認踩點</button>
+  </div>
+</div>
+<div id="stampToast"></div>
+
+<!-- Queue Report Modal -->
+<div class="queue-backdrop" id="queueBackdrop"></div>
+<div id="queueModal" class="queue-modal">
+  <div class="qm-title" id="qmTitle"></div>
+  <div class="qm-opt" data-value="0">
+    <span class="qm-opt-label">🟢 不用排 / 已清空</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="3">
+    <span class="qm-opt-label">🟡 約 1–5 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="8">
+    <span class="qm-opt-label">🟠 約 6–10 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="15">
+    <span class="qm-opt-label">🔴 約 11–20 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="25">
+    <span class="qm-opt-label">🔴🔴 20 人以上</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <hr class="qm-divider">
+  <div class="qm-opt-issue" id="qmIssueOpt">
+    <span class="qm-opt-label">📝 回報問題</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-issue-panel" id="qmIssuePanel">
+    <select class="qm-issue-select" id="qmIssueCat">
+      <option value="">選擇問題分類…</option>
+      <optgroup label="基本資訊">
+        <option value="名稱有誤">✏️ 名稱有誤</option>
+        <option value="地址有誤">📍 地址有誤</option>
+        <option value="地圖定位有誤">🗺️ 地圖定位有誤</option>
+        <option value="營業時間修正">🕐 營業時間修正</option>
+        <option value="公休日有誤">📅 公休日有誤</option>
+      </optgroup>
+      <optgroup label="用餐資訊">
+        <option value="排隊／點餐／支付方式有誤">💳 排隊／點餐／支付方式有誤</option>
+        <option value="座位配置有誤">💺 座位配置有誤</option>
+        <option value="拉麵類型／口味有誤">🍜 拉麵類型／口味有誤</option>
+      </optgroup>
+      <optgroup label="店家狀態">
+        <option value="店家已歇業">🚫 店家已歇業</option>
+        <option value="店家已搬遷">🚚 店家已搬遷</option>
+      </optgroup>
+      <optgroup label="其他">
+        <option value="其他">💬 其他問題</option>
+      </optgroup>
+    </select>
+    <textarea class="qm-issue-textarea" id="qmIssueNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
+  </div>
+  <div class="qm-footer">
+    <button class="qm-btn qm-cancel" id="qmCancelBtn">取消</button>
+    <button class="qm-btn qm-confirm" id="qmConfirmBtn" disabled>確認送出</button>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="rv-backdrop" id="rvBackdrop"></div>
+<div class="rv-modal" id="rvModal">
+  <div class="rv-box">
+    <div class="rv-header">
+      <span class="rv-title" id="rvTitle">✍ 寫評論</span>
+      <button class="rv-close" id="rvClose">✕</button>
+    </div>
+    <div class="rv-body">
+      <div>
+        <span class="rv-label">評分</span>
+        <div class="star-picker" id="rvStarPicker">
+          <button class="star-btn" data-v="1">★</button>
+          <button class="star-btn" data-v="2">★</button>
+          <button class="star-btn" data-v="3">★</button>
+          <button class="star-btn" data-v="4">★</button>
+          <button class="star-btn" data-v="5">★</button>
+        </div>
+      </div>
+      <div>
+        <span class="rv-label">評論內容</span>
+        <textarea class="rv-textarea" id="rvText" placeholder="分享你的用餐體驗（選填，最多 1000 字）" maxlength="1000"></textarea>
+      </div>
+      <div>
+        <span class="rv-label">照片（最多 5 張）</span>
+        <div class="rv-upload-area" id="rvUploadArea">
+          <input type="file" id="rvFileInput" accept="image/*" multiple>
+          📷 點擊或拖放圖片上傳
+        </div>
+        <div class="rv-preview-grid" id="rvPreviewGrid" style="margin-top:10px"></div>
+      </div>
+      <div class="rv-progress" id="rvProgress"></div>
+    </div>
+    <div class="rv-footer">
+      <button class="rv-btn-cancel" id="rvCancelBtn">取消</button>
+      <button class="rv-btn-submit" id="rvSubmitBtn" disabled>送出評論</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox（finder 用 rvLightbox，貼文頁用 rvLightboxFeed） -->
+<div class="rv-lightbox" id="rvLightbox">
+  <button class="rv-lightbox-close" id="rvLightboxClose">✕</button>
+  <img id="rvLightboxImg" src="" alt="">
+</div>
+<div class="rv-lightbox" id="rvLightboxFeed">
+  <button class="rv-lightbox-close" id="rvLightboxFeedClose">✕</button>
+  <img id="rvLightboxFeedImg" src="" alt="">
 </div>
 
 <!-- Bottom Navigation Bar -->
