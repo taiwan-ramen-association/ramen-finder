@@ -166,7 +166,7 @@
   .rv-btn-cancel { padding: 9px 20px; background: var(--line); color: var(--stone); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .rv-btn-submit { padding: 9px 22px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
   .rv-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-  .rv-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 700; display: none; align-items: center; justify-content: center; }
+  .rv-lightbox { position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 10; display: none; align-items: center; justify-content: center; }
   .rv-lightbox.open { display: flex; }
   .rv-lightbox img { max-width: 94vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
   .rv-lightbox-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
@@ -1397,12 +1397,20 @@
 
   <div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
+  <div class="rv-lightbox" id="rvLightbox">
+    <button class="rv-lightbox-close" id="rvLightboxClose">✕</button>
+    <img id="rvLightboxImg" src="" alt="">
+  </div>
 </div><!-- end #mainContent -->
 
 <div id="pageReviews" class="page-layer page-right">
   <div class="rf-page-card">
     <div class="rf-feed-title">📝 評論合集</div>
     <div class="rf-list-inner" id="rfList"></div>
+  </div>
+  <div class="rv-lightbox" id="rvLightboxFeed">
+    <button class="rv-lightbox-close" id="rvLightboxFeedClose">✕</button>
+    <img id="rvLightboxFeedImg" src="" alt="">
   </div>
 </div>
 
@@ -1556,16 +1564,6 @@
       <button class="rv-btn-submit" id="rvSubmitBtn" disabled>送出評論</button>
     </div>
   </div>
-</div>
-
-<!-- Lightbox（finder 用 rvLightbox，貼文頁用 rvLightboxFeed） -->
-<div class="rv-lightbox" id="rvLightbox">
-  <button class="rv-lightbox-close" id="rvLightboxClose">✕</button>
-  <img id="rvLightboxImg" src="" alt="">
-</div>
-<div class="rv-lightbox" id="rvLightboxFeed">
-  <button class="rv-lightbox-close" id="rvLightboxFeedClose">✕</button>
-  <img id="rvLightboxFeedImg" src="" alt="">
 </div>
 
 <!-- Bottom Navigation Bar -->
