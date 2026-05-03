@@ -713,13 +713,13 @@
   #mainContent.scroll-locked { overflow-y: hidden; }
   /* 貼文頁 active 時蓋過 body-level modals (z-600/601) */
   #pageReviews.page-active { z-index: 650; }
-  /* 切到貼文頁時，finder modals 保留狀態但不攔截點擊 */
+  /* 切到貼文頁時，finder modals 完全隱藏（保留 open 狀態與表單內容） */
   body.finder-hidden .stamp-backdrop,
   body.finder-hidden .stamp-modal,
   body.finder-hidden .queue-backdrop,
   body.finder-hidden .queue-modal,
   body.finder-hidden .rv-backdrop,
-  body.finder-hidden .rv-modal { pointer-events: none; }
+  body.finder-hidden .rv-modal { display: none !important; }
   /* Departing page: shrinks & fades to the left */
   .page-layer.page-left {
     transform: translateX(-22%) scale(0.96);
