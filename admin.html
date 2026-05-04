@@ -127,10 +127,10 @@
   .save-btn {
     padding: 4px 12px; background: var(--red); color: var(--white);
     border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
-    opacity: 0; transition: opacity 0.15s;
+    opacity: 0; transition: opacity 0.15s; pointer-events: none;
   }
-  .save-btn.visible { opacity: 1; }
-  .save-btn:hover { background: var(--red-dark); }
+  .save-btn.visible { opacity: 1; pointer-events: auto; }
+  .save-btn:hover:not(:disabled) { background: var(--red-dark); }
   .clear-btn {
     padding: 4px 10px; background: #cc3300; color: var(--white);
     border: none; border-radius: 6px; font-size: 11px; cursor: pointer;
@@ -646,10 +646,10 @@ function renderTable(users, visitsMap) {
         <td class="stat-num">${stampCount || '─'}</td>
         <td>${lastLogin}</td>
         <td style="white-space:nowrap">
-          <select class="role-select" data-uid="${u.uid}" data-original="${u.role}">
+          <select class="role-select" id="role_${u.uid}" name="role_${u.uid}" data-uid="${u.uid}" data-original="${u.role}">
             ${roleOptions}
           </select>
-          <button class="save-btn" data-uid="${u.uid}">儲存</button>
+          <button class="save-btn" data-uid="${u.uid}" disabled>儲存</button>
           <button class="clear-btn" data-uid="${u.uid}" data-name="${u.displayName || u.email || u.uid}">🗑</button>
         </td>
       </tr>`;
@@ -659,7 +659,9 @@ function renderTable(users, visitsMap) {
   tbody.querySelectorAll('.role-select').forEach(sel => {
     sel.addEventListener('change', () => {
       const btn = tbody.querySelector(`.save-btn[data-uid="${sel.dataset.uid}"]`);
-      btn.classList.toggle('visible', sel.value !== sel.dataset.original);
+      const changed = sel.value !== sel.dataset.original;
+      btn.classList.toggle('visible', changed);
+      btn.disabled = !changed;
     });
   });
 

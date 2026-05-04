@@ -426,7 +426,7 @@
   .mnu-grid .mnu-thumb { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); position: relative; cursor: pointer; }
   .mnu-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .mnu-date-badge { position: absolute; bottom: 3px; left: 3px; font-size: 9px; background: rgba(0,0,0,0.55); color: #fff; padding: 1px 4px; border-radius: 3px; pointer-events: none; }
-  .mnu-upload-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: var(--red); color: #fff; border: none; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity 0.15s; margin-bottom: 8px; }
+  .mnu-upload-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: var(--red); color: #fff; border: none; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity 0.15s; }
   .mnu-upload-btn:hover { opacity: 0.85; }
   .mnu-load-more { display: block; width: 100%; padding: 7px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); font-size: 12px; cursor: pointer; font-family: inherit; margin-top: 6px; }
 
@@ -3074,13 +3074,15 @@ async function loadShopMenu(shop, panel, append = false) {
   const shopId = shop['ID'];
   if (!append) {
     panel.innerHTML = '';
-    // 上傳按鈕
     if (canUse('menuTab')) {
+      const headerRow = document.createElement('div');
+      headerRow.className = 'review-header-row';
       const uploadBtn = document.createElement('button');
       uploadBtn.className = 'mnu-upload-btn';
       uploadBtn.innerHTML = '📷 上傳菜單照片';
       uploadBtn.addEventListener('click', () => openMenuModal(shopId, shop['店名'] || ''));
-      panel.appendChild(uploadBtn);
+      headerRow.appendChild(uploadBtn);
+      panel.appendChild(headerRow);
     }
   }
 
@@ -3105,7 +3107,7 @@ async function loadShopMenu(shop, panel, append = false) {
     menuCache[shopId] = { lastDoc: docs.length ? docs[docs.length - 1] : cache.lastDoc, hasMore };
 
     if (!docs.length && !append) {
-      panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">暫無資料，不如你來上傳吧！</p>');
+      panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
       return;
     }
 
@@ -3137,7 +3139,7 @@ async function loadShopMenu(shop, panel, append = false) {
     }
   } catch(e) {
     loading.remove();
-    panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">暫無資料，不如你來上傳吧！</p>');
+    panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
   }
 }
 
