@@ -2914,6 +2914,7 @@ localAvatarInput.addEventListener('change', async () => {
     const snap = await storage.ref(`avatars/${uid}.webp`).put(blob, { contentType: 'image/webp' });
     const url  = await snap.ref.getDownloadURL();
     await db.collection('users').doc(uid).update({ avatarUrl: url });
+    await db.collection('userProfiles').doc(uid).set({ avatarUrl: url }, { merge: true });
     applyAvatarUrl(url);
     try { localStorage.setItem(localAvatarKey(uid), url); } catch {}
     showStampToast('✅ 頭像已更新！');
@@ -2948,6 +2949,10 @@ saveProfileBtn.addEventListener('click', async () => {
   try {
     const nickname = nicknameInput.value.trim();
     await db.collection('users').doc(user.uid).update({ nickname });
+    await db.collection('userProfiles').doc(user.uid).set(
+      { nickname, displayName: nickname || user.displayName || '' },
+      { merge: true }
+    );
     pdDisplayName.textContent = nickname || user.displayName || '';
     document.getElementById('pdNickPopup').style.display = 'none';
     showStampToast('✅ 已儲存！');
@@ -4071,6 +4076,15 @@ auth.onAuthStateChanged(async user => {
         Object.assign(userData, snap2.data());
       }
 
+      // 同步公開 profile（讓其他登入用戶可讀 nickname / avatarUrl）
+      try {
+        await db.collection('userProfiles').doc(user.uid).set({
+          displayName: userData.nickname || user.displayName || '匿名',
+          nickname:    userData.nickname || '',
+          avatarUrl:   userData.avatarUrl || user.photoURL || '',
+        }, { merge: true });
+      } catch(e) { console.warn('userProfiles sync failed', e); }
+
       // 從 Firestore 讀取 featureFlags，決定 beta 存取門檻
       let betaPermRole = 'director'; // 預設值
       try {
@@ -4427,7 +4441,7 @@ const _userDisplayCache = new Map();
 async function getUserDisplay(uid) {
   if (_userDisplayCache.has(uid)) return _userDisplayCache.get(uid);
   try {
-    const snap = await db.collection('users').doc(uid).get();
+    const snap = await db.collection('userProfiles').doc(uid).get();
     const d    = snap.data() || {};
     const result = {
       name:      d.nickname || d.displayName || '匿名',

@@ -286,6 +286,8 @@
 <div id="app">
   <div class="toolbar">
     <h2>會員清單</h2>
+    <button id="migrateProfilesBtn" style="font-size:12px;padding:4px 10px;background:#4a7c59;color:#fff;border:none;border-radius:6px;cursor:pointer">🔄 同步 userProfiles</button>
+    <span id="migrateStatus" style="font-size:12px;color:#666"></span>
     <select id="roleFilter">
       <option value="">全部身份</option>
       <option value="viewer">viewer</option>
@@ -571,6 +573,30 @@ async function loadUsers() {
 }
 
 let _visitsMapGlobal = {};
+
+document.getElementById('migrateProfilesBtn').addEventListener('click', async () => {
+  const btn    = document.getElementById('migrateProfilesBtn');
+  const status = document.getElementById('migrateStatus');
+  btn.disabled = true;
+  status.textContent = '同步中…';
+  try {
+    const snap = await db.collection('users').get();
+    const batch = db.batch();
+    snap.docs.forEach(doc => {
+      const d = doc.data();
+      batch.set(db.collection('userProfiles').doc(doc.id), {
+        displayName: d.nickname || d.displayName || '匿名',
+        nickname:    d.nickname || '',
+        avatarUrl:   d.avatarUrl || d.photoURL || '',
+      }, { merge: true });
+    });
+    await batch.commit();
+    status.textContent = `✅ 已同步 ${snap.size} 筆（${new Date().toLocaleTimeString('zh-TW')}）`;
+  } catch(e) {
+    status.textContent = '❌ 失敗：' + e.message;
+  }
+  btn.disabled = false;
+});
 
 document.getElementById('roleFilter').addEventListener('change', e => {
   const val = e.target.value;
