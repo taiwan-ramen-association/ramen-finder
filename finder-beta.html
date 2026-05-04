@@ -741,8 +741,11 @@
   }
   /* modal 開啟時鎖定捲動 */
   #mainContent.scroll-locked { overflow-y: hidden; }
-  /* 貼文頁 active 時蓋過 body-level modals (z-600/601) */
-  #pageReviews.page-active { z-index: 650; }
+  /* 貼文/挑戰頁 active 時蓋過 body-level modals (z-600/601) */
+  #pageReviews.page-active,
+  #pageChallenges.page-active { z-index: 650; }
+  #pageReviews    { padding: 14px 12px 90px; box-sizing: border-box; }
+  #pageChallenges { padding: 14px 12px 90px; box-sizing: border-box; }
   /* 切到貼文頁時，finder modals 完全隱藏（保留 open 狀態與表單內容） */
   body.finder-hidden .stamp-backdrop,
   body.finder-hidden .stamp-modal,
@@ -768,8 +771,6 @@
     z-index: 1;
     pointer-events: none;
   }
-
-  #pageReviews { padding: 14px 12px 90px; box-sizing: border-box; }
 
   /* 貼文白底容器 */
   .rf-page-card {
@@ -1530,6 +1531,15 @@
   </div>
 </div>
 
+<div id="pageChallenges" class="page-layer page-right">
+  <div class="rf-page-card">
+    <div class="rf-feed-title">🚩 挑戰任務</div>
+    <div class="rf-list-inner" id="challengesList">
+      <p style="color:var(--stone);font-size:13px;text-align:center;padding:40px 0">挑戰任務功能即將上線，敬請期待！</p>
+    </div>
+  </div>
+</div>
+
 <!-- ── body 層 modal：position:fixed 在 overflow:auto 容器內會失效，一律放這裡 ── -->
 
 <!-- Stamp Modal -->
@@ -1751,14 +1761,13 @@
     <span class="bnav-label">貼文</span>
     <span class="bnav-badge" id="bnavPostsBadge"></span>
   </button>
-  <!-- 查詢（觸發搜尋框） -->
-  <button class="bnav-item" id="bnavSearch">
+  <!-- 挑戰任務 -->
+  <button class="bnav-item" id="bnavChallenges">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="5" width="18" height="14" rx="3"/>
-      <line x1="7" y1="12" x2="11" y2="12"/>
-      <line x1="13" y1="12" x2="17" y2="12" stroke-dasharray="1.5 2"/>
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+      <line x1="4" y1="22" x2="4" y2="15"/>
     </svg>
-    <span class="bnav-label">查詢</span>
+    <span class="bnav-label">挑戰</span>
   </button>
   <!-- 回到頂部 -->
   <button class="bnav-item" id="bnavTop">
@@ -2997,12 +3006,13 @@ let currentUserRole    = ''; // 登入後由 onAuthStateChanged 填入
 let currentDisplayName = '';
 let currentAvatarUrl   = '';
 let featureFlags = {
-  favorites:   { vis: 'viewer',   perm: 'viewer'   },
-  stamps:      { vis: 'viewer',   perm: 'viewer'   },
-  queueReport: { vis: 'director', perm: 'director' },
-  rankings:    { vis: 'viewer',   perm: 'viewer'   },
-  domination:  { vis: 'viewer',   perm: 'viewer'   },
-  reviews:     { vis: 'all',      perm: 'viewer'   },
+  favorites:      { vis: 'viewer',   perm: 'viewer'   },
+  stamps:         { vis: 'viewer',   perm: 'viewer'   },
+  queueReport:    { vis: 'director', perm: 'director' },
+  rankings:       { vis: 'viewer',   perm: 'viewer'   },
+  domination:     { vis: 'viewer',   perm: 'viewer'   },
+  reviews:        { vis: 'all',      perm: 'viewer'   },
+  challengesNav:  { vis: 'admin',    perm: 'admin'    },
 };
 
 const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
@@ -3807,6 +3817,14 @@ function applyFeatureFlags() {
     bnavPosts.style.display = show ? '' : 'none';
     bnavPosts.classList.toggle('ff-locked', show && !canUse('postsNav'));
     if (!show && _currentPage === 'reviews') switchPage('finder');
+  }
+
+  const bnavChallenges = document.getElementById('bnavChallenges');
+  if (bnavChallenges) {
+    const show = canView('challengesNav');
+    bnavChallenges.style.display = show ? '' : 'none';
+    bnavChallenges.classList.toggle('ff-locked', show && !canUse('challengesNav'));
+    if (!show && _currentPage === 'challenges') switchPage('finder');
   }
 }
 
@@ -4920,27 +4938,38 @@ function unlockScroll() { document.getElementById('mainContent').classList.remov
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function switchPage(page) {
   _currentPage = page;
-  const finderEl  = document.getElementById('mainContent');
-  const reviewsEl = document.getElementById('pageReviews');
+  const finderEl     = document.getElementById('mainContent');
+  const reviewsEl    = document.getElementById('pageReviews');
+  const challengesEl = document.getElementById('pageChallenges');
+
+  // 重置所有頁面和 nav
+  finderEl.classList.remove('page-active', 'page-left', 'page-right');
+  reviewsEl.classList.remove('page-active', 'page-left', 'page-right');
+  challengesEl.classList.remove('page-active', 'page-left', 'page-right');
+  ['bnavFinder', 'bnavPosts', 'bnavChallenges'].forEach(id =>
+    document.getElementById(id)?.classList.remove('active')
+  );
 
   if (page === 'finder') {
     document.body.classList.remove('finder-hidden');
-    finderEl.classList.remove('page-left', 'page-right');
     finderEl.classList.add('page-active');
-    reviewsEl.classList.remove('page-active', 'page-left');
     reviewsEl.classList.add('page-right');
+    challengesEl.classList.add('page-right');
     document.getElementById('bnavFinder').classList.add('active');
-    document.getElementById('bnavPosts').classList.remove('active');
-  } else {
+  } else if (page === 'reviews') {
     document.body.classList.add('finder-hidden');
-    reviewsEl.classList.remove('page-left', 'page-right');
-    reviewsEl.classList.add('page-active');
-    finderEl.classList.remove('page-active', 'page-right');
     finderEl.classList.add('page-left');
-    document.getElementById('bnavFinder').classList.remove('active');
+    reviewsEl.classList.add('page-active');
+    challengesEl.classList.add('page-right');
     document.getElementById('bnavPosts').classList.add('active');
     if (!_rfLoaded) loadReviewsFeedPage(1);
     markFeedPageSeen();
+  } else if (page === 'challenges') {
+    document.body.classList.add('finder-hidden');
+    finderEl.classList.add('page-left');
+    reviewsEl.classList.add('page-left');
+    challengesEl.classList.add('page-active');
+    document.getElementById('bnavChallenges').classList.add('active');
   }
 }
 
@@ -4950,23 +4979,16 @@ document.getElementById('bnavPosts').addEventListener('click', () => {
   switchPage('reviews');
 });
 
-document.getElementById('bnavSearch').addEventListener('click', () => {
-  if (_currentPage !== 'finder') switchPage('finder');
-  const si = document.getElementById('searchInput');
-  if (!si) return;
-  if (window.innerWidth >= 900) {
-    si.focus();
-  } else {
-    setTimeout(() => {
-      document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => si.focus(), 320);
-    }, _currentPage !== 'finder' ? 380 : 0);
-  }
+document.getElementById('bnavChallenges').addEventListener('click', () => {
+  if (!canUse('challengesNav')) { showStampToast('🔒 此功能即將開放'); return; }
+  switchPage('challenges');
 });
 
 document.getElementById('bnavTop').addEventListener('click', () => {
   if (_currentPage === 'reviews') {
     document.getElementById('pageReviews').scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (_currentPage === 'challenges') {
+    document.getElementById('pageChallenges').scrollTo({ top: 0, behavior: 'smooth' });
   } else if (window.innerWidth >= 900) {
     const cl = document.getElementById('cardList');
     if (cl) cl.scrollTo({ top: 0, behavior: 'smooth' });
