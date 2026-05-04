@@ -4147,7 +4147,24 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('favFilterBtn').classList.remove('active');
       closeProfileDropdown();
       applyFeatureFlags();
-      showBetaGate('此頁面需要登入後才能瀏覽', true);
+
+      // 未登入時也要檢查 betaAccess.perm，若為 'all' 則開放瀏覽
+      let betaPermRole = 'director';
+      try {
+        const ffSnap = await db.collection('meta').doc('featureFlags').get();
+        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
+          betaPermRole = ffSnap.data().betaAccess.perm;
+        }
+      } catch(e) {}
+
+      if (betaPermRole === 'all') {
+        document.getElementById('betaGate').style.display  = 'none';
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('mainContent').classList.add('mc-show');
+        render();
+      } else {
+        showBetaGate('此頁面需要登入後才能瀏覽', true);
+      }
     }
   } catch (err) {
     console.error('auth state 處理失敗', err);
