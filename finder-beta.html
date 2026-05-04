@@ -406,8 +406,14 @@
     font-family: 'Noto Sans TC', sans-serif;
   }
   .card-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .card-tab.ff-locked { color: var(--stone); background: #ede8e0; cursor: not-allowed; opacity: 0.65; }
+  .card-tab.ff-locked::after { content: ' 🔒'; font-size: 9px; }
   .card-tab-panel { display: none; }
   .card-tab-panel.active { display: block; }
+
+  /* pd-action / bnav locked state */
+  .pd-action.ff-locked { opacity: 0.45; cursor: not-allowed; }
+  .bnav-item.ff-locked { opacity: 0.45; cursor: not-allowed; }
   /* ── PHOTO TAB ── */
   .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px 0 4px; }
   .photo-grid a { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); }
@@ -2346,9 +2352,9 @@ function renderCard(shop) {
     <div class="card-detail">
       <div class="card-tabs">
         <button class="card-tab active" data-tab-target="info">資訊</button>
-        ${canView('menuTab')   ? `<button class="card-tab" data-tab-target="menu">菜單</button>`   : ''}
-        ${canView('photosTab') ? `<button class="card-tab" data-tab-target="photos">照片</button>` : ''}
-        ${canView('reviews')   ? `<button class="card-tab" data-tab-target="reviews">評論</button>` : ''}
+        ${canView('menuTab')   ? `<button class="card-tab${canUse('menuTab')   ? '' : ' ff-locked'}" data-tab-target="menu">菜單</button>`   : ''}
+        ${canView('photosTab') ? `<button class="card-tab${canUse('photosTab') ? '' : ' ff-locked'}" data-tab-target="photos">照片</button>` : ''}
+        ${canView('reviews')   ? `<button class="card-tab${canUse('reviews')   ? '' : ' ff-locked'}" data-tab-target="reviews">評論</button>` : ''}
       </div>
       <div class="card-tab-panel active" data-tab-panel="info">
         ${mapBtn}
@@ -2358,7 +2364,7 @@ function renderCard(shop) {
         ${canView('queueReport') ? `<div class="queue-section" data-shop-id="${escapeAttr(shop['ID'] || '')}">
           <span class="queue-sec-label">🕐 目前排隊狀況</span>
           <div class="queue-count-row"><span class="queue-no-data">展開後載入...</span></div>
-          <button class="queue-report-btn" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報</button>
+          <button class="queue-report-btn${canUse('queueReport') ? '' : ' ff-locked'}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報</button>
         </div>` : ''}
       </div>
       <div class="card-tab-panel" data-tab-panel="menu">
@@ -2407,6 +2413,10 @@ function render() {
     card.querySelectorAll('.card-tab').forEach(tab => {
       tab.addEventListener('click', e => {
         e.stopPropagation();
+        if (tab.classList.contains('ff-locked')) {
+          showStampToast('🔒 此功能即將開放');
+          return;
+        }
         const target = tab.dataset.tabTarget;
         const detail = card.querySelector('.card-detail');
         detail.querySelectorAll('.card-tab').forEach(t => t.classList.toggle('active', t.dataset.tabTarget === target));
@@ -2448,6 +2458,7 @@ function render() {
   list.querySelectorAll('.fav-btn').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
+      if (btn.classList.contains('locked')) { showStampToast('🔒 此功能即將開放'); return; }
       const id = btn.dataset.id;
       if (!id) return;
       await toggleFav(id);
@@ -2458,12 +2469,14 @@ function render() {
   list.querySelectorAll('.stamp-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      if (btn.classList.contains('locked')) { showStampToast('🔒 此功能即將開放'); return; }
       openStampModal(btn.dataset.id, btn.dataset.name);
     });
   });
   list.querySelectorAll('.queue-report-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      if (btn.classList.contains('ff-locked')) { showStampToast('🔒 此功能即將開放'); return; }
       openQueueModal(btn.dataset.id, btn.dataset.name);
     });
   });
@@ -2508,6 +2521,15 @@ document.getElementById('favFilterBtn').addEventListener('click', () => {
   render();
 });
 document.getElementById('rankingsPdBtn').addEventListener('click', () => { closeProfileDropdown(); openRankingsModal(); });
+
+// 攔截所有 pd-action.ff-locked 的點擊（含 <a> 導頁）
+document.querySelector('.pd-dropdown').addEventListener('click', e => {
+  if (e.target.closest('.pd-action.ff-locked')) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    showStampToast('🔒 此功能即將開放');
+  }
+}, true);
 document.getElementById('rkBackdrop').addEventListener('click', closeRankingsModal);
 document.getElementById('rkCloseBtn').addEventListener('click', closeRankingsModal);
 document.querySelectorAll('.rk-tab').forEach(tab => {
@@ -3753,18 +3775,24 @@ function applyFeatureFlags() {
 
   // 排行榜按鈕（profile dropdown）
   const rkPdBtn = document.getElementById('rankingsPdBtn');
-  if (rkPdBtn) rkPdBtn.style.display = canView('rankings') ? '' : 'none';
+  if (rkPdBtn) {
+    rkPdBtn.style.display = canView('rankings') ? '' : 'none';
+    rkPdBtn.classList.toggle('ff-locked', canView('rankings') && !canUse('rankings'));
+  }
 
   // 制霸地圖連結
   const domLink = document.querySelector('.pd-action[href="domination.html"]');
-  if (domLink) domLink.style.display = canView('domination') ? '' : 'none';
+  if (domLink) {
+    domLink.style.display = canView('domination') ? '' : 'none';
+    domLink.classList.toggle('ff-locked', canView('domination') && !canUse('domination'));
+  }
 
   // 貼文 nav bar
   const bnavPosts = document.getElementById('bnavPosts');
   if (bnavPosts) {
     const show = canView('postsNav');
     bnavPosts.style.display = show ? '' : 'none';
-    // 若目前在貼文頁但權限被收回，切回搜尋器
+    bnavPosts.classList.toggle('ff-locked', show && !canUse('postsNav'));
     if (!show && _currentPage === 'reviews') switchPage('finder');
   }
 }
@@ -4860,7 +4888,10 @@ function switchPage(page) {
 }
 
 document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
-document.getElementById('bnavPosts').addEventListener('click', () => switchPage('reviews'));
+document.getElementById('bnavPosts').addEventListener('click', () => {
+  if (!canUse('postsNav')) { showStampToast('🔒 此功能即將開放'); return; }
+  switchPage('reviews');
+});
 
 document.getElementById('bnavSearch').addEventListener('click', () => {
   if (_currentPage !== 'finder') switchPage('finder');
