@@ -1771,14 +1771,14 @@
       <circle cx="11" cy="11" r="7.5"/>
       <line x1="20.5" y1="20.5" x2="16.2" y2="16.2"/>
     </svg>
-    <span class="bnav-label">搜尋器</span>
+    <span class="bnav-label">搜尋</span>
   </button>
   <!-- 貼文 -->
   <button class="bnav-item" id="bnavPosts">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
-    <span class="bnav-label">貼文</span>
+    <span class="bnav-label">社群</span>
     <span class="bnav-badge" id="bnavPostsBadge"></span>
   </button>
   <!-- 挑戰任務 -->
@@ -1787,7 +1787,7 @@
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
       <line x1="4" y1="22" x2="4" y2="15"/>
     </svg>
-    <span class="bnav-label">挑戰</span>
+    <span class="bnav-label">任務</span>
   </button>
   <!-- 回到頂部 -->
   <button class="bnav-item" id="bnavTop">
@@ -1817,7 +1817,7 @@ function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); 
 
 async function toggleFav(shopId) {
   const user = typeof auth !== 'undefined' && auth.currentUser;
-  if (!user) { showStampToast('請先登入才能使用收藏功能'); return; }
+  if (!user) { showStampToast('請先登入以使用此功能'); return; }
   if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
   if (!shopId) return;
   const ref = db.collection('users').doc(user.uid);
@@ -2443,7 +2443,7 @@ function render() {
       tab.addEventListener('click', e => {
         e.stopPropagation();
         if (tab.classList.contains('ff-locked')) {
-          showStampToast('🔒 此功能即將開放');
+          showAccessToast();
           return;
         }
         const target = tab.dataset.tabTarget;
@@ -2487,7 +2487,7 @@ function render() {
   list.querySelectorAll('.fav-btn').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
-      if (btn.classList.contains('locked')) { showStampToast('🔒 此功能即將開放'); return; }
+      if (btn.classList.contains('locked')) { showAccessToast(); return; }
       const id = btn.dataset.id;
       if (!id) return;
       await toggleFav(id);
@@ -2498,14 +2498,14 @@ function render() {
   list.querySelectorAll('.stamp-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      if (btn.classList.contains('locked')) { showStampToast('🔒 此功能即將開放'); return; }
+      if (btn.classList.contains('locked')) { showAccessToast(); return; }
       openStampModal(btn.dataset.id, btn.dataset.name);
     });
   });
   list.querySelectorAll('.queue-report-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      if (btn.classList.contains('ff-locked')) { showStampToast('🔒 此功能即將開放'); return; }
+      if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
       openQueueModal(btn.dataset.id, btn.dataset.name);
     });
   });
@@ -2556,7 +2556,7 @@ document.querySelector('.profile-dropdown').addEventListener('click', e => {
   if (e.target.closest('.pd-action.ff-locked')) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    showStampToast('🔒 此功能即將開放');
+    showAccessToast();
   }
 }, true);
 document.getElementById('rkBackdrop').addEventListener('click', closeRankingsModal);
@@ -3053,6 +3053,15 @@ function canView(feature) {
   return getRoleLevel(currentUserRole) >= req;
 }
 
+// 未登入 vs 已登入無權限，顯示對應提示
+function showAccessToast() {
+  if (!auth.currentUser) {
+    showStampToast('請先登入以使用此功能');
+  } else {
+    showStampToast('此功能目前暫不開放');
+  }
+}
+
 function canUse(feature) {
   const flag = featureFlags[feature];
   if (!flag) return true;
@@ -3521,7 +3530,7 @@ async function refreshQueueSection(shopId) {
 }
 
 async function openQueueModal(shopId, shopName) {
-  if (!auth.currentUser) { showStampToast('請先登入才能回報'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
 
   const shop = getShopById(shopId);
 
@@ -3648,7 +3657,7 @@ async function loadStamps(uid) {
 }
 
 function openStampModal(shopId, shopName) {
-  if (!auth.currentUser) { showStampToast('請先登入才能踩點'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
   if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
   _stampShopId   = shopId;
   _stampShopName = shopName;
@@ -3724,7 +3733,7 @@ async function submitIssueReport() {
   const cat  = document.getElementById('qmIssueCat').value.trim();
   const note = document.getElementById('qmIssueNote').value.trim();
   if (!cat) { showStampToast('請選擇問題分類'); return; }
-  if (!auth.currentUser) { showStampToast('請先登入才能回報'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
 
   const confirmBtn = document.getElementById('qmConfirmBtn');
   confirmBtn.disabled = true; confirmBtn.textContent = '送出中…';
@@ -3852,7 +3861,7 @@ function applyFeatureFlags() {
 let _rkTab = 'current';
 
 function openRankingsModal() {
-  if (!canUse('rankings')) { showStampToast('🔒 排行榜暫不開放'); return; }
+  if (!canUse('rankings')) { showAccessToast(); return; }
   document.getElementById('drawer').style.display = 'none';
   document.getElementById('drawerBackdrop').style.display = 'none';
   _rkTab = 'current';
@@ -4600,8 +4609,8 @@ document.addEventListener('keydown', e => {
 
 // ── Review Modal ──────────────────────────────────────────────────────────────
 function openReviewModal(shopId, shopName) {
-  if (!canUse('reviews')) { showStampToast('🔒 評論功能暫不開放'); return; }
-  if (!auth.currentUser)  { showStampToast('請先登入才能留評論'); return; }
+  if (!auth.currentUser)  { showStampToast('請先登入以使用此功能'); return; }
+  if (!canUse('reviews')) { showStampToast('此功能目前暫不開放'); return; }
   _rvShopId   = shopId;
   _rvShopName = shopName;
   _rvRating   = 0;
@@ -5001,12 +5010,12 @@ function switchPage(page) {
 
 document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
 document.getElementById('bnavPosts').addEventListener('click', () => {
-  if (!canUse('postsNav')) { showStampToast('🔒 此功能即將開放'); return; }
+  if (!canUse('postsNav')) { showAccessToast(); return; }
   switchPage('reviews');
 });
 
 document.getElementById('bnavChallenges').addEventListener('click', () => {
-  if (!canUse('challengesNav')) { showStampToast('🔒 此功能即將開放'); return; }
+  if (!canUse('challengesNav')) { showAccessToast(); return; }
   switchPage('challenges');
 });
 
