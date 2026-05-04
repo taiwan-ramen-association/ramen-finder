@@ -2993,7 +2993,9 @@ let _queueMode     = 'queue'; // 'queue' | 'issue'
 let _queueGps      = null; // { lat, lng, confirmed }
 
 // ── Feature Flags ───────────────────────────────────────────────────────────
-let currentUserRole = ''; // 登入後由 onAuthStateChanged 填入
+let currentUserRole    = ''; // 登入後由 onAuthStateChanged 填入
+let currentDisplayName = '';
+let currentAvatarUrl   = '';
 let featureFlags = {
   favorites:   { vis: 'viewer',   perm: 'viewer'   },
   stamps:      { vis: 'viewer',   perm: 'viewer'   },
@@ -4116,7 +4118,9 @@ auth.onAuthStateChanged(async user => {
       nicknameInput.value                                  = userData.nickname || '';
       adminLink.style.display   = userData.role === 'admin' ? 'flex' : 'none';
       isWarned = userData.role === 'warned';
-      currentUserRole = userData.role || 'viewer';
+      currentUserRole    = userData.role || 'viewer';
+      currentDisplayName = userData.nickname || user.displayName || '匿名';
+      currentAvatarUrl   = avatar;
 
       // 載入收藏清單 + 踩點記錄
       const favIds = userData.favorites || [];
@@ -4129,7 +4133,9 @@ auth.onAuthStateChanged(async user => {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
       isWarned = false;
-      currentUserRole = '';
+      currentUserRole    = '';
+      currentDisplayName = '';
+      currentAvatarUrl   = '';
       _localAvatarUid = null;
       favSet = new Set();
       stampMap = {}; reviewMap = {};
@@ -4354,8 +4360,8 @@ async function loadReviews(shopId, panel, append = false) {
             const u = auth.currentUser;
             await db.collection('reviews').doc(doc.id).collection('comments').add({
               uid: u.uid,
-              displayName: u.displayName || '匿名',
-              avatarUrl: u.photoURL || null,
+              displayName: currentDisplayName || u.displayName || '匿名',
+              avatarUrl: currentAvatarUrl || u.photoURL || null,
               text,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
@@ -4827,8 +4833,8 @@ async function loadReviewsFeedPage(page = 1) {
             const u = auth.currentUser;
             await db.collection('reviews').doc(doc.id).collection('comments').add({
               uid: u.uid,
-              displayName: u.displayName || '匿名',
-              avatarUrl: u.photoURL || null,
+              displayName: currentDisplayName || u.displayName || '匿名',
+              avatarUrl: currentAvatarUrl || u.photoURL || null,
               text,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
