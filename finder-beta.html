@@ -798,12 +798,32 @@
   .rf-toolbar-btn:hover { border-color: var(--red); background: #fff5f5; }
   .rf-toolbar-btn.ff-locked { opacity: 0.5; cursor: not-allowed; }
   body.dark .rf-toolbar-btn:hover { background: #2a1a14; }
+  .rf-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
   .rf-feed-title {
     font-family: 'Noto Serif TC', serif;
     font-size: 17px; font-weight: 700; color: var(--ink);
-    margin-bottom: 12px; padding-bottom: 10px;
-    border-bottom: 1px solid var(--line);
   }
+  .rf-tab-toggle-btn {
+    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
+    border-radius: 7px; padding: 5px 11px; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
+  }
+  .rf-tab-toggle-btn:active { background: var(--line); }
+  .mnu-card {
+    background: var(--white); border-radius: 14px; overflow: hidden;
+    margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.07); cursor: pointer;
+  }
+  .mnu-photo { width: 100%; display: block; max-height: 320px; object-fit: contain; background: #f5f0ee; }
+  .mnu-info { padding: 9px 14px 11px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mnu-shop { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .mnu-date { font-size: 12px; color: var(--stone); }
+  .mnu-user { font-size: 12px; color: var(--stone); margin-left: auto; }
+  body.dark .mnu-card { background: #1e1917; }
+  body.dark .mnu-photo { background: #2a2420; }
+  body.dark .rf-title-row { border-color: #3a3330; }
   .rf-card {
     background: var(--white); border-radius: 14px;
     padding: 13px 14px; margin-bottom: 10px;
@@ -1541,13 +1561,17 @@
 
 <div id="pageReviews" class="page-layer page-right">
   <div class="rf-page-card">
-    <div class="rf-feed-title">📝 貼文</div>
+    <div class="rf-title-row">
+      <div class="rf-feed-title" id="rfFeedTitle">📝 貼文</div>
+      <button class="rf-tab-toggle-btn" id="rfTabToggleBtn">🍜 菜單</button>
+    </div>
     <div class="rf-toolbar" id="rfToolbar">
       <button class="rf-toolbar-btn" id="rankingsPdBtn" style="display:none">🏆 排行榜</button>
-      <!-- 未來可在此新增更多工具列按鈕 -->
     </div>
     <div class="rf-list-inner" id="rfList"></div>
     <div id="rfPagination" class="rf-pagination"></div>
+    <div class="rf-list-inner" id="rfMenuList" style="display:none"></div>
+    <div id="rfMenuPagination" class="rf-pagination" style="display:none"></div>
   </div>
 </div>
 
@@ -4785,6 +4809,11 @@ let _rfPageCursors   = [null]; // index 0 = 起點，[n] = 第 n+1 頁的 startA
 let _rfCurrentPage   = 1;
 let _rfMaxPage       = 1;
 let _rfLoaded        = false;
+let _rfTab           = 'reviews'; // 'reviews' | 'menus'
+let _mnuFeedLoaded   = false;
+let _mnuFeedPage     = 1;
+let _mnuFeedMaxPage  = 1;
+let _mnuFeedCursors  = [null];
 let _currentPage     = 'finder';
 
 function getFeedSeen() {
@@ -4799,6 +4828,7 @@ function addFeedSeen(ids) {
   localStorage.setItem(RF_SEEN_KEY, JSON.stringify(arr));
 }
 function updateUnreadBadge() {
+  if (_currentPage === 'finder') return;
   const hasUnread = !!document.querySelector('#rfList .rf-card.unread');
   document.getElementById('bnavPosts').classList.toggle('has-badge', hasUnread);
 }
@@ -4815,7 +4845,7 @@ function markFeedPageSeen() {
   document.getElementById('bnavPosts').classList.remove('has-badge');
 }
 async function checkUnreadBadge() {
-  if (!auth.currentUser) return;
+  if (!auth.currentUser || _currentPage === 'finder') return;
   try {
     const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(20).get();
     const seen = getFeedSeen();
@@ -4960,6 +4990,92 @@ function renderRfPagination() {
     btn.addEventListener('click', () => loadReviewsFeedPage(+btn.dataset.page))
   );
 }
+
+// ── Menus Feed ────────────────────────────────────────────────────────────────
+const MNU_PAGE_SIZE = 10;
+
+async function loadMenusFeedPage(page = 1) {
+  _mnuFeedPage = page;
+  const list = document.getElementById('rfMenuList');
+  list.innerHTML = '<div class="rf-empty">載入中…</div>';
+  try {
+    let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MNU_PAGE_SIZE);
+    const cursor = _mnuFeedCursors[page - 1];
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.get();
+    const docs = snap.docs;
+    if (docs.length >= MNU_PAGE_SIZE) {
+      if (!_mnuFeedCursors[page]) _mnuFeedCursors[page] = docs[docs.length - 1];
+      _mnuFeedMaxPage = Math.max(_mnuFeedMaxPage, page + 1);
+    } else {
+      _mnuFeedMaxPage = page;
+    }
+    list.innerHTML = '';
+    if (!docs.length) {
+      list.innerHTML = '<div class="rf-empty">目前還沒有菜單照片</div>';
+      renderMnuPagination();
+      _mnuFeedLoaded = true;
+      return;
+    }
+    docs.forEach(doc => {
+      const d = doc.data();
+      const ts = d.createdAt?.toDate?.();
+      const dateStr = ts ? ts.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) : '';
+      const card = document.createElement('div');
+      card.className = 'mnu-card';
+      card.dataset.docid = doc.id;
+      card.innerHTML = `
+        <img class="mnu-photo" src="${d.photo?.thumb || d.photo?.original || ''}" data-original="${d.photo?.original || ''}" alt="" loading="lazy">
+        <div class="mnu-info">
+          <span class="mnu-shop">📍 ${escapeHtml(d.shopName || '')}</span>
+          <span class="mnu-date">${escapeHtml(d.photoDate || dateStr)}</span>
+          <span class="mnu-user">by ${escapeHtml(d.displayName || '匿名')}</span>
+        </div>`;
+      card.querySelector('.mnu-photo').addEventListener('click', e => {
+        const original = e.target.dataset.original || e.target.src;
+        openPhotoViewer([original], 0, { date: d.photoDate || '', uid: d.uid || '', authorName: d.displayName || '匿名' });
+      });
+      list.appendChild(card);
+    });
+    renderMnuPagination();
+    _mnuFeedLoaded = true;
+  } catch (e) {
+    console.error('loadMenusFeedPage 失敗', e);
+    list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderMnuPagination() {
+  const el = document.getElementById('rfMenuPagination');
+  if (!el) return;
+  const pages = Array.from({ length: _mnuFeedMaxPage }, (_, i) => i + 1);
+  el.innerHTML =
+    `<button class="rf-page-btn rf-page-prev" ${_mnuFeedPage <= 1 ? 'disabled' : ''}>◄</button>` +
+    pages.map(p => `<button class="rf-page-btn${p === _mnuFeedPage ? ' active' : ''}" data-page="${p}">${p}</button>`).join('') +
+    `<button class="rf-page-btn rf-page-next" ${_mnuFeedPage >= _mnuFeedMaxPage ? 'disabled' : ''}>►</button>`;
+  el.querySelector('.rf-page-prev').addEventListener('click', () => {
+    if (_mnuFeedPage > 1) loadMenusFeedPage(_mnuFeedPage - 1);
+  });
+  el.querySelector('.rf-page-next').addEventListener('click', () => {
+    if (_mnuFeedPage < _mnuFeedMaxPage) loadMenusFeedPage(_mnuFeedPage + 1);
+  });
+  el.querySelectorAll('.rf-page-btn[data-page]').forEach(btn =>
+    btn.addEventListener('click', () => loadMenusFeedPage(+btn.dataset.page))
+  );
+}
+
+document.getElementById('rfTabToggleBtn').addEventListener('click', () => {
+  _rfTab = _rfTab === 'reviews' ? 'menus' : 'reviews';
+  const isMenus = _rfTab === 'menus';
+  document.getElementById('rfTabToggleBtn').textContent  = isMenus ? '📝 評論' : '🍜 菜單';
+  document.getElementById('rfFeedTitle').textContent     = isMenus ? '🍜 菜單' : '📝 貼文';
+  document.getElementById('rfList').style.display        = isMenus ? 'none' : '';
+  document.getElementById('rfPagination').style.display  = isMenus ? 'none' : '';
+  document.getElementById('rfToolbar').style.display     = isMenus ? 'none' : '';
+  document.getElementById('rfMenuList').style.display        = isMenus ? '' : 'none';
+  document.getElementById('rfMenuPagination').style.display  = isMenus ? '' : 'none';
+  if (isMenus && !_mnuFeedLoaded) loadMenusFeedPage(1);
+});
 
 // ── Scroll lock (modal 開啟時鎖定 mainContent 捲動，nav bar 不受影響) ─────────
 function lockScroll()   { document.getElementById('mainContent').classList.add('scroll-locked'); }
