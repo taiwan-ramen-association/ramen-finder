@@ -3261,7 +3261,7 @@ document.getElementById('mnuSubmitBtn').addEventListener('click', async () => {
 
   try {
     const user       = auth.currentUser;
-    const compressed = await compressImage(_mnuFile, { maxPx: 1200, maxKB: 400 });
+    const compressed = await compressImage(_mnuFile, { maxPx: 1200, maxKB: 280 });
     progress.textContent = '上傳中…';
     const docRef  = db.collection('menus').doc();
     const path    = `menus/${_mnuShopId}/${docRef.id}.webp`;
