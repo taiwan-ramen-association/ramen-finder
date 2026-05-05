@@ -1562,7 +1562,7 @@
 <div id="pageReviews" class="page-layer page-right">
   <div class="rf-page-card">
     <div class="rf-title-row">
-      <div class="rf-feed-title" id="rfFeedTitle">📝 貼文</div>
+      <div class="rf-feed-title" id="rfFeedTitle">📝 評論</div>
       <button class="rf-tab-toggle-btn" id="rfTabToggleBtn">🍜 菜單</button>
     </div>
     <div class="rf-toolbar" id="rfToolbar">
@@ -5029,7 +5029,7 @@ async function loadMenusFeedPage(page = 1) {
         <div class="mnu-info">
           <span class="mnu-shop">📍 ${escapeHtml(d.shopName || '')}</span>
           <span class="mnu-date">${escapeHtml(d.photoDate || dateStr)}</span>
-          <span class="mnu-user">by ${escapeHtml(d.displayName || '匿名')}</span>
+          <span class="mnu-user" data-uid="${d.uid || ''}">${escapeHtml(d.displayName || '匿名')}</span>
         </div>`;
       card.querySelector('.mnu-photo').addEventListener('click', e => {
         const original = e.target.dataset.original || e.target.src;
@@ -5037,6 +5037,7 @@ async function loadMenusFeedPage(page = 1) {
       });
       list.appendChild(card);
     });
+    updateDisplayNames(list);
     renderMnuPagination();
     _mnuFeedLoaded = true;
   } catch (e) {
