@@ -32,6 +32,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // 跨域請求（Firebase Storage、Firestore、Google APIs 等）直接放行，不讓 SW 介入
+  if (url.origin !== self.location.origin) return;
+
   // data.json → Network First（連網優先，離線才用快取）
   // 忽略 ?t= cache-busting 參數，統一以路徑為 cache key
   if (url.pathname.endsWith('data.json')) {
