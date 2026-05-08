@@ -36,6 +36,54 @@ tools/           本機維護用 Python 工具
 
 ---
 
+## 檔案結構
+
+### 頁面
+| 檔案 | 說明 |
+|---|---|
+| `index.html` | 首頁 |
+| `finder-beta.html` | 拉麵搜尋器（現役前台） |
+| `admin.html` | 後台管理系統 |
+| `domination.html` | 制霸地圖 |
+| `database.html` | 店家資料庫 |
+| `about.html` | 關於協會 |
+| `charter.html` | 協會章程 |
+| `membership.html` | 入會說明 |
+| `meetings.html` | 理監事會議紀錄 |
+| `partners.html` | 合作夥伴 |
+| `news.html` | 最新消息 |
+| `members-zone.html` | 會務專區 |
+| `cards.html` | 聊天卡牌 |
+| `other.html` | 其他 |
+
+### 資料
+| 檔案 | 說明 |
+|---|---|
+| `data/data.json` | 店家主資料（由 Google Sheets 自動同步） |
+| `data/districts.json` | 行政區定義 |
+| `data/id_counters.json` | 店家 ID 計數器 |
+| `data/instagram.json` | Instagram 貼文快取 |
+| `data/about.json` 等 | 各頁面靜態內容 |
+
+### Firebase / PWA
+| 檔案 | 說明 |
+|---|---|
+| `firebase.json` | Firebase CLI 設定 |
+| `firestore.indexes.json` | Firestore 複合索引定義 |
+| `firebase-messaging-sw.js` | FCM 推播通知 Service Worker |
+| `sw.js` | PWA 離線快取 Service Worker |
+| `manifest.json` | PWA 設定（App 安裝、圖示） |
+| `functions/index.js` | Cloud Functions（FCM 推播） |
+
+### 工具
+| 檔案 | 說明 |
+|---|---|
+| `tools/setup_data.py` | JSON ↔ Excel 資料編輯工具 |
+| `tools/git_sync.py` | 一鍵 pull/push 兩個 repo 的工具 |
+| `.github/workflows/sync-sheets.yml` | Google Sheets ↔ data.json 自動同步 CI |
+
+---
+
 ## 店家資料更新
 
 店家資料維護於 Google Sheets，系統自動同步，一般不需手動操作。
