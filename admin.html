@@ -155,6 +155,11 @@
     padding: 20px 24px; margin-top: 28px;
   }
   .settings-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .sort-settings-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  .sort-settings-table th { font-size: 11px; color: var(--stone); font-weight: 600; text-align: left; padding: 4px 10px 8px; border-bottom: 1px solid var(--line); letter-spacing: 0.4px; }
+  .sort-settings-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .sort-settings-table tr:last-child td { border-bottom: none; }
+  .sort-settings-table select { padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; background: var(--select-bg); color: var(--ink); font-family: inherit; }
   .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 480px) { .settings-grid { grid-template-columns: 1fr; } }
   .settings-field label { display: block; font-size: 11px; color: var(--stone); margin-bottom: 4px; letter-spacing: 0.4px; }
@@ -343,6 +348,71 @@
     <tbody id="userTbody"></tbody>
   </table>
   <div class="admin-pagination" id="usersPagination"></div>
+  </div>
+</div>
+
+<div class="settings-card" id="sortSettingsCard" style="display:none">
+  <h3>📊 預設排序</h3>
+  <table class="sort-settings-table">
+    <thead>
+      <tr><th>區塊</th><th>排序欄位</th><th>方向</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>會員管理</td>
+        <td>
+          <select id="usersSortField">
+            <option value="memberNo">編號</option>
+            <option value="displayName">Google 帳號</option>
+            <option value="email">Email</option>
+            <option value="lastLogin">最後登入</option>
+            <option value="level">等級</option>
+          </select>
+        </td>
+        <td>
+          <select id="usersSortDir">
+            <option value="asc">升序 ↑</option>
+            <option value="desc">降序 ↓</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>評論管理</td>
+        <td>
+          <select id="reviewsSortField">
+            <option value="createdAt">上傳時間</option>
+            <option value="rating">評分</option>
+            <option value="shopName">店家名稱</option>
+          </select>
+        </td>
+        <td>
+          <select id="reviewsSortDir">
+            <option value="desc">降序 ↓</option>
+            <option value="asc">升序 ↑</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>菜單管理</td>
+        <td>
+          <select id="menusSortField">
+            <option value="createdAt">上傳時間</option>
+            <option value="shopName">店家名稱</option>
+            <option value="photoDate">拍攝日期</option>
+          </select>
+        </td>
+        <td>
+          <select id="menusSortDir">
+            <option value="desc">降序 ↓</option>
+            <option value="asc">升序 ↑</option>
+          </select>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="settings-footer">
+    <button class="settings-save" id="sortSettingsSaveBtn">儲存排序設定</button>
+    <span class="settings-status" id="sortSettingsStatus"></span>
   </div>
 </div>
 
@@ -628,6 +698,7 @@ auth.onAuthStateChanged(async user => {
 
   gate.style.display = 'none';
   app.style.display  = 'block';
+  await loadSortSettings();   // 先讀排序設定，再載入各區塊
   loadUsers();
   loadQueueSettings();
   loadFeatureFlags();
@@ -637,6 +708,56 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('orphansCard').style.display = '';
   registerFcmToken(user.uid);
   renderFcmDevices(user.uid);
+});
+
+// ── 排序設定 ──────────────────────────────────────────────────────────────────
+let _sortSettings = {
+  users:   { field: 'memberNo',  dir: 'asc'  },
+  reviews: { field: 'createdAt', dir: 'desc' },
+  menus:   { field: 'createdAt', dir: 'desc' },
+};
+
+async function loadSortSettings() {
+  try {
+    const snap = await db.collection('meta').doc('adminSettings').get();
+    if (snap.exists && snap.data().sortSettings) {
+      _sortSettings = { ..._sortSettings, ...snap.data().sortSettings };
+    }
+  } catch(e) {}
+  // 套用到下拉選單
+  _applySort('users');
+  _applySort('reviews');
+  _applySort('menus');
+}
+
+function _applySort(key) {
+  const s = _sortSettings[key];
+  const fieldEl = document.getElementById(`${key}SortField`);
+  const dirEl   = document.getElementById(`${key}SortDir`);
+  if (fieldEl) fieldEl.value = s.field;
+  if (dirEl)   dirEl.value   = s.dir;
+}
+
+document.getElementById('sortSettingsSaveBtn').addEventListener('click', async () => {
+  const btn    = document.getElementById('sortSettingsSaveBtn');
+  const status = document.getElementById('sortSettingsStatus');
+  btn.disabled = true; status.textContent = '儲存中…';
+  _sortSettings = {
+    users:   { field: document.getElementById('usersSortField').value,   dir: document.getElementById('usersSortDir').value   },
+    reviews: { field: document.getElementById('reviewsSortField').value, dir: document.getElementById('reviewsSortDir').value },
+    menus:   { field: document.getElementById('menusSortField').value,   dir: document.getElementById('menusSortDir').value   },
+  };
+  try {
+    await db.collection('meta').doc('adminSettings').set({ sortSettings: _sortSettings }, { merge: true });
+    status.textContent = `✅ 已儲存（${new Date().toLocaleTimeString('zh-TW')}）`;
+    // 重新載入三個區塊
+    loadUsers(true);
+    loadAdminReviews(true);
+    loadAdminMenus(true);
+  } catch(e) {
+    status.textContent = '❌ 失敗：' + e.message;
+  }
+  btn.disabled = false;
 });
 
 const USERS_PER_PAGE = 10;
@@ -659,18 +780,16 @@ async function loadUsers(reset = true) {
 
   const roleVal = document.getElementById('roleFilter').value;
 
+  const { field: uField, dir: uDir } = _sortSettings.users;
+
   if (_usersExpanded || roleVal) {
-    // 全部展開 or 角色篩選：一次撈全部，client-side 分頁
-    let q = db.collection('users');
-    if (roleVal) q = q.where('role', '==', roleVal);
+    let q = db.collection('users').orderBy(uField, uDir);
+    if (roleVal) q = db.collection('users').where('role', '==', roleVal).orderBy(uField, uDir);
     const snap = await q.get();
-    allUsers = snap.docs
-      .map(d => ({ uid: d.id, ...d.data() }))
-      .sort((a, b) => (a.memberNo ?? Infinity) - (b.memberNo ?? Infinity));
+    allUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
     _usersHasMore = false;
   } else {
-    // 首次載入：只撈第一頁
-    let q = db.collection('users').orderBy('memberNo').limit(USERS_PER_PAGE + 1);
+    let q = db.collection('users').orderBy(uField, uDir).limit(USERS_PER_PAGE + 1);
     const snap = await q.get();
     const docs = snap.docs.slice(0, USERS_PER_PAGE);
     _usersHasMore = snap.docs.length > USERS_PER_PAGE;
@@ -684,7 +803,8 @@ async function loadUsers(reset = true) {
 
 async function loadUsersNextPage() {
   if (!_usersHasMore) return;
-  let q = db.collection('users').orderBy('memberNo').limit(USERS_PER_PAGE + 1);
+  const { field: uField, dir: uDir } = _sortSettings.users;
+  let q = db.collection('users').orderBy(uField, uDir).limit(USERS_PER_PAGE + 1);
   if (_usersCursor) q = q.startAfter(_usersCursor);
   const snap = await q.get();
   const docs = snap.docs.slice(0, USERS_PER_PAGE);
@@ -1006,7 +1126,8 @@ async function loadQueueSettings() {
       if (d.gpsRadiusMeters != null) document.getElementById('settingGpsRadius').value  = d.gpsRadiusMeters;
     }
   } catch(e) { console.warn('載入排隊設定失敗', e); }
-  document.getElementById('settingsCard').style.display = '';
+  document.getElementById('settingsCard').style.display     = '';
+  document.getElementById('sortSettingsCard').style.display = '';
 }
 
 document.getElementById('settingsSaveBtn').addEventListener('click', async () => {
@@ -1306,14 +1427,14 @@ async function loadAdminReviews(reset = true) {
 
   const filter = document.getElementById('reviewsShopFilter').value.trim().toLowerCase();
 
+  const { field: rField, dir: rDir } = _sortSettings.reviews;
+
   try {
     if (_reviewsExpanded || filter) {
-      // 全部展開或篩選：一次撈全部
-      const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(500).get();
+      const snap = await db.collection('reviews').orderBy(rField, rDir).limit(500).get();
       _loadedReviews = snap.docs; _reviewsHasMore = false;
     } else {
-      // 首次載入：只讀 5 筆
-      let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(REVIEWS_PER_PAGE + 1);
+      let q = db.collection('reviews').orderBy(rField, rDir).limit(REVIEWS_PER_PAGE + 1);
       const snap = await q.get();
       const docs = snap.docs.slice(0, REVIEWS_PER_PAGE);
       _reviewsHasMore = snap.docs.length > REVIEWS_PER_PAGE;
@@ -1330,7 +1451,8 @@ async function loadAdminReviews(reset = true) {
 
 async function loadReviewsNextPage() {
   if (!_reviewsHasMore) return;
-  let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(REVIEWS_PER_PAGE + 1);
+  const { field: rField, dir: rDir } = _sortSettings.reviews;
+  let q = db.collection('reviews').orderBy(rField, rDir).limit(REVIEWS_PER_PAGE + 1);
   if (_reviewsCursor) q = q.startAfter(_reviewsCursor);
   const snap = await q.get();
   const docs = snap.docs.slice(0, REVIEWS_PER_PAGE);
@@ -1455,12 +1577,14 @@ async function loadAdminMenus(reset = true) {
 
   const filter = document.getElementById('menusShopFilter').value.trim().toLowerCase();
 
+  const { field: mField, dir: mDir } = _sortSettings.menus;
+
   try {
     if (_menusExpanded || filter) {
-      const snap = await db.collection('menus').orderBy('createdAt', 'desc').limit(500).get();
+      const snap = await db.collection('menus').orderBy(mField, mDir).limit(500).get();
       _loadedMenus = snap.docs; _menusHasMore = false;
     } else {
-      let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MENUS_PER_PAGE + 1);
+      let q = db.collection('menus').orderBy(mField, mDir).limit(MENUS_PER_PAGE + 1);
       const snap = await q.get();
       const docs = snap.docs.slice(0, MENUS_PER_PAGE);
       _menusHasMore = snap.docs.length > MENUS_PER_PAGE;
@@ -1477,7 +1601,8 @@ async function loadAdminMenus(reset = true) {
 
 async function loadMenusNextPage() {
   if (!_menusHasMore) return;
-  let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MENUS_PER_PAGE + 1);
+  const { field: mField, dir: mDir } = _sortSettings.menus;
+  let q = db.collection('menus').orderBy(mField, mDir).limit(MENUS_PER_PAGE + 1);
   if (_menusCursor) q = q.startAfter(_menusCursor);
   const snap = await q.get();
   const docs = snap.docs.slice(0, MENUS_PER_PAGE);
