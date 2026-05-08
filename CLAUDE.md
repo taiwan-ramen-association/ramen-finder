@@ -10,13 +10,12 @@
 - Vanilla JS（無前端框架）
 
 ## 關鍵路徑
-- 前台：`D:/ramen-finder-tmp/finder-beta.html`
-- 後台：`D:/ramen-finder-tmp/admin.html`
-- Firebase rules 快照（private git）：`D:/ramen-finder-tmp/_memory/rules/`
-  - Firestore：`_memory/rules/firestore.txt`
-  - Storage：`_memory/rules/storage.txt`
-  - Storage rules 本地參考：`_memory/rules/storage.rules`
-- 開發筆記（private repo）：`D:/ramen-finder-tmp/_memory/`
+- 前台：`finder-beta.html`
+- 後台：`admin.html`
+- Firebase rules（private git，gitignored）：`_memory/rules/`
+  - Firestore：`_memory/rules/firestore.rules`（deploy 用）、`_memory/rules/firestore.txt`（快照備份）
+  - Storage：`_memory/rules/storage.txt`（快照備份）
+- 開發筆記（private repo）：`_memory/`
 
 ## 功能狀態（2026-05）
 | 功能 | 狀態 |
@@ -34,9 +33,9 @@
 - 不要跑 PR
 
 ## Firebase 規則管理
-- 規則由 Firebase Console 手動維護，不透過 CLI deploy
-- 本機快照放 `_local/`（已加入 .gitignore）
-- 有規則變更建議時，說明後讓使用者手動抄到 Firebase Console
+- 規則存放於 `_memory/rules/firestore.rules`（private git，gitignored）
+- 透過 `firebase deploy --only firestore:rules --project taiwan-ramen-association` 部署
+- `firebase.json` 已指向 `_memory/rules/firestore.rules`
 
 ## 角色體系
 `all → viewer → member → director → admin`

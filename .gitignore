@@ -37,6 +37,5 @@ functions/node_modules/
 firebase-debug.log
 _memory/
 
-# Firebase 規則（含敏感邏輯，存私人 repo，不推公開 repo）
-firestore.rules
+# Firebase 規則（存 _memory/ private repo，不在此 repo）
 storage.rules
