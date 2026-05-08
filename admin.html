@@ -429,6 +429,11 @@
       <input type="number" id="settingGpsRadius" min="100" step="50" value="500">
       <div class="settings-hint">例：500 = 距離店家 500 公尺內才能回報</div>
     </div>
+    <div class="settings-field">
+      <label>同店冷卻時間（分鐘）</label>
+      <input type="number" id="settingCooldownMinutes" min="5" step="5" value="30">
+      <div class="settings-hint">例：30 = 同一用戶對同一店家 30 分鐘內只能回報一次</div>
+    </div>
   </div>
   <div class="settings-footer">
     <button class="settings-save" id="settingsSaveBtn">儲存設定</button>
@@ -1122,8 +1127,9 @@ async function loadQueueSettings() {
     const snap = await db.collection('meta').doc('queueSettings').get();
     if (snap.exists) {
       const d = snap.data();
-      if (d.preOpenHours  != null) document.getElementById('settingPreOpenHours').value = d.preOpenHours;
-      if (d.gpsRadiusMeters != null) document.getElementById('settingGpsRadius').value  = d.gpsRadiusMeters;
+      if (d.preOpenHours     != null) document.getElementById('settingPreOpenHours').value     = d.preOpenHours;
+      if (d.gpsRadiusMeters  != null) document.getElementById('settingGpsRadius').value        = d.gpsRadiusMeters;
+      if (d.cooldownMinutes  != null) document.getElementById('settingCooldownMinutes').value  = d.cooldownMinutes;
     }
   } catch(e) { console.warn('載入排隊設定失敗', e); }
   document.getElementById('settingsCard').style.display     = '';
@@ -1131,17 +1137,19 @@ async function loadQueueSettings() {
 }
 
 document.getElementById('settingsSaveBtn').addEventListener('click', async () => {
-  const hours  = parseFloat(document.getElementById('settingPreOpenHours').value);
-  const radius = parseInt(document.getElementById('settingGpsRadius').value, 10);
-  const status = document.getElementById('settingsStatus');
+  const hours    = parseFloat(document.getElementById('settingPreOpenHours').value);
+  const radius   = parseInt(document.getElementById('settingGpsRadius').value, 10);
+  const cooldown = parseInt(document.getElementById('settingCooldownMinutes').value, 10);
+  const status   = document.getElementById('settingsStatus');
 
   if (isNaN(hours) || hours < 1 || hours > 12) { status.textContent = '⚠️ 小時數需在 1–12 之間'; return; }
   if (isNaN(radius) || radius < 100) { status.textContent = '⚠️ 距離最少 100 公尺'; return; }
+  if (isNaN(cooldown) || cooldown < 5) { status.textContent = '⚠️ 冷卻時間最少 5 分鐘'; return; }
 
   const btn = document.getElementById('settingsSaveBtn');
   btn.disabled = true; btn.textContent = '儲存中…';
   try {
-    await db.collection('meta').doc('queueSettings').set({ preOpenHours: hours, gpsRadiusMeters: radius });
+    await db.collection('meta').doc('queueSettings').set({ preOpenHours: hours, gpsRadiusMeters: radius, cooldownMinutes: cooldown });
     status.textContent = `✅ 已儲存（${new Date().toLocaleTimeString('zh-TW')}）`;
     showToast('✅ 排隊設定已更新');
   } catch(e) {
