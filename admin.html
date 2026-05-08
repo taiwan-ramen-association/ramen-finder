@@ -1287,25 +1287,40 @@ async function removeFcmToken(uid, token) {
 
 // ── 評論管理 ─────────────────────────────────────────────────────────────────
 const REVIEWS_PER_PAGE = 5;
-let _allReviews     = [];
-let _reviewsPage    = 0;
+let _loadedReviews   = [];   // 已從 Firestore 累積載入的 docs
+let _reviewsCursor   = null;
+let _reviewsHasMore  = true;
+let _reviewsPage     = 0;
 let _reviewsExpanded = false;
 
-async function loadAdminReviews() {
+async function loadAdminReviews(reset = true) {
   const card  = document.getElementById('reviewsCard');
   const table = document.getElementById('reviewsTable');
   const empty = document.getElementById('reviewsEmpty');
   const count = document.getElementById('reviewsCount');
   card.style.display = '';
-  _reviewsPage = 0;
-  table.style.display = 'none';
-  empty.style.display = 'none';
-  count.textContent = '載入中…';
+  if (reset) {
+    _loadedReviews = []; _reviewsCursor = null; _reviewsHasMore = true; _reviewsPage = 0;
+    table.style.display = 'none'; empty.style.display = 'none'; count.textContent = '載入中…';
+  }
+
+  const filter = document.getElementById('reviewsShopFilter').value.trim().toLowerCase();
 
   try {
-    const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(200).get();
-    _allReviews = snap.docs;
-    count.textContent = `共 ${snap.size} 則`;
+    if (_reviewsExpanded || filter) {
+      // 全部展開或篩選：一次撈全部
+      const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(500).get();
+      _loadedReviews = snap.docs; _reviewsHasMore = false;
+    } else {
+      // 首次載入：只讀 5 筆
+      let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(REVIEWS_PER_PAGE + 1);
+      const snap = await q.get();
+      const docs = snap.docs.slice(0, REVIEWS_PER_PAGE);
+      _reviewsHasMore = snap.docs.length > REVIEWS_PER_PAGE;
+      if (docs.length) _reviewsCursor = docs[docs.length - 1];
+      _loadedReviews = docs;
+    }
+    count.textContent = `共 ${_loadedReviews.length}${_reviewsHasMore ? '+' : ''} 則`;
     renderAdminReviews();
   } catch(e) {
     count.textContent = '載入失敗';
@@ -1313,31 +1328,37 @@ async function loadAdminReviews() {
   }
 }
 
+async function loadReviewsNextPage() {
+  if (!_reviewsHasMore) return;
+  let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(REVIEWS_PER_PAGE + 1);
+  if (_reviewsCursor) q = q.startAfter(_reviewsCursor);
+  const snap = await q.get();
+  const docs = snap.docs.slice(0, REVIEWS_PER_PAGE);
+  _reviewsHasMore = snap.docs.length > REVIEWS_PER_PAGE;
+  if (docs.length) _reviewsCursor = docs[docs.length - 1];
+  _loadedReviews = [..._loadedReviews, ...docs];
+  document.getElementById('reviewsCount').textContent = `共 ${_loadedReviews.length}${_reviewsHasMore ? '+' : ''} 則`;
+}
+
 function renderAdminReviews() {
-  const filter = document.getElementById('reviewsShopFilter').value.trim().toLowerCase();
-  const tbody  = document.getElementById('reviewsTbody');
-  const table  = document.getElementById('reviewsTable');
-  const empty  = document.getElementById('reviewsEmpty');
-  const pagDiv = document.getElementById('reviewsPagination');
+  const filter  = document.getElementById('reviewsShopFilter').value.trim().toLowerCase();
+  const tbody   = document.getElementById('reviewsTbody');
+  const table   = document.getElementById('reviewsTable');
+  const empty   = document.getElementById('reviewsEmpty');
+  const pagDiv  = document.getElementById('reviewsPagination');
   const storage = firebase.storage();
 
-  const filtered = filter
-    ? _allReviews.filter(d => (d.data().shopName || '').toLowerCase().includes(filter))
-    : _allReviews;
-
-  if (!filtered.length) { empty.style.display = ''; table.style.display = 'none'; pagDiv.innerHTML = ''; return; }
-  empty.style.display = 'none';
-  table.style.display = 'table';
-
-  const pageSize = _reviewsExpanded ? filtered.length : REVIEWS_PER_PAGE;
+  const src      = filter ? _loadedReviews.filter(d => (d.data().shopName || '').toLowerCase().includes(filter)) : _loadedReviews;
+  const total    = src.length;
   const start    = _reviewsExpanded ? 0 : _reviewsPage * REVIEWS_PER_PAGE;
-  const pageDocs = _reviewsExpanded ? filtered : filtered.slice(start, start + REVIEWS_PER_PAGE);
+  const pageDocs = _reviewsExpanded ? src : src.slice(start, start + REVIEWS_PER_PAGE);
+
+  if (!total) { empty.style.display = ''; table.style.display = 'none'; pagDiv.innerHTML = ''; return; }
+  empty.style.display = 'none'; table.style.display = 'table';
 
   tbody.innerHTML = pageDocs.map(doc => {
     const d  = doc.data();
-    const ts = d.createdAt
-      ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW', { hour12: false })
-      : '─';
+    const ts = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW', { hour12: false }) : '─';
     const stars = '★'.repeat(d.rating || 0) + '☆'.repeat(5 - (d.rating || 0));
     const text  = escapeHtml((d.text || '').slice(0, 60)) + ((d.text || '').length > 60 ? '…' : '');
     const photoCount = (d.photos || []).length;
@@ -1357,9 +1378,8 @@ function renderAdminReviews() {
       if (!confirm('確定刪除此評論？')) return;
       btn.disabled = true;
       try {
-        const row    = btn.closest('tr');
-        const docId  = btn.dataset.docid;
-        const shopId = row.dataset.shopid;
+        const row = btn.closest('tr');
+        const docId = btn.dataset.docid; const shopId = row.dataset.shopid;
         const photoCount = parseInt(row.dataset.photocount || '0', 10);
         if (shopId && photoCount > 0) {
           const tasks = [];
@@ -1371,66 +1391,83 @@ function renderAdminReviews() {
           await Promise.all(tasks);
         }
         await db.collection('reviews').doc(docId).delete();
-        _allReviews = _allReviews.filter(d => d.id !== docId);
-        document.getElementById('reviewsCount').textContent = `共 ${_allReviews.length} 則`;
+        _loadedReviews = _loadedReviews.filter(d => d.id !== docId);
+        document.getElementById('reviewsCount').textContent = `共 ${_loadedReviews.length}${_reviewsHasMore ? '+' : ''} 則`;
         renderAdminReviews();
         showToast('✅ 已刪除評論');
-      } catch(e) {
-        showToast('❌ 刪除失敗：' + e.message);
-        btn.disabled = false;
-      }
+      } catch(e) { showToast('❌ 刪除失敗：' + e.message); btn.disabled = false; }
     });
   });
 
   // 分頁控件
   if (_reviewsExpanded) { pagDiv.innerHTML = ''; return; }
-  const totalPages = Math.ceil(filtered.length / REVIEWS_PER_PAGE);
-  if (totalPages <= 1) { pagDiv.innerHTML = ''; return; }
+  const totalPages = Math.ceil(total / REVIEWS_PER_PAGE);
+  const canNext    = _reviewsPage < totalPages - 1 || _reviewsHasMore;
   let pagHtml = `<button id="rvPrev" ${_reviewsPage === 0 ? 'disabled' : ''}>‹</button>`;
   for (let i = 0; i < totalPages; i++)
     pagHtml += `<button class="rv-page-btn${i === _reviewsPage ? ' active' : ''}" data-page="${i}">${i + 1}</button>`;
-  pagHtml += `<button id="rvNext" ${_reviewsPage >= totalPages - 1 ? 'disabled' : ''}>›</button>`;
-  pagHtml += `<span>${start + 1}–${Math.min(start + REVIEWS_PER_PAGE, filtered.length)} / ${filtered.length}</span>`;
+  if (_reviewsHasMore) pagHtml += `<button id="rvMore">…</button>`;
+  pagHtml += `<button id="rvNext" ${!canNext ? 'disabled' : ''}>›</button>`;
+  pagHtml += `<span>${start + 1}–${Math.min(start + REVIEWS_PER_PAGE, total)}${_reviewsHasMore ? '+' : ' / ' + total}</span>`;
   pagDiv.innerHTML = pagHtml;
+
   pagDiv.querySelector('#rvPrev').addEventListener('click', () => { _reviewsPage--; renderAdminReviews(); });
-  pagDiv.querySelector('#rvNext').addEventListener('click', () => { _reviewsPage++; renderAdminReviews(); });
+  pagDiv.querySelector('#rvNext').addEventListener('click', async () => {
+    const next = _reviewsPage + 1;
+    if (next < Math.ceil(_loadedReviews.length / REVIEWS_PER_PAGE)) { _reviewsPage = next; renderAdminReviews(); }
+    else if (_reviewsHasMore) { await loadReviewsNextPage(); _reviewsPage = next; renderAdminReviews(); }
+  });
+  pagDiv.querySelector('#rvMore')?.addEventListener('click', async () => { await loadReviewsNextPage(); renderAdminReviews(); });
   pagDiv.querySelectorAll('.rv-page-btn').forEach(btn =>
     btn.addEventListener('click', () => { _reviewsPage = parseInt(btn.dataset.page); renderAdminReviews(); }));
 }
 
 document.getElementById('reviewsReloadBtn').addEventListener('click', () => loadAdminReviews());
 document.getElementById('reviewsShopFilter').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { _reviewsPage = 0; renderAdminReviews(); }
+  if (e.key === 'Enter') { _reviewsPage = 0; loadAdminReviews(); }
 });
-document.getElementById('reviewsShopFilter').addEventListener('input', () => { _reviewsPage = 0; renderAdminReviews(); });
+document.getElementById('reviewsShopFilter').addEventListener('input', () => { _reviewsPage = 0; loadAdminReviews(); });
 document.getElementById('reviewsExpandBtn').addEventListener('click', () => {
   _reviewsExpanded = !_reviewsExpanded;
   document.getElementById('reviewsExpandBtn').classList.toggle('active', _reviewsExpanded);
   document.getElementById('reviewsExpandBtn').textContent = _reviewsExpanded ? '收合' : '全部展開';
-  _reviewsPage = 0; renderAdminReviews();
+  _reviewsPage = 0; loadAdminReviews();
 });
 
 // ── 菜單管理 ──────────────────────────────────────────────────────────────────
 const MENUS_PER_PAGE = 5;
-let _allMenus      = [];
+let _loadedMenus   = [];
+let _menusCursor   = null;
+let _menusHasMore  = true;
 let _menusPage     = 0;
 let _menusExpanded = false;
 
-async function loadAdminMenus() {
+async function loadAdminMenus(reset = true) {
   const card  = document.getElementById('menusCard');
   const table = document.getElementById('menusTable');
   const empty = document.getElementById('menusEmpty');
   const count = document.getElementById('menusCount');
   card.style.display = '';
-  _menusPage = 0;
-  table.style.display = 'none';
-  empty.style.display = 'none';
-  count.textContent = '載入中…';
+  if (reset) {
+    _loadedMenus = []; _menusCursor = null; _menusHasMore = true; _menusPage = 0;
+    table.style.display = 'none'; empty.style.display = 'none'; count.textContent = '載入中…';
+  }
+
+  const filter = document.getElementById('menusShopFilter').value.trim().toLowerCase();
 
   try {
-    const snap = await db.collection('menus').orderBy('createdAt', 'desc').limit(200).get();
-    _allMenus = snap.docs;
-    count.textContent = `共 ${snap.size} 張`;
+    if (_menusExpanded || filter) {
+      const snap = await db.collection('menus').orderBy('createdAt', 'desc').limit(500).get();
+      _loadedMenus = snap.docs; _menusHasMore = false;
+    } else {
+      let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MENUS_PER_PAGE + 1);
+      const snap = await q.get();
+      const docs = snap.docs.slice(0, MENUS_PER_PAGE);
+      _menusHasMore = snap.docs.length > MENUS_PER_PAGE;
+      if (docs.length) _menusCursor = docs[docs.length - 1];
+      _loadedMenus = docs;
+    }
+    count.textContent = `共 ${_loadedMenus.length}${_menusHasMore ? '+' : ''} 張`;
     renderAdminMenus();
   } catch(e) {
     count.textContent = '載入失敗';
@@ -1438,29 +1475,36 @@ async function loadAdminMenus() {
   }
 }
 
+async function loadMenusNextPage() {
+  if (!_menusHasMore) return;
+  let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MENUS_PER_PAGE + 1);
+  if (_menusCursor) q = q.startAfter(_menusCursor);
+  const snap = await q.get();
+  const docs = snap.docs.slice(0, MENUS_PER_PAGE);
+  _menusHasMore = snap.docs.length > MENUS_PER_PAGE;
+  if (docs.length) _menusCursor = docs[docs.length - 1];
+  _loadedMenus = [..._loadedMenus, ...docs];
+  document.getElementById('menusCount').textContent = `共 ${_loadedMenus.length}${_menusHasMore ? '+' : ''} 張`;
+}
+
 function renderAdminMenus() {
-  const filter = document.getElementById('menusShopFilter').value.trim().toLowerCase();
-  const tbody  = document.getElementById('menusTbody');
-  const table  = document.getElementById('menusTable');
-  const empty  = document.getElementById('menusEmpty');
-  const pagDiv = document.getElementById('menusPagination');
+  const filter  = document.getElementById('menusShopFilter').value.trim().toLowerCase();
+  const tbody   = document.getElementById('menusTbody');
+  const table   = document.getElementById('menusTable');
+  const empty   = document.getElementById('menusEmpty');
+  const pagDiv  = document.getElementById('menusPagination');
 
-  const filtered = filter
-    ? _allMenus.filter(d => (d.data().shopName || d.data().shopId || '').toLowerCase().includes(filter))
-    : _allMenus;
-
-  if (!filtered.length) { empty.style.display = ''; table.style.display = 'none'; pagDiv.innerHTML = ''; return; }
-  empty.style.display = 'none';
-  table.style.display = 'table';
-
+  const src      = filter ? _loadedMenus.filter(d => (d.data().shopName || d.data().shopId || '').toLowerCase().includes(filter)) : _loadedMenus;
+  const total    = src.length;
   const start    = _menusExpanded ? 0 : _menusPage * MENUS_PER_PAGE;
-  const pageDocs = _menusExpanded ? filtered : filtered.slice(start, start + MENUS_PER_PAGE);
+  const pageDocs = _menusExpanded ? src : src.slice(start, start + MENUS_PER_PAGE);
+
+  if (!total) { empty.style.display = ''; table.style.display = 'none'; pagDiv.innerHTML = ''; return; }
+  empty.style.display = 'none'; table.style.display = 'table';
 
   tbody.innerHTML = pageDocs.map(doc => {
     const d  = doc.data();
-    const ts = d.createdAt
-      ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW', { hour12: false })
-      : '─';
+    const ts = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('zh-TW', { hour12: false }) : '─';
     const thumb = d.photo?.thumb || d.photo?.original || '';
     const imgHtml = thumb
       ? `<img src="${escapeHtml(thumb)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block">`
@@ -1480,48 +1524,50 @@ function renderAdminMenus() {
       if (!confirm('確定刪除這張菜單照片？')) return;
       btn.disabled = true;
       try {
-        const row    = btn.closest('tr');
-        const docId  = btn.dataset.docid;
-        const shopId = row.dataset.shopid;
+        const row = btn.closest('tr');
+        const docId = btn.dataset.docid; const shopId = row.dataset.shopid;
         if (shopId) await storage.ref(`menus/${shopId}/${docId}.webp`).delete().catch(() => {});
         await db.collection('menus').doc(docId).delete();
-        _allMenus = _allMenus.filter(d => d.id !== docId);
-        document.getElementById('menusCount').textContent = `共 ${_allMenus.length} 張`;
+        _loadedMenus = _loadedMenus.filter(d => d.id !== docId);
+        document.getElementById('menusCount').textContent = `共 ${_loadedMenus.length}${_menusHasMore ? '+' : ''} 張`;
         renderAdminMenus();
         showToast('✅ 已刪除菜單照片');
-      } catch(e) {
-        showToast('❌ 刪除失敗：' + e.message);
-        btn.disabled = false;
-      }
+      } catch(e) { showToast('❌ 刪除失敗：' + e.message); btn.disabled = false; }
     });
   });
 
-  // 分頁控件
   if (_menusExpanded) { pagDiv.innerHTML = ''; return; }
-  const totalPages = Math.ceil(filtered.length / MENUS_PER_PAGE);
-  if (totalPages <= 1) { pagDiv.innerHTML = ''; return; }
+  const totalPages = Math.ceil(total / MENUS_PER_PAGE);
+  const canNext    = _menusPage < totalPages - 1 || _menusHasMore;
   let pagHtml = `<button id="mnPrev" ${_menusPage === 0 ? 'disabled' : ''}>‹</button>`;
   for (let i = 0; i < totalPages; i++)
     pagHtml += `<button class="mn-page-btn${i === _menusPage ? ' active' : ''}" data-page="${i}">${i + 1}</button>`;
-  pagHtml += `<button id="mnNext" ${_menusPage >= totalPages - 1 ? 'disabled' : ''}>›</button>`;
-  pagHtml += `<span>${start + 1}–${Math.min(start + MENUS_PER_PAGE, filtered.length)} / ${filtered.length}</span>`;
+  if (_menusHasMore) pagHtml += `<button id="mnMore">…</button>`;
+  pagHtml += `<button id="mnNext" ${!canNext ? 'disabled' : ''}>›</button>`;
+  pagHtml += `<span>${start + 1}–${Math.min(start + MENUS_PER_PAGE, total)}${_menusHasMore ? '+' : ' / ' + total}</span>`;
   pagDiv.innerHTML = pagHtml;
+
   pagDiv.querySelector('#mnPrev').addEventListener('click', () => { _menusPage--; renderAdminMenus(); });
-  pagDiv.querySelector('#mnNext').addEventListener('click', () => { _menusPage++; renderAdminMenus(); });
+  pagDiv.querySelector('#mnNext').addEventListener('click', async () => {
+    const next = _menusPage + 1;
+    if (next < Math.ceil(_loadedMenus.length / MENUS_PER_PAGE)) { _menusPage = next; renderAdminMenus(); }
+    else if (_menusHasMore) { await loadMenusNextPage(); _menusPage = next; renderAdminMenus(); }
+  });
+  pagDiv.querySelector('#mnMore')?.addEventListener('click', async () => { await loadMenusNextPage(); renderAdminMenus(); });
   pagDiv.querySelectorAll('.mn-page-btn').forEach(btn =>
     btn.addEventListener('click', () => { _menusPage = parseInt(btn.dataset.page); renderAdminMenus(); }));
 }
 
 document.getElementById('menusReloadBtn').addEventListener('click', () => loadAdminMenus());
 document.getElementById('menusShopFilter').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { _menusPage = 0; renderAdminMenus(); }
+  if (e.key === 'Enter') { _menusPage = 0; loadAdminMenus(); }
 });
-document.getElementById('menusShopFilter').addEventListener('input', () => { _menusPage = 0; renderAdminMenus(); });
+document.getElementById('menusShopFilter').addEventListener('input', () => { _menusPage = 0; loadAdminMenus(); });
 document.getElementById('menusExpandBtn').addEventListener('click', () => {
   _menusExpanded = !_menusExpanded;
   document.getElementById('menusExpandBtn').classList.toggle('active', _menusExpanded);
   document.getElementById('menusExpandBtn').textContent = _menusExpanded ? '收合' : '全部展開';
-  _menusPage = 0; renderAdminMenus();
+  _menusPage = 0; loadAdminMenus();
 });
 
 // ── 孤兒照片清理 ───────────────────────────────────────────────────────────────
