@@ -421,7 +421,7 @@
   <div class="settings-grid">
     <div class="settings-field">
       <label>開店前幾小時內可回報</label>
-      <input type="number" id="settingPreOpenHours" min="1" max="12" step="0.5" value="4">
+      <input type="number" id="settingPreOpenHours" min="1" step="0.5" value="4">
       <div class="settings-hint">例：4 = 開店前 4 小時內才能回報；超過此時間提交視為無效並扣信任分</div>
     </div>
     <div class="settings-field">
@@ -478,7 +478,13 @@
         <td class="center"><select class="ff-select" data-col="vis"></select></td>
         <td class="center"><select class="ff-select" data-col="perm"></select></td>
       </tr>
+      <tr data-feat="issueReport">
+        <td><span class="ff-feat-icon">⚑</span><span class="ff-feat-name">問題回報</span></td>
+        <td class="center"><select class="ff-select" data-col="vis"></select></td>
+        <td class="center"><select class="ff-select" data-col="perm"></select></td>
+      </tr>
       <tr data-feat="rankings">
+
         <td><span class="ff-feat-icon">🏆</span><span class="ff-feat-name">排行榜</span></td>
         <td class="center"><select class="ff-select" data-col="vis"></select></td>
         <td class="center"><select class="ff-select" data-col="perm"></select></td>
@@ -1061,6 +1067,7 @@ const FF_DEFAULTS = {
   favorites:   { vis: 'viewer',   perm: 'viewer'   },
   stamps:      { vis: 'viewer',   perm: 'viewer'   },
   queueReport: { vis: 'director', perm: 'director' },
+  issueReport: { vis: 'all',      perm: 'all'      },
   rankings:    { vis: 'viewer',   perm: 'viewer'   },
   domination:  { vis: 'viewer',   perm: 'viewer'   },
   reviews:     { vis: 'all',      perm: 'viewer'   },
@@ -1142,9 +1149,9 @@ document.getElementById('settingsSaveBtn').addEventListener('click', async () =>
   const cooldown = parseInt(document.getElementById('settingCooldownMinutes').value, 10);
   const status   = document.getElementById('settingsStatus');
 
-  if (isNaN(hours) || hours < 1 || hours > 12) { status.textContent = '⚠️ 小時數需在 1–12 之間'; return; }
-  if (isNaN(radius) || radius < 100) { status.textContent = '⚠️ 距離最少 100 公尺'; return; }
-  if (isNaN(cooldown) || cooldown < 5) { status.textContent = '⚠️ 冷卻時間最少 5 分鐘'; return; }
+  if (isNaN(hours) || hours < 1) { status.textContent = '⚠️ 小時數需大於 0'; return; }
+  if (isNaN(radius) || radius < 1) { status.textContent = '⚠️ 距離需大於 0'; return; }
+  if (isNaN(cooldown) || cooldown < 1) { status.textContent = '⚠️ 冷卻時間需大於 0'; return; }
 
   const btn = document.getElementById('settingsSaveBtn');
   btn.disabled = true; btn.textContent = '儲存中…';

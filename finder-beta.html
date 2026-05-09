@@ -570,6 +570,43 @@
   body.dark .qm-issue-panel { background: #1a1e35; border-color: #334; }
   body.dark .qm-issue-select, body.dark .qm-issue-textarea { background: #22253a; border-color: #334; color: #e8e8e8; }
 
+  /* IR MODAL */
+  .ir-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; display: none; }
+  .ir-modal {
+    position: fixed; z-index: 601;
+    left: 50%; top: 50%; transform: translate(-50%,-50%);
+    width: min(380px, calc(100vw - 20px));
+    background: var(--white); border-radius: 18px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    padding: 22px 20px; display: none; max-height: 90vh; overflow-y: auto;
+  }
+  .ir-title { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+  .ir-shop-name { font-size: 13px; color: var(--stone); margin-bottom: 14px; }
+  .ir-select {
+    width: 100%; padding: 9px 10px; margin-bottom: 10px;
+    border: 1.5px solid var(--line); border-radius: 10px; font-size: 13px;
+    background: var(--white); font-family: inherit; color: var(--ink); box-sizing: border-box;
+  }
+  .ir-select:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .ir-textarea {
+    width: 100%; padding: 9px 10px; border: 1.5px solid var(--line);
+    border-radius: 10px; font-size: 13px; font-family: inherit;
+    resize: none; height: 80px; box-sizing: border-box; color: var(--ink); background: var(--white);
+  }
+  .ir-textarea:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .ir-footer { display: flex; gap: 10px; margin-top: 16px; }
+  .ir-btn-card {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px; padding: 5px 12px;
+    background: none; border: 1px solid var(--line); border-radius: 20px;
+    font-size: 12px; color: var(--stone); cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .ir-btn-card:hover { border-color: #5b8ef0; color: #3358c4; background: #f0f4ff; }
+  .ir-btn-card.ff-locked { opacity: 0.5; cursor: not-allowed; }
+  body.dark .ir-select, body.dark .ir-textarea { background: #22253a; border-color: #334; color: #e8e8e8; }
+  body.dark .ir-btn-card { border-color: #334; color: #888; }
+  body.dark .ir-btn-card:hover:not(.ff-locked) { border-color: #5b8ef0; color: #7ba4f8; background: #1e2848; }
+
   /* RANKINGS MODAL */
   .rk-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 700; display: none;
@@ -753,6 +790,8 @@
   body.finder-hidden .stamp-modal,
   body.finder-hidden .queue-backdrop,
   body.finder-hidden .queue-modal,
+  body.finder-hidden .ir-backdrop,
+  body.finder-hidden .ir-modal,
   body.finder-hidden .rv-backdrop,
   body.finder-hidden .rv-modal,
   body.finder-hidden #mnuBackdrop,
@@ -1457,7 +1496,7 @@
     <button class="pd-action" id="darkModeBtn">🌙 深色模式<span class="dark-toggle" id="darkToggle"></span></button>
     <button class="pd-action" id="favFilterBtn" style="display:none">♥ 收藏清單</button>
     <a class="pd-action" href="domination.html">🗾 制霸地圖</a>
-    <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 會員管理</a>
+    <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 後台管理</a>
     <button class="pd-action" id="clearDataBtn" style="color:#c00">🗑 清除我的所有記憶</button>
     <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
   </div>
@@ -1466,6 +1505,7 @@
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
   <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
+  <button class="drawer-item" id="drawerIssueBtn">⚑ 問題回報</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
 </div>
 
@@ -1696,6 +1736,43 @@
   <div class="qm-footer">
     <button class="qm-btn qm-cancel" id="qmCancelBtn">取消</button>
     <button class="qm-btn qm-confirm" id="qmConfirmBtn" disabled>確認送出</button>
+  </div>
+</div>
+
+<!-- Issue Report Modal -->
+<div class="ir-backdrop" id="irBackdrop"></div>
+<div class="ir-modal" id="irModal">
+  <div class="ir-title">⚑ 問題回報</div>
+  <div class="ir-shop-name" id="irShopName"></div>
+  <select class="ir-select" id="irCat">
+    <option value="">選擇問題分類…</option>
+    <optgroup label="基本資訊">
+      <option value="名稱有誤">✏️ 名稱有誤</option>
+      <option value="地址有誤">📍 地址有誤</option>
+      <option value="地圖定位有誤">🗺️ 地圖定位有誤</option>
+      <option value="營業時間修正">🕐 營業時間修正</option>
+      <option value="公休日有誤">📅 公休日有誤</option>
+    </optgroup>
+    <optgroup label="用餐資訊">
+      <option value="排隊／點餐／支付方式有誤">💳 排隊／點餐／支付方式有誤</option>
+      <option value="座位配置有誤">💺 座位配置有誤</option>
+      <option value="拉麵類型／口味有誤">🍜 拉麵類型／口味有誤</option>
+    </optgroup>
+    <optgroup label="店家狀態">
+      <option value="店家已歇業">🚫 店家已歇業</option>
+      <option value="店家已搬遷">🚚 店家已搬遷</option>
+    </optgroup>
+    <optgroup label="資料收錄">
+      <option value="找不到店家／未收錄">🔍 找不到店家／未收錄</option>
+    </optgroup>
+    <optgroup label="其他">
+      <option value="其他">💬 其他問題</option>
+    </optgroup>
+  </select>
+  <textarea class="ir-textarea" id="irNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
+  <div class="ir-footer">
+    <button class="qm-btn qm-cancel" id="irCancelBtn">取消</button>
+    <button class="qm-btn qm-confirm" id="irConfirmBtn">確認送出</button>
   </div>
 </div>
 
@@ -2422,6 +2499,7 @@ function renderCard(shop) {
           <div class="queue-count-row"><span class="queue-no-data">展開後載入...</span></div>
           <button class="queue-report-btn${canUse('queueReport') ? '' : ' ff-locked'}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報</button>
         </div>` : ''}
+        ${canView('issueReport') ? `<button class="ir-btn-card${canUse('issueReport') ? '' : ' ff-locked'}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">⚑ 回報問題</button>` : ''}
       </div>
       <div class="card-tab-panel" data-tab-panel="menu">
         ${canView('menuTab') ? `<div class="menu-tab-inner"></div>` : `<p class="tab-placeholder">🍜 菜單功能<br>暫不開放</p>`}
@@ -3808,6 +3886,70 @@ async function submitIssueReport() {
   }
   confirmBtn.disabled = false; confirmBtn.textContent = '確認送出';
 }
+
+// ── Issue Report Modal ────────────────────────────────────────────
+let _irShopId   = null;
+let _irShopName = null;
+
+function openIrModal(shopId, shopName) {
+  if (!canUse('issueReport')) { showAccessToast(); return; }
+  _irShopId   = shopId   || null;
+  _irShopName = shopName || null;
+  document.getElementById('irShopName').textContent = shopName ? shopName : '一般回報';
+  document.getElementById('irCat').value  = '';
+  document.getElementById('irNote').value = '';
+  document.getElementById('irBackdrop').style.display = 'block';
+  document.getElementById('irModal').style.display    = 'block';
+}
+function closeIrModal() {
+  document.getElementById('irBackdrop').style.display = 'none';
+  document.getElementById('irModal').style.display    = 'none';
+}
+async function submitIrReport() {
+  const cat  = document.getElementById('irCat').value.trim();
+  const note = document.getElementById('irNote').value.trim();
+  if (!cat) { showStampToast('請選擇問題分類'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
+
+  const btn = document.getElementById('irConfirmBtn');
+  btn.disabled = true; btn.textContent = '送出中…';
+  try {
+    const user = auth.currentUser;
+    await db.collection('issueReports').add({
+      shopId:      _irShopId,
+      shopName:    _irShopName,
+      category:    cat,
+      note:        note,
+      uid:         user.uid,
+      displayName: user.displayName || '',
+      email:       user.email       || '',
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeIrModal();
+    showStampToast('✅ 問題已回報，感謝你的協助！');
+  } catch (e) {
+    showStampToast('❌ 送出失敗，請稍後再試');
+    console.error('submitIrReport 失敗', e);
+  }
+  btn.disabled = false; btn.textContent = '確認送出';
+}
+
+document.getElementById('irBackdrop').addEventListener('click', closeIrModal);
+document.getElementById('irCancelBtn').addEventListener('click', closeIrModal);
+document.getElementById('irConfirmBtn').addEventListener('click', submitIrReport);
+
+document.getElementById('drawerIssueBtn').addEventListener('click', () => {
+  document.getElementById('drawer').style.display         = 'none';
+  document.getElementById('drawerBackdrop').style.display = 'none';
+  openIrModal(null, null);
+});
+
+document.getElementById('cardList').addEventListener('click', e => {
+  const btn = e.target.closest('.ir-btn-card');
+  if (!btn) return;
+  if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
+  openIrModal(btn.dataset.id, btn.dataset.name);
+});
 
 document.querySelectorAll('.sm-option').forEach(el => {
   el.addEventListener('click', () => {
