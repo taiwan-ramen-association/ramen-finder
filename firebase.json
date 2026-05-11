@@ -11,7 +11,7 @@
     }
   ],
   "firestore": {
-    "rules": "_memory/rules/firestore.rules",
+    "rules": "ramen-finder-notes/firestore.rules",
     "indexes": "firestore.indexes.json"
   }
 }

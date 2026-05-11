@@ -18,10 +18,10 @@ if sys.platform == 'win32':
 
 tools_dir  = os.path.dirname(os.path.abspath(__file__))
 root_dir   = os.path.dirname(tools_dir)
-memory_dir = os.path.join(root_dir, '_memory')
+memory_dir = os.path.join(root_dir, 'ramen-finder-notes')
 
 PUBLIC_LABEL  = 'Public  (taiwan-ramen-association.github.io)'
-PRIVATE_LABEL = 'Private (_memory / ramen-finder-notes)'
+PRIVATE_LABEL = 'Private (ramen-finder-notes)'
 
 
 def section(title):
@@ -124,16 +124,16 @@ def git_status():
 
     section(f'Status — {PRIVATE_LABEL}')
     if not os.path.isdir(memory_dir):
-        print('  ⚠  _memory/ 不存在，請先 clone private repo')
-        print('  git clone https://github.com/taiwan-ramen-association/ramen-finder-notes _memory')
+        print('  ⚠  ramen-finder-notes/ 不存在，請先 clone private repo')
+        print('  git clone https://github.com/taiwan-ramen-association/ramen-finder-notes ramen-finder-notes')
         return
     run_git(['status', '--short', '--branch'], cwd=memory_dir)
 
 
 def check_memory():
     if not os.path.isdir(memory_dir):
-        print('\n  ⚠  _memory/ 不存在，略過 Private')
-        print('  提示：git clone https://github.com/taiwan-ramen-association/ramen-finder-notes _memory')
+        print('\n  ⚠  ramen-finder-notes/ 不存在，略過 Private')
+        print('  提示：git clone https://github.com/taiwan-ramen-association/ramen-finder-notes ramen-finder-notes')
         return False
     return True
 
@@ -148,8 +148,8 @@ def show_menu():
     print('║  ' + '─' * 49 + '║')
     print('║  1  【Public  Pull】 主 repo{:<23}║'.format(''))
     print('║  2  【Public  Push】 主 repo{:<23}║'.format(''))
-    print('║  3  【Private Pull】 _memory{:<23}║'.format(''))
-    print('║  4  【Private Push】 _memory{:<23}║'.format(''))
+    print('║  3  【Private Pull】 ramen-finder-notes{:<12}║'.format(''))
+    print('║  4  【Private Push】 ramen-finder-notes{:<12}║'.format(''))
     print('║  ' + '─' * 49 + '║')
     print('║  s  查看兩個 repo 狀態{:<29}║'.format(''))
     print('║  q  離開{:<43}║'.format(''))

@@ -11,9 +11,7 @@ tools/check_*.txt
 tools/test_coords.py
 tools/scrape_maps_list.py
 
-# 含 API Key，僅限本機
-tools/compare_hours.py
-tools/diff_report.csv
+# 含 API Key，僅限本機（compare_hours.py 已移至 ramen-finder-notes/）
 tools/item_detail.csv
 tools/test_one_shop.json
 
@@ -35,7 +33,7 @@ apps script.json
 functions/node_modules/
 .firebase/
 firebase-debug.log
-_memory/
+ramen-finder-notes/
 
-# Firebase 規則（存 _memory/ private repo，不在此 repo）
+# Firebase 規則（存 ramen-finder-notes/ private repo，不在此 repo）
 storage.rules
