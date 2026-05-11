@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'ramen-static-v2';
+const STATIC_CACHE = 'ramen-static-v3';
 const DATA_CACHE   = 'ramen-data-v1';
 
 const STATIC_ASSETS = [
