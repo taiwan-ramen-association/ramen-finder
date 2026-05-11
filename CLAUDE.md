@@ -1,7 +1,7 @@
 # 台灣拉麵協會 — 開發上下文
 
 ## 專案概覽
-台灣拉麵協會網站。前台 `finder-beta.html`，後台 `admin.html`。
+台灣拉麵協會網站。前台 `finder.html`（正式版）、`finder-beta.html`（測試版），後台 `admin.html`。
 部署：GitHub Pages（public repo）。
 
 ## 技術棧
@@ -10,7 +10,8 @@
 - Vanilla JS（無前端框架）
 
 ## 關鍵路徑
-- 前台：`finder-beta.html`
+- 正式前台：`finder.html`
+- 測試前台：`finder-beta.html`
 - 後台：`admin.html`
 - Firebase rules（private git，gitignored）：`ramen-finder-notes/`
   - Firestore：`ramen-finder-notes/firestore.rules`（deploy 用）、`ramen-finder-notes/firestore.txt`（快照備份）

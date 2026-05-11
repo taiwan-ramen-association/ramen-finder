@@ -42,7 +42,8 @@ tools/           本機維護用 Python 工具
 | 檔案 | 說明 |
 |---|---|
 | `index.html` | 首頁 |
-| `finder-beta.html` | 拉麵搜尋器（現役前台） |
+| `finder.html` | 拉麵搜尋器（正式版） |
+| `finder-beta.html` | 拉麵搜尋器（測試版） |
 | `admin.html` | 後台管理系統 |
 | `domination.html` | 制霸地圖 |
 | `database.html` | 店家資料庫 |
@@ -86,8 +87,17 @@ tools/           本機維護用 Python 工具
 
 ## 店家資料更新
 
-店家資料維護於 Google Sheets，系統自動同步，一般不需手動操作。
-若需本機編輯，請參考 [MANUAL.md](MANUAL.md)。
+店家資料維護於 Google Sheets，系統每 12 小時自動同步，一般不需手動操作。
+
+---
+
+## 環境架設
+
+```bash
+git clone https://github.com/taiwan-ramen-association/taiwan-ramen-association.github.io.git
+cd taiwan-ramen-association.github.io
+pip install openpyxl requests gspread google-auth
+```
 
 ---
 

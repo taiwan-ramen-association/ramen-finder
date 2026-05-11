@@ -18,6 +18,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <title>台灣拉麵協會 店家查詢</title>
 <meta property="og:type"        content="website">
 <meta property="og:title"       content="台灣拉麵協會 拉麵搜尋器">
@@ -94,10 +95,100 @@
   body.dark .map-ctrl-btn:active { background: #2e2c28; }
   body.dark .map-ctrl-btn.following { background: #1a50a8; border-color: #1a50a8; }
   body.dark .pd-header-info strong { color: #fff; }
-  body.dark .pd-grid-input { color: var(--ink); }
+  body.dark .pd-nick-input { color: var(--ink); }
 
   /* 地圖 tile 反色成深色風格 */
   body.dark #map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.88) saturate(0.7); }
+
+  /* ── REVIEWS ── */
+  .review-list { padding: 2px 0 6px; }
+  .review-header-row {
+    display: flex; align-items: center; justify-content: flex-start;
+    padding: 10px 14px 6px; gap: 8px;
+  }
+  .review-count-label { font-size: 12px; color: var(--stone); margin-left: auto; }
+  .write-review-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 12px; background: var(--red); color: #fff;
+    border: none; border-radius: 20px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .write-review-btn:hover { opacity: 0.85; }
+  .write-review-btn.locked { background: var(--line); color: var(--stone); cursor: default; }
+  .review-item { padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+  .review-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .review-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .review-avatar-placeholder {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--line);
+    display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+  }
+  .review-meta { flex: 1; min-width: 0; }
+  .review-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .review-date { font-size: 11px; color: var(--stone); }
+  .review-stars { font-size: 13px; letter-spacing: 1px; color: #f5a623; }
+  .review-text { font-size: 13px; line-height: 1.6; color: var(--ink); margin: 6px 0; white-space: pre-wrap; word-break: break-word; }
+  .review-photos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .review-photo-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: opacity 0.15s; }
+  .review-photo-thumb:hover { opacity: 0.82; }
+  .review-del-btn { float: right; background: none; border: none; color: var(--stone); font-size: 11px; cursor: pointer; padding: 2px 0; font-family: inherit; }
+  .review-del-btn:hover { color: #e74c3c; }
+  .review-loading { padding: 18px; text-align: center; color: var(--stone); font-size: 13px; }
+  .review-empty { padding: 18px 14px; text-align: center; color: var(--stone); font-size: 13px; }
+  .review-load-more { display: block; width: 100%; padding: 8px; background: none; border: none; border-top: 1px solid var(--line); color: var(--red); font-size: 12px; cursor: pointer; font-family: inherit; text-align: center; }
+  .review-load-more:hover { background: #fdf5f5; }
+  /* 評論留言 */
+  .review-comments { margin: 6px 0 4px 4px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .review-comment { font-size: 12px; padding: 2px 0; line-height: 1.5; color: var(--ink); }
+  .review-comment-name { font-weight: 600; margin-right: 3px; }
+  .review-comments-more { font-size: 11px; color: var(--stone); background: none; border: none; cursor: pointer; padding: 2px 0; text-decoration: underline; font-family: inherit; display: block; margin-top: 2px; }
+  .review-comment-form { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .review-comment-input { flex: 1; font-size: 12px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; background: var(--paper); color: var(--text); outline: none; min-width: 0; }
+  .review-comment-input:focus { border-color: var(--red); }
+  .review-comment-send { font-size: 12px; padding: 5px 10px; background: var(--red); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+  .review-comment-send:disabled { opacity: 0.55; cursor: default; }
+  /* 貼文頁分頁 */
+  .rf-pagination { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 0 6px; flex-wrap: wrap; }
+  .rf-page-btn { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--text); font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-family: inherit; transition: background 0.12s; }
+  .rf-page-btn:hover:not(:disabled):not(.active) { background: #fdf5f5; }
+  .rf-page-btn.active { background: var(--red); color: #fff; border-color: var(--red); font-weight: 600; cursor: default; }
+  .rf-page-btn:disabled { opacity: 0.35; cursor: default; }
+  body.dark .review-comment-input { border-color: #3a3330; }
+  body.dark .rf-page-btn { border-color: #3a3330; background: #252220; }
+  body.dark .rf-page-btn:hover:not(:disabled):not(.active) { background: #2a1c1c; }
+
+  /* ── REVIEW MODAL ── */
+  .rv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 500; display: none; }
+  .rv-modal { position: fixed; inset: 0; z-index: 501; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .rv-modal.open, .rv-backdrop.open { display: flex; }
+  .rv-box { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.22); display: flex; flex-direction: column; }
+  .rv-header { padding: 16px 18px 0; display: flex; align-items: center; justify-content: space-between; }
+  .rv-title { font-size: 15px; font-weight: 700; }
+  .rv-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--stone); line-height: 1; padding: 0; }
+  .rv-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .rv-label { font-size: 11px; color: var(--stone); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 5px; display: block; }
+  .star-picker { display: flex; gap: 6px; }
+  .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; color: #ddd; transition: color 0.1s, transform 0.1s; line-height: 1; padding: 0; }
+  .star-btn.active { color: #f5a623; }
+  .star-btn:hover { transform: scale(1.15); }
+  .rv-textarea { width: 100%; min-height: 100px; resize: vertical; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; background: var(--paper); color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .rv-textarea:focus { border-color: var(--red); }
+  .rv-upload-area { border: 2px dashed var(--line); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; color: var(--stone); font-size: 13px; }
+  .rv-upload-area:hover, .rv-upload-area.drag-over { border-color: var(--red); background: #fff5f5; color: var(--red); }
+  .rv-upload-area input { display: none; }
+  .rv-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rv-preview-item { position: relative; width: 80px; height: 80px; }
+  .rv-preview-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+  .rv-preview-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #e74c3c; color: #fff; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .rv-progress { font-size: 12px; color: var(--stone); }
+  .rv-footer { padding: 0 18px 18px; display: flex; gap: 10px; justify-content: flex-end; }
+  .rv-btn-cancel { padding: 9px 20px; background: var(--line); color: var(--stone); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .rv-btn-submit { padding: 9px 22px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+  .rv-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  body.dark .rv-box { background: #1e150f; }
+  body.dark .rv-upload-area:hover, body.dark .rv-upload-area.drag-over { background: #2a1a14; }
+  body.dark .rv-textarea { background: #1a100a; }
 
   /* 深色模式 toggle 開關樣式 */
   .dark-toggle {
@@ -163,7 +254,12 @@
     border-radius: 8px; padding: 10px 22px;
     font-size: 14px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
   }
-.btn-google {
+  #betaGate {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 70vh; gap: 14px; text-align: center; padding: 30px 20px;
+  }
+  #betaGate p { color: var(--stone); font-size: 14px; line-height: 1.7; }
+  .btn-google {
     display: flex; align-items: center; gap: 8px;
     background: var(--white); border: 1px solid var(--line);
     padding: 10px 20px; border-radius: 8px;
@@ -297,11 +393,279 @@
   }
   .detail-value { font-size: 13px; color: var(--ink); line-height: 1.5; }
 
+  /* ── CARD TABS ── */
+  .card-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid var(--line);
+    margin: -11px -13px 12px; padding: 0 13px;
+  }
+  .card-tab {
+    flex: 1; padding: 9px 4px 8px; border: none; background: none; cursor: pointer;
+    font-size: 12px; font-weight: 500; color: var(--stone);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .card-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .card-tab.ff-locked { color: var(--stone); background: #ede8e0; cursor: not-allowed; opacity: 0.65; }
+  .card-tab.ff-locked::after { content: ' 🔒'; font-size: 9px; }
+  .card-tab-panel { display: none; }
+  .card-tab-panel.active { display: block; }
+
+  /* pd-action / bnav locked state */
+  .pd-action.ff-locked { opacity: 0.45; cursor: not-allowed; }
+  .bnav-item.ff-locked { opacity: 0.45; cursor: not-allowed; }
+  /* ── PHOTO TAB ── */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px 0 4px; }
+  .photo-grid a { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); }
+  .photo-grid img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s; }
+  .photo-grid img.loading { opacity: 0; }
+  .photo-grid img.loaded  { opacity: 1; }
+  .photo-attribution { font-size: 10px; color: var(--stone); text-align: right; padding: 2px 0 6px; }
+  /* ── MENU TAB ── */
+  .mnu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px 0 4px; }
+  .mnu-grid .mnu-thumb { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); position: relative; cursor: pointer; }
+  .mnu-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mnu-date-badge { position: absolute; bottom: 3px; left: 3px; font-size: 9px; background: rgba(0,0,0,0.55); color: #fff; padding: 1px 4px; border-radius: 3px; pointer-events: none; }
+  .mnu-upload-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: var(--red); color: #fff; border: none; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity 0.15s; }
+  .mnu-upload-btn:hover { opacity: 0.85; }
+  .mnu-load-more { display: block; width: 100%; padding: 7px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); font-size: 12px; cursor: pointer; font-family: inherit; margin-top: 6px; }
+  .mnu-del-btn { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%; font-size: 10px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 2; transition: background 0.15s; }
+  .mnu-del-btn:hover { background: rgba(200,39,45,0.85); }
+
+  .tab-placeholder {
+    text-align: center; padding: 22px 0 10px;
+    font-size: 13px; color: var(--stone); line-height: 1.7;
+  }
+  /* Info tab: clean table layout */
+  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .info-table tr { border-bottom: 1px solid var(--line); }
+  .info-table tr:last-child { border-bottom: none; }
+  .info-table td { padding: 8px 4px; font-size: 13px; color: var(--ink); vertical-align: top; }
+  .info-table td.info-label {
+    width: 56px; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--stone); padding-right: 10px; white-space: nowrap; padding-top: 9px;
+  }
+  body.dark .info-table tr { border-color: #333; }
+  body.dark .card-tab.active { color: var(--red); }
+
   .note-box {
     background: #fffae8; border-left: 3px solid #f0c84a;
     border-radius: 0 6px 6px 0; padding: 7px 10px;
     font-size: 12px; color: #6b5500; line-height: 1.5; margin-bottom: 10px;
   }
+
+  /* QUEUE SECTION */
+  .queue-section {
+    background: #fff8f0; border-left: 3px solid #f0943a;
+    border-radius: 0 8px 8px 0; padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .queue-sec-label {
+    font-size: 10px; letter-spacing: 0.5px; color: #a05a00;
+    text-transform: uppercase; margin-bottom: 6px; display: block;
+  }
+  .queue-count-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px; }
+  .queue-count-num { font-size: 28px; font-weight: 800; color: #f0943a; line-height: 1; }
+  .queue-count-unit { font-size: 13px; color: #a05a00; }
+  .queue-no-data { font-size: 13px; color: var(--stone); font-style: italic; }
+  .queue-report-btn {
+    width: 100%; padding: 8px;
+    background: #f0943a; color: white; border: none;
+    border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
+  }
+  .queue-report-btn:hover:not(:disabled) { opacity: 0.85; }
+  .queue-report-btn:disabled { background: #ddd; color: #999; cursor: default; font-size: 12px; }
+  .queue-badge-header {
+    display: inline-flex; align-items: center;
+    background: #fff0e0; color: #c06000;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+    border: 1px solid #f0c080; flex-shrink: 0; margin-top: 2px;
+  }
+  /* Queue Modal */
+  .queue-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 600; display: none;
+  }
+  .queue-modal {
+    position: fixed; z-index: 601;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(380px, calc(100vw - 20px));
+    background: var(--white); border-radius: 18px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    padding: 22px 20px; display: none;
+  }
+  .qm-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px; font-weight: 700; margin-bottom: 14px; line-height: 1.4;
+  }
+  .qm-opt {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border: 1.5px solid var(--line);
+    border-radius: 11px; cursor: pointer; margin-bottom: 7px;
+    transition: all 0.15s; background: var(--paper); user-select: none;
+  }
+  .qm-opt:hover:not(.selected) { border-color: #f0943a; background: #fff8f0; }
+  .qm-opt.selected { border-color: #f0943a; background: #fff0e0; }
+  .qm-opt-label { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .qm-opt-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--line); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .qm-opt.selected .qm-opt-radio { border-color: #f0943a; background: #f0943a; }
+  .qm-opt.selected .qm-opt-radio::after { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+  .qm-footer { display: flex; gap: 10px; margin-top: 16px; }
+  .qm-btn {
+    flex: 1; padding: 12px; border-radius: 11px; border: none;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
+  }
+  .qm-btn:disabled { opacity: 0.5; cursor: default; }
+  .qm-cancel { background: var(--paper); color: var(--stone); border: 1.5px solid var(--line); }
+  .qm-confirm { background: #f0943a; color: white; }
+  body.dark .queue-section { background: #2a1e0e; border-color: #c07020; }
+  body.dark .queue-sec-label { color: #c07020; }
+  body.dark .queue-count-unit { color: #c07020; }
+  body.dark .queue-badge-header { background: #2a1e0e; color: #f0943a; border-color: #8a5010; }
+  .queue-modal { max-height: 90vh; overflow-y: auto; }
+  body.dark .qm-opt { background: #2a2017; }
+  body.dark .qm-opt.selected { background: #3a2810; }
+
+  /* IR MODAL */
+  .ir-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; display: none; }
+  .ir-modal {
+    position: fixed; z-index: 601;
+    left: 50%; top: 50%; transform: translate(-50%,-50%);
+    width: min(380px, calc(100vw - 20px));
+    background: var(--white); border-radius: 18px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    padding: 22px 20px; display: none; max-height: 90vh; overflow-y: auto;
+  }
+  .ir-title { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+  .ir-shop-name { font-size: 13px; color: var(--stone); margin-bottom: 14px; }
+  .ir-select {
+    width: 100%; padding: 9px 10px; margin-bottom: 10px;
+    border: 1.5px solid var(--line); border-radius: 10px; font-size: 13px;
+    background: var(--white); font-family: inherit; color: var(--ink); box-sizing: border-box;
+  }
+  .ir-select:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .ir-textarea {
+    width: 100%; padding: 9px 10px; border: 1.5px solid var(--line);
+    border-radius: 10px; font-size: 13px; font-family: inherit;
+    resize: none; height: 80px; box-sizing: border-box; color: var(--ink); background: var(--white);
+  }
+  .ir-textarea:focus { outline: 2px solid #5b8ef0; border-color: transparent; }
+  .ir-footer { display: flex; gap: 10px; margin-top: 16px; }
+  .ir-btn-card {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px; padding: 5px 12px;
+    background: none; border: 1px solid var(--line); border-radius: 20px;
+    font-size: 12px; color: var(--stone); cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .ir-btn-card:hover { border-color: #5b8ef0; color: #3358c4; background: #f0f4ff; }
+  .ir-btn-card.ff-locked { opacity: 0.5; cursor: not-allowed; }
+  body.dark .ir-select, body.dark .ir-textarea { background: #22253a; border-color: #334; color: #e8e8e8; }
+  body.dark .ir-btn-card { border-color: #334; color: #888; }
+  body.dark .ir-btn-card:hover:not(.ff-locked) { border-color: #5b8ef0; color: #7ba4f8; background: #1e2848; }
+
+  /* RANKINGS MODAL */
+  .rk-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 700; display: none;
+  }
+  .rk-modal {
+    position: fixed; z-index: 701;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(480px, calc(100vw - 16px));
+    max-height: 88vh; overflow-y: auto;
+    background: var(--white); border-radius: 18px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    display: none;
+  }
+  .rk-header {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--white); border-bottom: 1px solid var(--line);
+    padding: 16px 18px 0; border-radius: 18px 18px 0 0;
+  }
+  .rk-header-top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .rk-title { font-family: 'Noto Serif TC', serif; font-size: 18px; font-weight: 700; }
+  .rk-close {
+    width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--paper);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--stone);
+  }
+  .rk-tabs { display: flex; gap: 0; }
+  .rk-tab {
+    flex: 1; padding: 8px; border: none; background: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--stone);
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .rk-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .rk-body { padding: 16px 18px 20px; }
+
+  /* 用戶自己的狀態卡 */
+  .rk-me-card {
+    background: var(--paper); border-radius: 12px;
+    padding: 13px 15px; margin-bottom: 16px;
+  }
+  .rk-me-label { font-size: 10px; letter-spacing: 0.5px; color: var(--stone); margin-bottom: 6px; }
+  .rk-me-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .rk-me-stat { text-align: center; }
+  .rk-me-num { font-size: 22px; font-weight: 800; color: var(--red); line-height: 1; }
+  .rk-me-sub { font-size: 10px; color: var(--stone); margin-top: 2px; }
+  .rk-placement-bar {
+    margin-top: 10px; background: var(--line); border-radius: 4px; height: 6px; overflow: hidden;
+  }
+  .rk-placement-fill {
+    height: 100%; background: var(--red); border-radius: 4px; transition: width 0.4s;
+  }
+  .rk-placement-hint { font-size: 11px; color: var(--stone); margin-top: 4px; }
+
+  /* 排行榜列表 */
+  .rk-section-label {
+    font-size: 10px; letter-spacing: 0.5px; color: var(--stone);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .rk-podium { display: flex; gap: 8px; margin-bottom: 12px; }
+  .rk-podium-item {
+    flex: 1; background: var(--paper); border-radius: 12px;
+    padding: 12px 8px; text-align: center; border: 1.5px solid var(--line);
+  }
+  .rk-podium-item.gold   { border-color: #e8d000; background: #fffde8; }
+  .rk-podium-item.silver { border-color: #b0b8c0; background: #f4f6f8; }
+  .rk-podium-item.bronze { border-color: #d4956a; background: #fff4ec; }
+  .rk-podium-medal { font-size: 24px; line-height: 1; margin-bottom: 4px; }
+  .rk-podium-name { font-size: 12px; font-weight: 600; color: var(--ink); word-break: break-all; }
+  .rk-podium-count { font-size: 11px; color: var(--stone); margin-top: 2px; }
+  .rk-list-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px; margin-bottom: 5px;
+    background: var(--paper);
+  }
+  .rk-list-item.is-me { background: #fff0f0; border: 1px solid #f4b8cc; }
+  .rk-list-rank { font-size: 13px; font-weight: 700; color: var(--stone); width: 24px; flex-shrink: 0; }
+  .rk-list-name { font-size: 14px; font-weight: 500; color: var(--ink); flex: 1; }
+  .rk-list-count { font-size: 13px; color: var(--stone); flex-shrink: 0; }
+  .rk-empty { text-align: center; color: var(--stone); font-size: 14px; padding: 24px 0; }
+  .rk-winners-section { margin-top: 14px; }
+  .rk-winner-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff8e0; border: 1px solid #f0d060; border-radius: 20px;
+    padding: 5px 12px; font-size: 13px; font-weight: 500; margin: 4px 4px 0 0;
+  }
+  body.dark .rk-modal,
+  body.dark .rk-header { background: #1e1c18; }
+  body.dark .rk-me-card,
+  body.dark .rk-podium-item,
+  body.dark .rk-list-item { background: #2a2620; }
+  body.dark .rk-podium-item.gold   { background: #2a2500; }
+  body.dark .rk-podium-item.silver { background: #252830; }
+  body.dark .rk-podium-item.bronze { background: #2a1e14; }
+  body.dark .rk-list-item.is-me    { background: #2a1018; }
+  body.dark .rk-winner-chip { background: #2a2000; border-color: #8a7000; }
 
   /* MAP BUTTON */
   .map-btn {
@@ -317,6 +681,9 @@
   .map-btn-icon { font-size: 16px; }
 
   .link-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  /* 卡片內社群列：按鈕稍大，底部有間距 */
+  .card-social-row { margin-bottom: 10px; }
+  .card-social-row .link-btn { flex: 1; justify-content: center; padding: 9px 11px; font-size: 13px; }
   .link-btn {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 6px 11px; border-radius: 8px; font-size: 12px;
@@ -350,7 +717,226 @@
   .empty-state .big { font-size: 38px; margin-bottom: 10px; }
   .empty-state p { font-size: 14px; }
 
+  /* ── PAGE STACK ─────────────────────────────────────────────────── */
   #mainContent { display: none; }
+  #mainContent.mc-show { display: block; }
+
+  /* Fixed container that holds all pages below the header */
+  /* 兩頁面都是 body 層 position:fixed，透過 z-index 決定誰在上面
+     不加 will-change，避免 fixed 子元素（modal/backdrop）的 containing block 變成本層
+     導致 backdrop 跟著內容捲動而非停在視窗上 */
+  .page-layer {
+    position: fixed;
+    top: var(--header-h, 56px); left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.36s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .page-layer.page-active {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    z-index: 5;
+    pointer-events: auto;
+  }
+  /* modal 開啟時鎖定捲動 */
+  #mainContent.scroll-locked { overflow-y: hidden; }
+  /* 貼文/挑戰頁 active 時蓋過 body-level modals (z-600/601) */
+  #pageReviews.page-active,
+  #pageChallenges.page-active { z-index: 650; }
+  #pageReviews    { padding: 14px 12px 90px; box-sizing: border-box; }
+  #pageChallenges { padding: 14px 12px 90px; box-sizing: border-box; }
+  /* 切到貼文頁時，finder modals 完全隱藏（保留 open 狀態與表單內容） */
+  body.finder-hidden .stamp-backdrop,
+  body.finder-hidden .stamp-modal,
+  body.finder-hidden .queue-backdrop,
+  body.finder-hidden .queue-modal,
+  body.finder-hidden .ir-backdrop,
+  body.finder-hidden .ir-modal,
+  body.finder-hidden .rv-backdrop,
+  body.finder-hidden .rv-modal,
+  body.finder-hidden #mnuBackdrop,
+  body.finder-hidden #mnuModal,
+  /* reviews-page modals */
+  body.reviews-hidden .rk-backdrop,
+  body.reviews-hidden .rk-modal { display: none !important; }
+  /* challenges-page modals（目前無，預留） */
+  /* body.challenges-hidden .xxx { display: none !important; } */
+  /* Departing page: shrinks & fades to the left */
+  .page-layer.page-left {
+    transform: translateX(-22%) scale(0.96);
+    opacity: 0;
+    z-index: 4;
+    pointer-events: none;
+  }
+  /* Waiting page: off-screen to the right */
+  .page-layer.page-right {
+    transform: translateX(100%);
+    opacity: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* 貼文白底容器 */
+  .rf-page-card {
+    background: var(--paper);
+    border-radius: 16px;
+    padding: 14px 12px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+  }
+
+  /* ── REVIEWS FEED ── */
+  .rf-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .rf-toolbar-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 13px; border-radius: 20px; border: 1.5px solid var(--line);
+    background: var(--paper); color: var(--ink); font-size: 13px;
+    font-family: inherit; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+  .rf-toolbar-btn:hover { border-color: var(--red); background: #fff5f5; }
+  .rf-toolbar-btn.ff-locked { opacity: 0.5; cursor: not-allowed; }
+  body.dark .rf-toolbar-btn:hover { background: #2a1a14; }
+  .rf-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .rf-feed-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px; font-weight: 700; color: var(--ink);
+  }
+  .rf-tab-toggle-btn {
+    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
+    border-radius: 7px; padding: 5px 11px; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
+  }
+  .rf-tab-toggle-btn:active { background: var(--line); }
+  .mnu-card {
+    background: var(--white); border-radius: 14px; overflow: hidden;
+    margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.07); cursor: pointer;
+  }
+  .mnu-photo { width: 100%; display: block; max-height: 320px; object-fit: contain; background: #f5f0ee; }
+  .mnu-info { padding: 9px 14px 11px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mnu-shop { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .mnu-date { font-size: 12px; color: var(--stone); }
+  .mnu-user { font-size: 12px; color: var(--stone); margin-left: auto; }
+  body.dark .mnu-card { background: #1e1917; }
+  body.dark .mnu-photo { background: #2a2420; }
+  body.dark .rf-title-row { border-color: #3a3330; }
+  .rf-card {
+    background: var(--white); border-radius: 14px;
+    padding: 13px 14px; margin-bottom: 10px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+    border-left: 3px solid transparent;
+    position: relative; transition: border-color 0.2s;
+  }
+  .rf-card.unread { border-left-color: var(--red); background: #fffafa; }
+  .rf-card-header {
+    display: flex; align-items: flex-start;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .rf-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0; border: 2px solid var(--line);
+  }
+  .rf-avatar-ph {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--paper); display: flex; align-items: center;
+    justify-content: center; font-size: 17px; flex-shrink: 0;
+  }
+  .rf-user-info { flex: 1; min-width: 0; }
+  .rf-username { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .rf-shopname { display: block; font-size: 12px; color: var(--red); font-weight: 500; margin-top: 2px; }
+  .rf-right { text-align: right; flex-shrink: 0; }
+  .rf-stars { display: block; font-size: 13px; color: #f59e0b; letter-spacing: 1px; }
+  .rf-date { display: block; font-size: 11px; color: var(--stone); margin-top: 2px; }
+  .rf-text { font-size: 14px; color: var(--ink); line-height: 1.65; margin-bottom: 8px; word-break: break-word; }
+  .rf-photos { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rf-thumb { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+  .rf-unread-dot {
+    position: absolute; top: 12px; right: 12px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); display: none;
+  }
+  .rf-card.unread .rf-unread-dot { display: block; }
+  .rf-empty { text-align: center; color: var(--stone); font-size: 14px; padding: 48px 0; }
+  .rf-load-more {
+    display: block; width: 100%; padding: 12px;
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-radius: 10px; color: var(--stone); cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 13px; margin-top: 4px;
+  }
+  .rf-load-more:active { background: var(--line); }
+
+  /* 底部導覽紅點 */
+  .bnav-badge {
+    position: absolute; top: 5px; right: calc(50% - 16px);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); border: 1.5px solid rgba(255,255,255,0.78);
+    display: none; pointer-events: none;
+  }
+  .bnav-item.has-badge .bnav-badge { display: block; }
+
+  /* Dark mode */
+  body.dark .rf-card { background: #252220; box-shadow: none; }
+  body.dark .rf-card.unread { background: #2a1c1c; border-left-color: var(--red); }
+  body.dark .rf-unread-dot { border: 1.5px solid #252220; }
+  body.dark .rf-feed-title { border-color: #3a3330; }
+  body.dark .bnav-badge { border-color: rgba(26,24,22,0.92); }
+
+  /* ── DESKTOP SIDEBAR LAYOUT (≥900px) ── */
+  @media (min-width: 900px) {
+    body { overflow: hidden; }
+
+    #mainContent.mc-show {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: auto 1fr;
+      /* top/bottom already fixed by .page-layer, height fills automatically */
+      overflow: hidden;
+    }
+
+    /* Filter bar → left sidebar */
+    .filter-bar {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      border-right: 1px solid var(--line);
+      border-bottom: none;
+      overflow-y: auto;
+      padding: 18px 16px;
+    }
+    .search-box { margin-bottom: 14px; }
+    .filter-row { flex-direction: column; gap: 12px; }
+    .filter-group select { font-size: 13px; padding: 8px 24px 8px 10px; }
+
+    /* Result bar → top of right panel */
+    .result-bar {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    /* Card list → scrollable right panel */
+    .card-list {
+      grid-column: 2;
+      grid-row: 2;
+      overflow-y: auto;
+      padding: 10px 14px 20px;
+    }
+
+    /* Map → same grid cell as card list */
+    #mapContainer {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .rf-list-inner { max-width: 680px; margin: 0 auto; }
+    .rf-feed-title { font-size: 19px; }
+    #pageReviews { padding: 20px 24px 80px; }
+  }
 
   /* ── LOCATE ── */
   .locate-btn, .now-open-btn {
@@ -413,48 +999,71 @@
     width: 44px; height: 44px; border-radius: 50%;
     object-fit: cover; border: 2px solid var(--line); flex-shrink: 0;
   }
+  .pd-header-info { flex: 1; min-width: 0; }
   .pd-header-info strong { display: block; font-size: 14px; color: var(--ink); }
-  .pd-header-info span { font-size: 12px; color: var(--stone); }
+  .pd-google-field {
+    display: block; width: 100%; margin-top: 4px;
+    padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 11px; color: var(--stone); background: transparent;
+    cursor: default; outline: none; pointer-events: none;
+    box-sizing: border-box; font-family: inherit;
+  }
 
-  .pd-profile-grid {
-    display: grid; grid-template-columns: 64px 1fr;
-    gap: 10px 10px; padding: 14px 16px;
-    border-bottom: 1px solid var(--line); align-items: center;
+  /* ── Customize section ── */
+  .pd-customize {
+    padding: 14px 16px; background: var(--paper);
+    border-bottom: 1px solid var(--line);
   }
-  .pd-grid-lbl {
-    font-size: 11px; color: var(--stone); font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  .pd-customize-row { display: flex; align-items: center; gap: 12px; }
+  .pd-avatar-wrap {
+    position: relative; flex-shrink: 0; cursor: pointer;
+    width: 44px; height: 44px;
   }
-  .pd-grid-input {
-    width: 100%; padding: 7px 10px; border: 1.5px solid var(--line);
-    border-radius: 8px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+  .pd-avatar-wrap .pd-header-avatar { width: 44px; height: 44px; }
+  .pd-camera-btn {
+    position: absolute; bottom: 0; right: 0;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,0.62); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; pointer-events: none; line-height: 1;
+  }
+  .pd-customize-info { flex: 1; min-width: 0; }
+  #pdDisplayName {
+    display: block; background: none; border: none;
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    cursor: pointer; padding: 0; text-align: left;
+    font-family: inherit; line-height: 1.4;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #pdDisplayName:hover { color: var(--red); }
+  .pd-nick-field {
+    display: block; width: 100%; margin-bottom: 8px;
+    padding: 4px 0; border: none;
+    font-size: 11px; color: var(--stone); background: transparent;
+    box-sizing: border-box; font-family: inherit;
+  }
+  /* Nickname edit popup */
+  .pd-nick-popup {
+    margin-top: 10px; padding: 12px;
+    background: var(--white); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .pd-nick-input {
+    width: 100%; padding: 8px 10px; margin-bottom: 8px;
+    border: 1.5px solid var(--line); border-radius: 8px;
+    font-size: 14px; font-family: inherit;
     background: var(--paper); outline: none; box-sizing: border-box;
   }
-  .pd-grid-input:focus { border-color: var(--red); }
-  .pd-grid-avatar-cell {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 5px; align-self: start;
+  .pd-nick-input:focus { border-color: var(--red); }
+  .pd-nick-popup-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .pd-nick-popup-btns button {
+    padding: 7px 16px; border-radius: 8px; font-size: 13px;
+    cursor: pointer; font-family: inherit; border: 1.5px solid var(--line);
+    background: var(--paper); color: var(--ink);
   }
-  .pd-avatar-big {
-    width: 48px; height: 48px; border-radius: 50%;
-    object-fit: cover; border: 2px solid var(--line); flex-shrink: 0;
+  .pd-nick-popup-btns #saveProfileBtn {
+    background: var(--red); color: #fff; border-color: var(--red);
   }
-  .pd-avatar-btns { display: flex; flex-direction: column; gap: 6px; align-self: start; }
-  .pd-avatar-btn {
-    padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px;
-    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
-    background: var(--white); cursor: pointer; color: var(--ink); text-align: left;
-  }
-  .pd-avatar-btn:hover { background: var(--paper); border-color: var(--stone); }
-
-  .pd-save-btn {
-    display: block; width: calc(100% - 32px); margin: 12px 16px;
-    padding: 10px; background: var(--red); color: white;
-    border: none; border-radius: 10px; font-size: 14px;
-    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; font-weight: 500;
-  }
-  .pd-save-btn:hover { background: var(--red-dark); }
-  .pd-save-btn:disabled { opacity: 0.6; cursor: default; }
+  .pd-nick-popup-btns #saveProfileBtn:disabled { opacity: 0.6; cursor: default; }
 
   .pd-action {
     display: flex; align-items: center; gap: 10px;
@@ -611,7 +1220,7 @@
   /* ── CLEAR ALL DATA OVERLAY ── */
   .clear-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.93);
-    z-index: 900; display: none;
+    z-index: 1050; display: none;
     flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
   .clear-overlay.show { display: flex; }
@@ -667,9 +1276,132 @@
     z-index: 9999; opacity: 1;
     transition: opacity 1s ease;
   }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    left: 50%; transform: translateX(-50%);
+    width: calc(100% - 24px); max-width: 480px;
+    z-index: 1000; /* above all page layers */
+    display: flex; gap: 3px; padding: 5px;
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.55);
+    box-shadow: 0 4px 28px rgba(0,0,0,0.13), 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .bnav-item {
+    flex: 1; position: relative;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px;
+    padding: 8px 6px 7px; min-height: 50px;
+    border: none; background: none; cursor: pointer;
+    text-decoration: none;
+    color: rgba(90,90,100,0.7);
+    border-radius: 17px;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-item:active:not(.active) { background: rgba(0,0,0,0.06); }
+  .bnav-item.active {
+    background: rgba(200,30,30,0.1);
+    color: var(--red);
+  }
+  .bnav-svg { width: 22px; height: 22px; display: block; flex-shrink: 0; }
+  .bnav-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.2px; line-height: 1; }
+  /* card-list padding for floating nav */
+  .card-list { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px) !important; }
+
+  /* Dark mode */
+  body.dark .bottom-nav {
+    background: rgba(28,26,24,0.88);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 4px 28px rgba(0,0,0,0.45);
+  }
+  body.dark .bnav-item { color: rgba(180,180,185,0.6); }
+  body.dark .bnav-item.active {
+    background: rgba(200,50,50,0.18);
+    color: var(--red);
+  }
+
+  /* Desktop: centered floating pill */
+  @media (min-width: 900px) {
+    .bottom-nav {
+      left: 50%; transform: translateX(-50%);
+      width: auto; min-width: 280px; max-width: 460px;
+      border-radius: 18px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    }
+    .bnav-label { display: none; }
+    .bnav-item { min-height: 40px; padding: 7px 18px; border-radius: 12px; }
+    .bnav-svg { width: 20px; height: 20px; }
+    .card-list { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px) !important; }
+  }
+
+  /* ── Photo Viewer ─────────────────────────────────────────────────────── */
+  #photoViewer {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.95);
+    display: none; flex-direction: column;
+  }
+  #photoViewer.open { display: flex; }
+  .pv-header {
+    height: 56px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding: 0 56px;
+  }
+  #pvCounter {
+    color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  #pvClose {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.12); border: none; color: #fff;
+    font-size: 18px; width: 38px; height: 38px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; line-height: 1;
+  }
+  #pvClose:hover { background: rgba(255,255,255,0.28); }
+  .pv-body {
+    flex: 1; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding: 0 68px;
+  }
+  #pvImg {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain; border-radius: 6px;
+    user-select: none; pointer-events: none; display: block;
+  }
+  .pv-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    font-size: 32px; width: 48px; height: 48px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; padding: 0; line-height: 1;
+  }
+  .pv-arrow:hover { background: rgba(255,255,255,0.3); }
+  #pvPrev { left: 10px; }
+  #pvNext { right: 10px; }
+  .pv-footer {
+    height: 44px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; color: rgba(255,255,255,0.55); font-size: 13px;
+  }
+  @media (max-width: 599px) {
+    .pv-arrow { display: none; }
+    .pv-body { padding: 0 12px; }
+  }
+  @keyframes pvSlideInRight { from { opacity:0; transform:translateX(36px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes pvSlideInLeft  { from { opacity:0; transform:translateX(-36px); } to { opacity:1; transform:translateX(0); } }
+  #pvImg.pv-enter-right { animation: pvSlideInRight 0.22s ease; }
+  #pvImg.pv-enter-left  { animation: pvSlideInLeft  0.22s ease; }
+  .rv-date-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--paper); color: var(--ink); outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .rv-date-input:focus { border-color: var(--red); }
 </style>
 </head>
-<body>
+<body class="reviews-hidden challenges-hidden">
 
 <header>
   <h1>🍜 台灣拉麵協會－拉麵搜尋器</h1>
@@ -690,35 +1422,43 @@
 
 <!-- Profile Dropdown（點頭像展開） -->
 <div class="profile-dropdown" id="profileDropdown" style="display:none">
+
+  <!-- Google 帳號（唯讀） -->
   <div class="pd-header">
-    <img class="pd-header-avatar" id="pdHeaderAvatar" src="">
+    <img class="pd-header-avatar" id="pdGoogleAvatar" src="">
     <div class="pd-header-info">
-      <strong id="pdDisplayName"></strong>
-      <span id="pdEmail"></span>
+      <strong id="pdGoogleName"></strong>
+      <input class="pd-google-field" id="pdEmail" type="text" readonly placeholder="Google 帳號">
     </div>
   </div>
 
-  <div class="pd-profile-grid">
-    <span class="pd-grid-lbl">顯示名稱</span>
-    <input id="nicknameInput" class="pd-grid-input" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
-
-    <div class="pd-grid-avatar-cell">
-      <span class="pd-grid-lbl">頭像</span>
-      <img class="pd-avatar-big" id="pdAvatarPreview" src="">
+  <!-- 自定義顯示身份 -->
+  <div class="pd-customize">
+    <div class="pd-nick-field" id="pdNickField">自定義顯示身分</div>
+    <div class="pd-customize-row">
+      <div class="pd-avatar-wrap" id="pdAvatarWrap">
+        <img class="pd-header-avatar" id="pdHeaderAvatar" src="">
+        <span class="pd-camera-btn">📷</span>
+        <input type="file" id="localAvatarInput" accept="image/*" style="display:none">
+      </div>
+      <div class="pd-customize-info">
+        <button id="pdDisplayName"></button>
+      </div>
     </div>
-    <div class="pd-avatar-btns">
-      <button class="pd-avatar-btn" id="rollAvatarBtn">🎲 隨機換頭像</button>
-      <button class="pd-avatar-btn" id="resetAvatarBtn">↩ 還原 Google 預設</button>
+    <div class="pd-nick-popup" id="pdNickPopup" style="display:none">
+      <input id="nicknameInput" class="pd-nick-input" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
+      <div class="pd-nick-popup-btns">
+        <button id="pdNickCancelBtn">取消</button>
+        <button id="saveProfileBtn">儲存</button>
+      </div>
     </div>
   </div>
-
-  <button class="pd-save-btn" id="saveProfileBtn">儲存</button>
 
   <div class="pd-actions">
     <button class="pd-action" id="darkModeBtn">🌙 深色模式<span class="dark-toggle" id="darkToggle"></span></button>
     <button class="pd-action" id="favFilterBtn" style="display:none">♥ 收藏清單</button>
     <a class="pd-action" href="domination.html">🗾 制霸地圖</a>
-    <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 會員管理</a>
+    <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 後台管理</a>
     <button class="pd-action" id="clearDataBtn" style="color:#c00">🗑 清除我的所有記憶</button>
     <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
   </div>
@@ -727,61 +1467,27 @@
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
   <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
+  <button class="drawer-item" id="drawerIssueBtn">⚑ 問題回報</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
 </div>
 
-<!-- Stamp Modal -->
-<div id="stampBackdrop" class="stamp-backdrop"></div>
-<div id="stampModal" class="stamp-modal">
-  <div class="sm-header">
-    <div class="sm-title" id="smTitle"></div>
-    <button class="sm-reset-btn" id="smResetBtn">↺ 重置踩點</button>
+<!-- Rankings Modal -->
+<div class="rk-backdrop" id="rkBackdrop"></div>
+<div class="rk-modal" id="rkModal">
+  <div class="rk-header">
+    <div class="rk-header-top">
+      <div class="rk-title">🏆 排行榜</div>
+      <button class="rk-close" id="rkCloseBtn">✕</button>
+    </div>
+    <div class="rk-tabs">
+      <button class="rk-tab active" data-tab="current">本月</button>
+      <button class="rk-tab" data-tab="last">上月結果</button>
+    </div>
   </div>
-
-  <div class="sm-option" data-status="none">
-    <div class="sm-option-icon">🙅</div>
-    <div class="sm-option-label">沒去過</div>
-    <div class="sm-option-radio"></div>
-  </div>
-  <div class="sm-option" data-status="pass">
-    <div class="sm-option-icon">🚶</div>
-    <div class="sm-option-label">路過</div>
-    <div class="sm-option-radio"></div>
-  </div>
-  <div class="sm-option" data-status="once">
-    <div class="sm-option-icon">🍜</div>
-    <div class="sm-option-label">吃過1次</div>
-    <div class="sm-option-radio"></div>
-  </div>
-  <div class="sm-option" data-status="many">
-    <div class="sm-option-icon">🔥</div>
-    <div class="sm-option-label">吃過很多次</div>
-    <div class="sm-option-radio"></div>
-  </div>
-  <div class="sm-slider-wrap" id="smSliderWrap">
-    <div class="sm-count-display"><span id="smCountLabel">2</span>次</div>
-    <div class="sm-count-sub" id="smCountSub">繼續吃！</div>
-    <input type="range" id="smCountSlider" min="2" max="10" step="1" value="2">
-    <div class="sm-slider-ticks"><span>2次</span><span>5次</span><span>10次以上</span></div>
-  </div>
-  <div class="sm-option" data-status="work">
-    <div class="sm-option-icon">👨‍🍳</div>
-    <div class="sm-option-label">從業過</div>
-    <div class="sm-option-radio"></div>
-  </div>
-
-  <div class="sm-review-wrap">
-    <label class="sm-review-label">踩點心得（選填，最多 50 字）</label>
-    <textarea class="sm-review-input" id="smReview" maxlength="50" rows="2" placeholder="你對這間店的印象或感受…"></textarea>
-    <div class="sm-review-count"><span id="smReviewCount">0</span> / 50</div>
-  </div>
-
-  <div class="sm-footer">
-    <button class="sm-btn sm-cancel" id="smCancelBtn">取消</button>
-    <button class="sm-btn sm-confirm" id="smConfirmBtn">確認踩點</button>
+  <div class="rk-body" id="rkBody">
+    <div class="rk-empty">載入中...</div>
   </div>
 </div>
-<div id="stampToast"></div>
 
 <!-- Clear All Data Overlay -->
 <div class="clear-overlay" id="clearOverlay">
@@ -794,6 +1500,13 @@
   </div>
 </div>
 
+<div id="betaGate">
+  <p id="betaGateMsg">此頁面需要登入才能瀏覽</p>
+  <button class="btn-google" id="betaLoginBtn" style="display:none">
+    <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 6.9-10.1 6.9-17z"/><path fill="#FBBC05" d="M10.8 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.4 10.6l8.4-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+    以 Google 帳號登入
+  </button>
+</div>
 
 <div id="loadingScreen" class="loading-screen">
   <div class="loader"></div>
@@ -806,7 +1519,7 @@
   <button class="retry-btn" id="retryBtn">重新載入</button>
 </div>
 
-<div id="mainContent">
+<div id="mainContent" class="page-layer">
   <div class="filter-bar">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
@@ -848,7 +1561,277 @@
 
   <div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
+</div><!-- end #mainContent -->
+
+<div id="pageReviews" class="page-layer page-right">
+  <div class="rf-page-card">
+    <div class="rf-title-row">
+      <div class="rf-feed-title" id="rfFeedTitle">📝 評論</div>
+      <button class="rf-tab-toggle-btn" id="rfTabToggleBtn">🍜 菜單</button>
+    </div>
+    <div class="rf-toolbar" id="rfToolbar">
+      <button class="rf-toolbar-btn" id="rankingsPdBtn" style="display:none">🏆 排行榜</button>
+      <!-- 未來可在此新增更多工具列按鈕 -->
+    </div>
+    <div class="rf-list-inner" id="rfList"></div>
+    <div id="rfPagination" class="rf-pagination"></div>
+    <div class="rf-list-inner" id="rfMenuList" style="display:none"></div>
+    <div id="rfMenuPagination" class="rf-pagination" style="display:none"></div>
+  </div>
 </div>
+
+<div id="pageChallenges" class="page-layer page-right">
+  <div class="rf-page-card">
+    <div class="rf-feed-title">🚩 挑戰任務</div>
+    <div class="rf-list-inner" id="challengesList">
+      <p style="color:var(--stone);font-size:13px;text-align:center;padding:40px 0">挑戰任務功能即將上線，敬請期待！</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── body 層 modal：position:fixed 在 overflow:auto 容器內會失效，一律放這裡 ── -->
+
+<!-- Stamp Modal -->
+<div id="stampBackdrop" class="stamp-backdrop"></div>
+<div id="stampModal" class="stamp-modal">
+  <div class="sm-header">
+    <div class="sm-title" id="smTitle"></div>
+    <button class="sm-reset-btn" id="smResetBtn">↺ 重置踩點</button>
+  </div>
+  <div class="sm-option" data-status="none">
+    <div class="sm-option-icon">🙅</div>
+    <div class="sm-option-label">沒去過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="pass">
+    <div class="sm-option-icon">🚶</div>
+    <div class="sm-option-label">路過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="once">
+    <div class="sm-option-icon">🍜</div>
+    <div class="sm-option-label">吃過1次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-option" data-status="many">
+    <div class="sm-option-icon">🔥</div>
+    <div class="sm-option-label">吃過很多次</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-slider-wrap" id="smSliderWrap">
+    <div class="sm-count-display"><span id="smCountLabel">2</span>次</div>
+    <div class="sm-count-sub" id="smCountSub">繼續吃！</div>
+    <input type="range" id="smCountSlider" min="2" max="10" step="1" value="2">
+    <div class="sm-slider-ticks"><span>2次</span><span>5次</span><span>10次以上</span></div>
+  </div>
+  <div class="sm-option" data-status="work">
+    <div class="sm-option-icon">👨‍🍳</div>
+    <div class="sm-option-label">從業過</div>
+    <div class="sm-option-radio"></div>
+  </div>
+  <div class="sm-review-wrap">
+    <label class="sm-review-label">踩點心得（選填，最多 50 字）</label>
+    <textarea class="sm-review-input" id="smReview" maxlength="50" rows="2" placeholder="你對這間店的印象或感受…"></textarea>
+    <div class="sm-review-count"><span id="smReviewCount">0</span> / 50</div>
+  </div>
+  <div class="sm-footer">
+    <button class="sm-btn sm-cancel" id="smCancelBtn">取消</button>
+    <button class="sm-btn sm-confirm" id="smConfirmBtn">確認踩點</button>
+  </div>
+</div>
+<div id="stampToast"></div>
+
+<!-- Queue Report Modal -->
+<div class="queue-backdrop" id="queueBackdrop"></div>
+<div id="queueModal" class="queue-modal">
+  <div class="qm-title" id="qmTitle"></div>
+  <div class="qm-opt" data-value="0">
+    <span class="qm-opt-label">🟢 不用排 / 已清空</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="3">
+    <span class="qm-opt-label">🟡 約 1–5 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="8">
+    <span class="qm-opt-label">🟠 約 6–10 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="15">
+    <span class="qm-opt-label">🔴 約 11–20 人</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-opt" data-value="25">
+    <span class="qm-opt-label">🔴🔴 20 人以上</span>
+    <div class="qm-opt-radio"></div>
+  </div>
+  <div class="qm-footer">
+    <button class="qm-btn qm-cancel" id="qmCancelBtn">取消</button>
+    <button class="qm-btn qm-confirm" id="qmConfirmBtn" disabled>確認送出</button>
+  </div>
+</div>
+
+<!-- Issue Report Modal -->
+<div class="ir-backdrop" id="irBackdrop"></div>
+<div class="ir-modal" id="irModal">
+  <div class="ir-title">⚑ 問題回報</div>
+  <div class="ir-shop-name" id="irShopName"></div>
+  <select class="ir-select" id="irCat">
+    <option value="">選擇問題分類…</option>
+    <optgroup label="基本資訊">
+      <option value="名稱有誤">✏️ 名稱有誤</option>
+      <option value="地址有誤">📍 地址有誤</option>
+      <option value="地圖定位有誤">🗺️ 地圖定位有誤</option>
+      <option value="營業時間修正">🕐 營業時間修正</option>
+      <option value="公休日有誤">📅 公休日有誤</option>
+    </optgroup>
+    <optgroup label="用餐資訊">
+      <option value="排隊／點餐／支付方式有誤">💳 排隊／點餐／支付方式有誤</option>
+      <option value="座位配置有誤">💺 座位配置有誤</option>
+      <option value="拉麵類型／口味有誤">🍜 拉麵類型／口味有誤</option>
+    </optgroup>
+    <optgroup label="店家狀態">
+      <option value="店家已歇業">🚫 店家已歇業</option>
+      <option value="店家已搬遷">🚚 店家已搬遷</option>
+    </optgroup>
+    <optgroup label="資料收錄">
+      <option value="找不到店家／未收錄">🔍 找不到店家／未收錄</option>
+    </optgroup>
+    <optgroup label="其他">
+      <option value="其他">💬 其他問題</option>
+    </optgroup>
+  </select>
+  <textarea class="ir-textarea" id="irNote" placeholder="請簡述問題或補充正確資訊（選填，最多 300 字）" maxlength="300"></textarea>
+  <div class="ir-footer">
+    <button class="qm-btn qm-cancel" id="irCancelBtn">取消</button>
+    <button class="qm-btn qm-confirm" id="irConfirmBtn">確認送出</button>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="rv-backdrop" id="rvBackdrop"></div>
+<div class="rv-modal" id="rvModal">
+  <div class="rv-box">
+    <div class="rv-header">
+      <span class="rv-title" id="rvTitle">✍ 寫評論</span>
+      <button class="rv-close" id="rvClose">✕</button>
+    </div>
+    <div class="rv-body">
+      <div>
+        <span class="rv-label">評分</span>
+        <div class="star-picker" id="rvStarPicker">
+          <button class="star-btn" data-v="1">★</button>
+          <button class="star-btn" data-v="2">★</button>
+          <button class="star-btn" data-v="3">★</button>
+          <button class="star-btn" data-v="4">★</button>
+          <button class="star-btn" data-v="5">★</button>
+        </div>
+      </div>
+      <div>
+        <span class="rv-label">評論內容</span>
+        <textarea class="rv-textarea" id="rvText" placeholder="分享你的用餐體驗（選填，最多 1000 字）" maxlength="1000"></textarea>
+      </div>
+      <div>
+        <span class="rv-label">拍攝日期 <span style="color:var(--red)">*</span></span>
+        <input type="date" class="rv-date-input" id="rvPhotoDate" required>
+      </div>
+      <div>
+        <span class="rv-label">照片（最多 5 張）</span>
+        <div class="rv-upload-area" id="rvUploadArea">
+          <input type="file" id="rvFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif" multiple>
+          📷 點擊或拖放圖片上傳
+        </div>
+        <div class="rv-preview-grid" id="rvPreviewGrid" style="margin-top:10px"></div>
+      </div>
+      <div class="rv-progress" id="rvProgress"></div>
+    </div>
+    <div class="rv-footer">
+      <button class="rv-btn-cancel" id="rvCancelBtn">取消</button>
+      <button class="rv-btn-submit" id="rvSubmitBtn" disabled>送出評論</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Viewer -->
+<div id="photoViewer">
+  <div class="pv-header">
+    <span id="pvCounter">1/1</span>
+    <button id="pvClose">✕</button>
+  </div>
+  <div class="pv-body">
+    <button class="pv-arrow" id="pvPrev">&#8249;</button>
+    <img id="pvImg" src="" alt="">
+    <button class="pv-arrow" id="pvNext">&#8250;</button>
+  </div>
+  <div class="pv-footer">
+    <span id="pvFooterDate"></span>
+    <span id="pvFooterAuthor"></span>
+  </div>
+</div>
+
+<!-- Menu Upload Modal -->
+<div class="rv-backdrop" id="mnuBackdrop"></div>
+<div class="rv-modal" id="mnuModal">
+  <div class="rv-box">
+    <div class="rv-header">
+      <span class="rv-title" id="mnuTitle">📷 上傳菜單</span>
+      <button class="rv-close" id="mnuClose">✕</button>
+    </div>
+    <div class="rv-body">
+      <div>
+        <span class="rv-label">拍攝日期 <span style="color:var(--red)">*</span></span>
+        <input type="date" class="rv-date-input" id="mnuPhotoDate" required>
+      </div>
+      <div>
+        <span class="rv-label">照片（限 1 張）<span style="color:var(--red)">*</span></span>
+        <div class="rv-upload-area" id="mnuUploadArea">
+          <input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">
+          📷 點擊上傳照片
+        </div>
+        <div class="rv-preview-grid" id="mnuPreviewGrid" style="margin-top:10px"></div>
+      </div>
+      <div class="rv-progress" id="mnuProgress"></div>
+    </div>
+    <div class="rv-footer">
+      <button class="rv-btn-cancel" id="mnuCancelBtn">取消</button>
+      <button class="rv-btn-submit" id="mnuSubmitBtn" disabled>上傳</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav">
+  <!-- 搜尋器 -->
+  <button class="bnav-item active" id="bnavFinder">
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7.5"/>
+      <line x1="20.5" y1="20.5" x2="16.2" y2="16.2"/>
+    </svg>
+    <span class="bnav-label">搜尋</span>
+  </button>
+  <!-- 貼文 -->
+  <button class="bnav-item" id="bnavPosts">
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span class="bnav-label">社群</span>
+    <span class="bnav-badge" id="bnavPostsBadge"></span>
+  </button>
+  <!-- 挑戰任務 -->
+  <button class="bnav-item" id="bnavChallenges">
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+      <line x1="4" y1="22" x2="4" y2="15"/>
+    </svg>
+    <span class="bnav-label">任務</span>
+  </button>
+  <!-- 回到頂部 -->
+  <button class="bnav-item" id="bnavTop">
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  </button>
+</nav>
 
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
@@ -870,7 +1853,7 @@ function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); 
 
 async function toggleFav(shopId) {
   const user = typeof auth !== 'undefined' && auth.currentUser;
-  if (!user) { showStampToast('請先登入才能使用收藏功能'); return; }
+  if (!user) { showStampToast('請先登入以使用此功能'); return; }
   if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
   if (!shopId) return;
   const ref = db.collection('users').doc(user.uid);
@@ -912,7 +1895,10 @@ buildTimeOptions();
 async function loadData() {
   document.getElementById('loadingScreen').style.display = 'flex';
   document.getElementById('errorScreen').style.display   = 'none';
-  document.getElementById('mainContent').style.display   = 'none';
+  document.getElementById('mainContent').classList.remove('mc-show');
+
+  loadQueueSettings();  // 非同步背景載入，不阻塞主流程
+  loadFeatureFlags();   // 同上
 
   try {
     const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取
@@ -946,7 +1932,11 @@ async function loadData() {
     });
 
     document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display   = 'block';
+    const mc = document.getElementById('mainContent');
+    mc.classList.add('mc-show');
+    // Ensure finder is the active page layer on first load
+    mc.classList.remove('page-left', 'page-right');
+    mc.classList.add('page-active');
     render();
     const bdShops = ALL_DATA.filter(s => isBirthday(s)).map(s => s['店名']);
     if (bdShops.length) launchFireworks(bdShops);
@@ -1394,24 +2384,26 @@ function renderCard(shop) {
     shop['點餐方式'] ? {l:'點餐', v:shop['點餐方式']} : null,
     shop['醬底']     ? {l:'醬底', v:shop['醬底']}     : null,
     (shop['吧台數'] || shop['桌位數']) ? {l:'座位', v:
-      [shop['吧台數'] ? `吧台 ${shop['吧台數']}` : '',
-       shop['桌位數'] ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　')} : null,
+      [shop['吧台數'] && shop['吧台數'] !== '0' ? `吧台 ${shop['吧台數']}` : '',
+       shop['桌位數'] && shop['桌位數'] !== '0' ? `桌位 ${shop['桌位數']}` : ''].filter(Boolean).join('　') || '無'} : null,
+    (shop['洗手間'] && shop['洗手間'] !== '未知') ? {l:'洗手間', v:shop['洗手間']} : null,
   ].filter(Boolean);
 
   const birthday = isBirthday(shop);
   const member   = shop['會員'] === 'Y';
   return `
-  <div class="card${member ? ' member' : ''}${birthday ? ' birthday' : ''}">
+  <div class="card${member ? ' member' : ''}${birthday ? ' birthday' : ''}" data-shop-id="${escapeAttr(shop['ID'] || '')}">
     <div class="card-header">
       <div class="card-name">${shop['店名']}</div>
-      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
         ${dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : ''}
         ${birthday ? '<span class="birthday-badge">🎂 本日壽星</span>' : ''}
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
         ${statusBadge(shop['營業狀態'])}
-        <button class="fav-btn${!auth.currentUser || isWarned ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>
-        <button class="stamp-btn${!auth.currentUser || isWarned ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>
+        <span class="queue-badge-header" data-id="${escapeAttr(shop['ID'] || '')}" hidden></span>
+        ${canView('favorites') ? `<button class="fav-btn${!auth.currentUser || isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
+        ${canView('stamps') ? `<button class="stamp-btn${!auth.currentUser || isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
       </div>
     </div>
     <div class="card-meta">
@@ -1423,10 +2415,33 @@ function renderCard(shop) {
       ${factions.map(t=>`<span class="tag tag-gray">${t}</span>`).join('')}
     </div>` : ''}
     <div class="card-detail">
-      ${mapBtn}
-      ${detailItems.length ? `<div class="detail-grid">${detailItems.map(d=>`<div><div class="detail-label">${d.l}</div><div class="detail-value">${d.v}</div></div>`).join('')}</div>` : ''}
-      ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
-      ${links.length ? `<div class="link-row">${links.join('')}</div>` : ''}
+      <div class="card-tabs">
+        <button class="card-tab active" data-tab-target="info">資訊</button>
+        ${canView('menuTab')   ? `<button class="card-tab${canUse('menuTab')   ? '' : ' ff-locked'}" data-tab-target="menu">菜單</button>`   : ''}
+        ${canView('photosTab') ? `<button class="card-tab${canUse('photosTab') ? '' : ' ff-locked'}" data-tab-target="photos">照片</button>` : ''}
+        ${canView('reviews')   ? `<button class="card-tab${canUse('reviews')   ? '' : ' ff-locked'}" data-tab-target="reviews">評論</button>` : ''}
+      </div>
+      <div class="card-tab-panel active" data-tab-panel="info">
+        ${mapBtn}
+        ${detailItems.length ? `<table class="info-table">${detailItems.map(d=>`<tr><td class="info-label">${d.l}</td><td>${d.v}</td></tr>`).join('')}</table>` : ''}
+        ${shop['營業備註'] ? `<div class="note-box">${shop['營業備註'].replace(/\n/g,'<br>')}</div>` : ''}
+        ${links.length ? `<div class="link-row card-social-row">${links.join('')}</div>` : ''}
+        ${canView('queueReport') ? `<div class="queue-section" data-shop-id="${escapeAttr(shop['ID'] || '')}">
+          <span class="queue-sec-label">🕐 目前排隊狀況</span>
+          <div class="queue-count-row"><span class="queue-no-data">展開後載入...</span></div>
+          <button class="queue-report-btn${canUse('queueReport') ? '' : ' ff-locked'}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">我要回報</button>
+        </div>` : ''}
+        ${canView('issueReport') ? `<button class="ir-btn-card${canUse('issueReport') ? '' : ' ff-locked'}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}">⚑ 回報問題</button>` : ''}
+      </div>
+      <div class="card-tab-panel" data-tab-panel="menu">
+        ${canView('menuTab') ? `<div class="menu-tab-inner"></div>` : `<p class="tab-placeholder">🍜 菜單功能<br>暫不開放</p>`}
+      </div>
+      <div class="card-tab-panel" data-tab-panel="photos">
+        <p class="tab-placeholder">📷 照片功能<br>即將上線</p>
+      </div>
+      <div class="card-tab-panel" data-tab-panel="reviews">
+        ${canView('reviews') ? '<div class="review-loading">點擊「評論」頁籤載入…</div>' : '<p class="tab-placeholder">💬 評論功能<br>暫不開放</p>'}
+      </div>
     </div>
   </div>`;
 }
@@ -1451,16 +2466,65 @@ function render() {
   list.innerHTML = filtered.map(renderCard).join('');
   list.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
-      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn')) return;
+      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.write-review-btn') || e.target.closest('.review-del-btn') || e.target.closest('.review-photo-thumb') || e.target.closest('.review-load-more') || e.target.closest('.review-comment-form') || e.target.closest('.review-comments-more') || e.target.closest('.card-tab') || e.target.closest('.mnu-thumb') || e.target.closest('.mnu-del-btn')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
       card.classList.toggle('expanded');
       expandedCard = card.classList.contains('expanded') ? card : null;
-      if (expandedCard) setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+      if (expandedCard) {
+        setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+        const shopId = card.dataset.shopId;
+        if (shopId) refreshQueueSection(shopId);
+      }
+    });
+    card.querySelectorAll('.card-tab').forEach(tab => {
+      tab.addEventListener('click', e => {
+        e.stopPropagation();
+        if (tab.classList.contains('ff-locked')) {
+          showAccessToast();
+          return;
+        }
+        const target = tab.dataset.tabTarget;
+        const detail = card.querySelector('.card-detail');
+        detail.querySelectorAll('.card-tab').forEach(t => t.classList.toggle('active', t.dataset.tabTarget === target));
+        detail.querySelectorAll('.card-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tabPanel === target));
+        // 切到資訊時補刷新排隊資料
+        if (target === 'info') {
+          const shopId = card.dataset.shopId;
+          if (shopId) refreshQueueSection(shopId);
+        }
+        // 切到菜單時 lazy load
+        if (target === 'menu' && canView('menuTab')) {
+          const shopId   = card.dataset.shopId;
+          const shop     = ALL_DATA.find(s => s['ID'] === shopId);
+          const menuPanel = detail.querySelector('[data-tab-panel="menu"] .menu-tab-inner');
+          if (shop && menuPanel && !menuPanel.dataset.loaded) {
+            menuPanel.dataset.loaded = '1';
+            loadShopMenu(shop, menuPanel);
+          }
+        }
+        // 切到照片時 lazy load
+        if (target === 'photos' && canView('photosTab')) {
+          const shopId = card.dataset.shopId;
+          const shop   = ALL_DATA.find(s => s['ID'] === shopId);
+          const photoPanel = detail.querySelector('[data-tab-panel="photos"]');
+          if (shop && photoPanel) loadShopPhotos(shop, photoPanel);
+        }
+        // 切到貼文時 lazy load
+        if (target === 'reviews') {
+          const shopId = card.dataset.shopId;
+          const rvPanel = detail.querySelector('[data-tab-panel="reviews"]');
+          if (shopId && rvPanel && canView('reviews') && !rvPanel.dataset.loaded) {
+            rvPanel.dataset.loaded = '1';
+            loadReviews(shopId, rvPanel);
+          }
+        }
+      });
     });
   });
   list.querySelectorAll('.fav-btn').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
+      if (btn.classList.contains('locked')) { showAccessToast(); return; }
       const id = btn.dataset.id;
       if (!id) return;
       await toggleFav(id);
@@ -1471,7 +2535,15 @@ function render() {
   list.querySelectorAll('.stamp-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      if (btn.classList.contains('locked')) { showAccessToast(); return; }
       openStampModal(btn.dataset.id, btn.dataset.name);
+    });
+  });
+  list.querySelectorAll('.queue-report-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
+      openQueueModal(btn.dataset.id, btn.dataset.name);
     });
   });
 }
@@ -1514,6 +2586,26 @@ document.getElementById('favFilterBtn').addEventListener('click', () => {
   closeProfileDropdown();
   render();
 });
+document.getElementById('rankingsPdBtn').addEventListener('click', () => { openRankingsModal(); });
+
+// 攔截所有 pd-action.ff-locked 的點擊（含 <a> 導頁）
+document.querySelector('.profile-dropdown').addEventListener('click', e => {
+  if (e.target.closest('.pd-action.ff-locked')) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    showAccessToast();
+  }
+}, true);
+document.getElementById('rkBackdrop').addEventListener('click', closeRankingsModal);
+document.getElementById('rkCloseBtn').addEventListener('click', closeRankingsModal);
+document.querySelectorAll('.rk-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    _rkTab = tab.dataset.tab;
+    document.querySelectorAll('.rk-tab').forEach(t => t.classList.toggle('active', t === tab));
+    loadRankings(_rkTab);
+  });
+});
+
 document.getElementById('resetBdSkipBtn').addEventListener('click', () => {
   localStorage.removeItem(BD_SKIP_KEY);
   document.getElementById('drawer').style.display   = 'none';
@@ -1827,88 +2919,117 @@ const profileDropdown  = document.getElementById('profileDropdown');
 const pdHeaderAvatar   = document.getElementById('pdHeaderAvatar');
 const pdDisplayName    = document.getElementById('pdDisplayName');
 const pdEmail          = document.getElementById('pdEmail');
-const pdAvatarPreview  = document.getElementById('pdAvatarPreview');
 const nicknameInput    = document.getElementById('nicknameInput');
 const saveProfileBtn   = document.getElementById('saveProfileBtn');
-const rollAvatarBtn    = document.getElementById('rollAvatarBtn');
-const resetAvatarBtn   = document.getElementById('resetAvatarBtn');
+const localAvatarInput = document.getElementById('localAvatarInput');
 
-let _googlePhotoURL = '';   // 保存 Google 原始頭像
-let _pendingAvatar  = null; // 暫存尚未儲存的頭像選擇（null = 未修改）
+let _googlePhotoURL = '';
+let _localAvatarUid = null;
+
+function localAvatarKey(uid) { return 'avatarCache_' + uid; }
 
 function getAvatarUrl(userData, googlePhotoURL) {
   return userData?.avatarUrl || googlePhotoURL || 'assets/icons/03.png';
 }
 
-function dicebearUrl(seed) {
-  return `https://api.dicebear.com/9.x/thumbs/svg?seed=${seed}`;
+function applyAvatarUrl(url) {
+  if (!url) return;
+  userAvatar.src     = url;
+  pdHeaderAvatar.src = url;
+}
+function applyLocalAvatarCache(uid) {
+  const cached = uid && localStorage.getItem(localAvatarKey(uid));
+  if (cached) { applyAvatarUrl(cached); return true; }
+  return false;
 }
 
 function closeProfileDropdown() {
   profileDropdown.style.display = 'none';
-  _pendingAvatar = null;
+  document.getElementById('pdNickPopup').style.display = 'none';
 }
 
-// 點頭像 toggle profile dropdown，關閉 drawer
 userAvatar.addEventListener('click', e => {
   e.stopPropagation();
   const isOpen = profileDropdown.style.display !== 'none';
   if (isOpen) {
     closeProfileDropdown();
   } else {
-    // 關閉 drawer 若開著
     document.getElementById('drawer').style.display = 'none';
     document.getElementById('drawerBackdrop').style.display = 'none';
     profileDropdown.style.display = 'block';
-    _pendingAvatar = null;
   }
 });
 
-// 點頁面其他地方關閉 profile dropdown
 document.addEventListener('click', e => {
   if (!profileDropdown.contains(e.target) && e.target !== userAvatar) {
     closeProfileDropdown();
   }
 });
 
-// 🎲 隨機 DiceBear
-rollAvatarBtn.addEventListener('click', () => {
-  const seed = Math.random().toString(36).slice(2, 10);
-  _pendingAvatar = dicebearUrl(seed);
-  pdAvatarPreview.src = _pendingAvatar;
+// 📷 頭像區塊點擊 → 開啟檔案選取
+document.getElementById('pdAvatarWrap').addEventListener('click', () => localAvatarInput.click());
+
+localAvatarInput.addEventListener('change', async () => {
+  const file = localAvatarInput.files[0];
+  if (!file || !auth.currentUser) return;
+  localAvatarInput.value = '';
+  showStampToast('壓縮中…');
+  try {
+    const uid  = auth.currentUser.uid;
+    const blob = await compressImage(file, { maxPx: 400, maxKB: 100 });
+    const snap = await storage.ref(`avatars/${uid}.webp`).put(blob, { contentType: 'image/webp' });
+    const url  = await snap.ref.getDownloadURL();
+    await db.collection('users').doc(uid).update({ avatarUrl: url });
+    await db.collection('userProfiles').doc(uid).set({ avatarUrl: url }, { merge: true });
+    applyAvatarUrl(url);
+    try { localStorage.setItem(localAvatarKey(uid), url); } catch {}
+    showStampToast('✅ 頭像已更新！');
+  } catch (err) {
+    console.error('頭像上傳失敗', err);
+    showStampToast('❌ 頭像上傳失敗');
+  }
 });
 
-// ↩ 還原 Google 預設
-resetAvatarBtn.addEventListener('click', () => {
-  _pendingAvatar = _googlePhotoURL || '';
-  pdAvatarPreview.src = _pendingAvatar || 'assets/icons/03.png';
+// 📝 顯示身份按鈕 → 開關綽號編輯 popup
+pdDisplayName.addEventListener('click', e => {
+  e.stopPropagation();
+  const popup  = document.getElementById('pdNickPopup');
+  const isOpen = popup.style.display !== 'none';
+  popup.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    nicknameInput.value = pdDisplayName.textContent;
+    nicknameInput.focus();
+  }
 });
 
-// 💾 儲存
+document.getElementById('pdNickCancelBtn').addEventListener('click', () => {
+  document.getElementById('pdNickPopup').style.display = 'none';
+});
+
+// 💾 儲存綽號
 saveProfileBtn.addEventListener('click', async () => {
   const user = auth.currentUser;
   if (!user) return;
   saveProfileBtn.disabled = true;
   saveProfileBtn.textContent = '儲存中…';
   try {
-    const updates = { nickname: nicknameInput.value.trim() };
-    if (_pendingAvatar !== null) updates.avatarUrl = _pendingAvatar;
-    await db.collection('users').doc(user.uid).update(updates);
-    // 更新 header 頭像
-    const finalAvatar = _pendingAvatar ?? userAvatar.src;
-    userAvatar.src       = finalAvatar;
-    pdHeaderAvatar.src   = finalAvatar;
-    pdDisplayName.textContent = updates.nickname || user.displayName || '';
-    _pendingAvatar = null;
-    closeProfileDropdown();
+    const nickname = nicknameInput.value.trim();
+    await db.collection('users').doc(user.uid).update({ nickname });
+    await db.collection('userProfiles').doc(user.uid).set(
+      { nickname, displayName: nickname || user.displayName || '' },
+      { merge: true }
+    );
+    pdDisplayName.textContent = nickname || user.displayName || '';
+    document.getElementById('pdNickPopup').style.display = 'none';
+    showStampToast('✅ 已儲存！');
   } catch (e) {
     console.error('儲存失敗', e);
+    showStampToast('❌ 儲存失敗');
   }
   saveProfileBtn.disabled = false;
   saveProfileBtn.textContent = '儲存';
 });
 
-// 登出
 logoutBtn.addEventListener('click', () => {
   closeProfileDropdown();
   auth.signOut();
@@ -1930,6 +3051,66 @@ logoutBtn.addEventListener('click', () => {
 // Encoding: 0=沒去過, 0.2=路過, 1=吃過1次, 2-10=吃過N次, 20=從業過
 let stampMap  = {};  // shopId → numeric score value
 let reviewMap = {};  // shopId → string
+const queueCache = {};  // shopId → { entries, updatedAt }
+let _queueShopId   = null;
+let _queueShopName = null;
+let _queueSelected = null;
+let _queueGps      = null; // { lat, lng, confirmed }
+
+// ── Feature Flags ───────────────────────────────────────────────────────────
+let currentUserRole    = ''; // 登入後由 onAuthStateChanged 填入
+let currentDisplayName = '';
+let currentAvatarUrl   = '';
+let featureFlags = {
+  favorites:      { vis: 'viewer',   perm: 'viewer'   },
+  stamps:         { vis: 'viewer',   perm: 'viewer'   },
+  queueReport:    { vis: 'director', perm: 'director' },
+  rankings:       { vis: 'viewer',   perm: 'viewer'   },
+  domination:     { vis: 'viewer',   perm: 'viewer'   },
+  reviews:        { vis: 'all',      perm: 'viewer'   },
+  challengesNav:  { vis: 'admin',    perm: 'admin'    },
+};
+
+const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
+const MEMBER_ROLES = ['member_individual','member_group','member_sponsor','member_honorary'];
+
+function getRoleLevel(role) {
+  if (role === 'admin')    return 4;
+  if (role === 'director') return 3;
+  if (MEMBER_ROLES.includes(role)) return 2;
+  if (role === 'viewer' || role === 'store') return 1;
+  return 0;
+}
+
+function canView(feature) {
+  const flag = featureFlags[feature];
+  if (!flag) return true;
+  const req = ROLE_LEVEL[flag.vis] ?? 1;
+  return getRoleLevel(currentUserRole) >= req;
+}
+
+// 未登入 vs 已登入無權限，顯示對應提示
+function showAccessToast() {
+  if (!auth.currentUser) {
+    showStampToast('請先登入以使用此功能');
+  } else {
+    showStampToast('此功能目前暫不開放');
+  }
+}
+
+function canUse(feature) {
+  const flag = featureFlags[feature];
+  if (!flag) return true;
+  const req = ROLE_LEVEL[flag.perm] ?? 1;
+  return getRoleLevel(currentUserRole) >= req;
+}
+
+async function loadFeatureFlags() {
+  try {
+    const snap = await db.collection('meta').doc('featureFlags').get();
+    if (snap.exists) featureFlags = { ...featureFlags, ...snap.data() };
+  } catch(e) {}
+}
 let isWarned  = false;
 let _stampShopId   = null;
 let _stampShopName = '';
@@ -1961,6 +3142,565 @@ function showStampToast(msg) {
   t._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ── Menu Tab ────────────────────────────────────────────────────────────────
+const menuCache = {}; // shopId → { docs: [], lastDoc, hasMore }
+
+async function loadShopMenu(shop, panel, append = false) {
+  const shopId = shop['ID'];
+  if (!append) {
+    panel.innerHTML = '';
+    if (canUse('menuTab')) {
+      const headerRow = document.createElement('div');
+      headerRow.className = 'review-header-row';
+      const uploadBtn = document.createElement('button');
+      uploadBtn.className = 'mnu-upload-btn';
+      uploadBtn.innerHTML = '📷 上傳菜單照片';
+      uploadBtn.addEventListener('click', () => openMenuModal(shopId, shop['店名'] || ''));
+      headerRow.appendChild(uploadBtn);
+      panel.appendChild(headerRow);
+    }
+  }
+
+  const loading = document.createElement('p');
+  loading.className = 'tab-placeholder';
+  loading.style.padding = '10px 0';
+  loading.textContent = '載入中…';
+  panel.appendChild(loading);
+
+  try {
+    const cache = menuCache[shopId] || { lastDoc: null };
+    let q = db.collection('menus')
+      .where('shopId', '==', shopId)
+      .orderBy('photoDate', 'desc')
+      .limit(3);
+    if (append && cache.lastDoc) q = q.startAfter(cache.lastDoc);
+
+    const snap = await q.get();
+    loading.remove();
+    const docs = snap.docs;
+    const hasMore = docs.length >= 3;
+    menuCache[shopId] = { lastDoc: docs.length ? docs[docs.length - 1] : cache.lastDoc, hasMore };
+
+    if (!docs.length && !append) {
+      panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'mnu-grid';
+    const allMnuUrls = docs.map(doc => {
+      const d = doc.data();
+      return d.photo?.original || d.photo?.thumb || '';
+    });
+    docs.forEach((doc, idx) => {
+      const d = doc.data();
+      const thumb = document.createElement('div');
+      thumb.className = 'mnu-thumb';
+      thumb.innerHTML = `<img src="${d.photo?.thumb || d.photo?.original}" alt="菜單" loading="lazy">
+        ${d.photoDate ? `<span class="mnu-date-badge">${d.photoDate}</span>` : ''}`;
+      thumb.addEventListener('click', () =>
+        openPhotoViewer(allMnuUrls, idx, { date: d.photoDate || '', uid: d.uid || '', authorName: d.displayName || '匿名' })
+      );
+      const canDel = auth.currentUser && (auth.currentUser.uid === d.uid || currentUserRole === 'admin');
+      if (canDel) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'mnu-del-btn';
+        delBtn.title = '刪除';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', async e => {
+          e.stopPropagation();
+          if (!confirm('確定刪除這張菜單照片？')) return;
+          delBtn.disabled = true;
+          try {
+            await db.collection('menus').doc(doc.id).delete();
+            delete menuCache[shopId];
+            thumb.remove();
+            showStampToast('✅ 已刪除菜單照片');
+          } catch(err) {
+            showStampToast('❌ 刪除失敗');
+            delBtn.disabled = false;
+          }
+        });
+        thumb.appendChild(delBtn);
+      }
+      grid.appendChild(thumb);
+    });
+    panel.appendChild(grid);
+
+    if (hasMore) {
+      const moreBtn = document.createElement('button');
+      moreBtn.className = 'mnu-load-more';
+      moreBtn.textContent = '顯示更多…';
+      moreBtn.addEventListener('click', () => { moreBtn.remove(); loadShopMenu(shop, panel, true); });
+      panel.appendChild(moreBtn);
+    }
+  } catch(e) {
+    loading.remove();
+    panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
+  }
+}
+
+// ── Menu Modal ───────────────────────────────────────────────────────────────
+let _mnuShopId = '', _mnuShopName = '', _mnuFile = null;
+
+function openMenuModal(shopId, shopName) {
+  _mnuShopId = shopId; _mnuShopName = shopName;
+  _mnuFile = null;
+  document.getElementById('mnuTitle').textContent = `📷 上傳菜單 — ${shopName}`;
+  document.getElementById('mnuPhotoDate').value = '';
+  document.getElementById('mnuPhotoDate').max = new Date().toISOString().split('T')[0];
+  document.getElementById('mnuProgress').textContent = '';
+  document.getElementById('mnuSubmitBtn').disabled = true;
+  document.getElementById('mnuPreviewGrid').innerHTML = '';
+  // 重置上傳區
+  const area = document.getElementById('mnuUploadArea');
+  area.innerHTML = `<input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">📷 點擊上傳照片`;
+  area.querySelector('#mnuFileInput').addEventListener('change', onMnuFileChange);
+  document.getElementById('mnuBackdrop').classList.add('open');
+  document.getElementById('mnuModal').classList.add('open');
+}
+
+function onMnuFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  _mnuFile = file;
+  const preview = document.getElementById('mnuPreviewGrid');
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `
+    <div class="rv-preview-item">
+      <img src="${url}" alt="">
+      <button class="rv-preview-remove" id="mnuPreviewRemove">✕</button>
+    </div>`;
+  preview.querySelector('#mnuPreviewRemove').addEventListener('click', () => {
+    _mnuFile = null;
+    preview.innerHTML = '';
+    // 重置 input 讓使用者可再次選擇
+    const area = document.getElementById('mnuUploadArea');
+    area.innerHTML = `<input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">📷 點擊上傳照片`;
+    area.querySelector('#mnuFileInput').addEventListener('change', onMnuFileChange);
+    checkMnuReady();
+  });
+  checkMnuReady();
+}
+
+function checkMnuReady() {
+  const hasDate  = isValidPhotoDate(document.getElementById('mnuPhotoDate')?.value);
+  const hasPhoto = !!_mnuFile;
+  document.getElementById('mnuSubmitBtn').disabled = !(hasDate && hasPhoto);
+}
+
+document.getElementById('mnuPhotoDate').addEventListener('input', checkMnuReady);
+document.getElementById('mnuUploadArea').addEventListener('click', () =>
+  document.getElementById('mnuFileInput')?.click()
+);
+
+function closeMenuModal() {
+  document.getElementById('mnuBackdrop').classList.remove('open');
+  document.getElementById('mnuModal').classList.remove('open');
+}
+document.getElementById('mnuCancelBtn').addEventListener('click', closeMenuModal);
+document.getElementById('mnuClose').addEventListener('click', closeMenuModal);
+document.getElementById('mnuBackdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('mnuBackdrop')) closeMenuModal();
+});
+
+document.getElementById('mnuSubmitBtn').addEventListener('click', async () => {
+  if (!_mnuFile || !_mnuShopId || !auth.currentUser) return;
+  const photoDate = document.getElementById('mnuPhotoDate').value;
+  if (!isValidPhotoDate(photoDate)) {
+    document.getElementById('mnuProgress').textContent = '❌ 日期格式錯誤或不可為未來日期';
+    return;
+  }
+
+  const btn      = document.getElementById('mnuSubmitBtn');
+  const progress = document.getElementById('mnuProgress');
+  btn.disabled = true;
+  progress.textContent = '壓縮中…';
+
+  try {
+    const user       = auth.currentUser;
+    const compressed = await compressImage(_mnuFile, { maxPx: 1200, maxKB: 280 });
+    progress.textContent = '上傳中…';
+    const docRef  = db.collection('menus').doc();
+    const path    = `menus/${_mnuShopId}/${docRef.id}.webp`;
+    const ref     = storage.ref(path);
+    await ref.put(compressed, { contentType: compressed.type });
+    const url = await ref.getDownloadURL();
+
+    await docRef.set({
+      shopId:      _mnuShopId,
+      shopName:    _mnuShopName,
+      uid:         user.uid,
+      displayName: user.displayName || '匿名',
+      photoDate,
+      photo:       { thumb: url, original: url },
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    delete menuCache[_mnuShopId];
+    showStampToast('✅ 菜單照片已上傳');
+    closeMenuModal();
+
+    // 重新載入該 shop 的菜單 panel（同 review 做法）
+    const menuPanel = document.querySelector(`.card[data-shop-id="${_mnuShopId}"] [data-tab-panel="menu"] .menu-tab-inner`);
+    if (menuPanel) {
+      const shop = ALL_DATA.find(s => s['ID'] === _mnuShopId);
+      if (shop) loadShopMenu(shop, menuPanel);
+    }
+  } catch(e) {
+    progress.textContent = '❌ 上傳失敗：' + e.message;
+    btn.disabled = false;
+  }
+});
+
+// ── Queue helpers ──────────────────────────────────────────────────────────
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getShopById(shopId) {
+  return ALL_DATA.find(s => s['ID'] === shopId) || null;
+}
+
+function getShopTodayOpenTimes(shop) {
+  const dayNames = ['日','一','二','三','四','五','六'];
+  const today = dayNames[new Date().getDay()];
+  const hours = shop['週' + today] || '';
+  if (!hours) return [];
+  const matches = [...hours.matchAll(/(\d{1,2})[:：](\d{2})/g)];
+  const times = [];
+  for (let i = 0; i < matches.length; i += 2) {
+    times.push(parseInt(matches[i][1]) * 60 + parseInt(matches[i][2]));
+  }
+  return times;
+}
+
+function isWithinPreOpenWindow(shop) {
+  const now   = new Date().getHours() * 60 + new Date().getMinutes();
+  const times = getShopTodayOpenTimes(shop);
+  if (!times.length) return true; // 無排班資料 → 不擋
+  const limitMins = (queueSettings.preOpenHours || 4) * 60;
+  return times.some(t => now >= t || (t - now) <= limitMins);
+}
+
+function countToTier(count) {
+  if (count === 0)  return 'zero';
+  if (count <= 5)   return 'low';
+  if (count <= 15)  return 'mid';
+  return 'high';
+}
+
+async function penalizeTrustScore(delta) {
+  if (!auth.currentUser || !delta) return;
+  try {
+    await db.collection('users').doc(auth.currentUser.uid).update({
+      trustScore: firebase.firestore.FieldValue.increment(delta)
+    });
+  } catch(e) {}
+}
+
+// ── Places API（照片）──────────────────────────────────────────────────────
+const PLACES_KEY       = 'AIzaSyBek6fDRbXZhxenlSgwR1DLaVRJjrxYUOU';
+const photoCache       = {}; // 記憶體快取：shopId → data | 'loading' | null
+const PHOTO_LS_PREFIX  = 'ramen_photo_';
+
+function lsGetPhoto(shopId) {
+  try { const v = localStorage.getItem(PHOTO_LS_PREFIX + shopId); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+function lsSetPhoto(shopId, data) {
+  try { localStorage.setItem(PHOTO_LS_PREFIX + shopId, JSON.stringify(data)); } catch {}
+}
+function lsRemovePhoto(shopId) {
+  try { localStorage.removeItem(PHOTO_LS_PREFIX + shopId); } catch {}
+}
+
+// isRetry=true 時不再觸發二次重抓，避免無限循環
+async function loadShopPhotos(shop, panel, isRetry = false) {
+  const shopId = shop['ID'];
+
+  // 1. 記憶體快取
+  if (photoCache[shopId] && photoCache[shopId] !== 'loading') {
+    renderPhotoPanel(photoCache[shopId], panel, isRetry ? null : shop);
+    return;
+  }
+  if (photoCache[shopId] === 'loading') return;
+
+  // 2. localStorage 快取（跨重整、跨 App 存活）
+  if (!isRetry) {
+    const cached = lsGetPhoto(shopId);
+    if (cached) {
+      photoCache[shopId] = cached;
+      renderPhotoPanel(cached, panel, shop); // 仍需驗證圖片是否有效
+      return;
+    }
+  }
+
+  photoCache[shopId] = 'loading';
+  panel.innerHTML = '<p class="tab-placeholder" style="padding:20px 0">載入中…</p>';
+
+  try {
+    const query = [shop['店名'], shop['地址']].filter(Boolean).join(' ');
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': PLACES_KEY,
+        'X-Goog-FieldMask': 'places.photos',
+      },
+      body: JSON.stringify({ textQuery: query, languageCode: 'zh-TW' }),
+    });
+    const json = await res.json();
+    const photos = json.places?.[0]?.photos?.slice(0, 3) ?? [];
+
+    const urls = photos.map(p =>
+      `https://places.googleapis.com/v1/${p.name}/media?maxWidthPx=800&key=${PLACES_KEY}`
+    );
+    const attribution = photos[0]?.authorAttributions?.[0]?.displayName ?? '';
+    const data = { urls, attribution };
+    photoCache[shopId] = data;
+    lsSetPhoto(shopId, data);
+    renderPhotoPanel(data, panel, isRetry ? null : shop);
+  } catch(e) {
+    photoCache[shopId] = null;
+    panel.innerHTML = '<p class="tab-placeholder">照片載入失敗，請稍後再試</p>';
+  }
+}
+
+// shop 傳入時才啟用「≤1 張成功 → 清快取重抓」邏輯
+function renderPhotoPanel({ urls, attribution }, panel, shop = null) {
+  if (!urls.length) {
+    panel.innerHTML = '<p class="tab-placeholder">Google Maps 尚無此店照片</p>';
+    return;
+  }
+  panel.innerHTML = `
+    <div class="photo-grid">
+      ${urls.map(u => `
+        <a href="${u}" target="_blank" rel="noopener">
+          <img class="loading" src="${u}" alt="店家照片">
+        </a>`).join('')}
+    </div>
+    <p class="photo-attribution">圖片來源：Google Maps${attribution ? '・' + attribution : ''}</p>`;
+
+  // JS 附掛 onload / onerror，計算成功張數，判斷是否需重抓
+  const imgs  = [...panel.querySelectorAll('img')];
+  const total = imgs.length;
+  let settled = 0, loaded = 0;
+
+  imgs.forEach(img => {
+    img.onload = () => {
+      img.classList.replace('loading', 'loaded');
+      loaded++; settled++;
+      checkDone();
+    };
+    img.onerror = () => {
+      img.closest('a')?.remove();
+      settled++;
+      checkDone();
+    };
+  });
+
+  function checkDone() {
+    if (settled < total) return;
+    if (loaded <= 1 && shop) {
+      // 快取的 URL 已失效，清除後重新向 API 取得最新照片
+      lsRemovePhoto(shop['ID']);
+      delete photoCache[shop['ID']];
+      loadShopPhotos(shop, panel, true); // isRetry=true，不再二次重抓
+    }
+  }
+}
+
+// ── Queue ──────────────────────────────────────────────────────────────────
+const QUEUE_RATE_MS = 30 * 60 * 1000; // 30 min
+const QUEUE_HOURS   = [[600, 870], [1020, 1290]]; // 10:00-14:30, 17:00-21:30
+
+let queueSettings = { preOpenHours: 4, gpsRadiusMeters: 500 }; // 預設值，會被 Firestore 覆蓋
+
+async function loadQueueSettings() {
+  try {
+    const snap = await db.collection('meta').doc('queueSettings').get();
+    if (snap.exists) queueSettings = { ...queueSettings, ...snap.data() };
+  } catch(e) {} // 讀不到就用預設值
+}
+
+function isQueueHours() {
+  const t = new Date().getHours() * 60 + new Date().getMinutes();
+  return QUEUE_HOURS.some(([a, b]) => t >= a && t <= b);
+}
+
+function queueMedian(entries) {
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+  const valid = (entries || []).filter(e => e.ts > cutoff).map(e => e.count);
+  if (!valid.length) return null;
+  valid.sort((a, b) => a - b);
+  const mid = Math.floor(valid.length / 2);
+  return valid.length % 2 ? valid[mid] : Math.round((valid[mid - 1] + valid[mid]) / 2);
+}
+
+async function loadQueueData(shopId) {
+  if (queueCache[shopId] !== undefined) return queueCache[shopId];
+  try {
+    const snap = await db.collection('queues').doc(shopId).get();
+    queueCache[shopId] = snap.exists ? snap.data() : { entries: [] };
+  } catch(e) {
+    queueCache[shopId] = { entries: [] };
+  }
+  return queueCache[shopId];
+}
+
+async function refreshQueueSection(shopId) {
+  const data   = await loadQueueData(shopId);
+  const median = queueMedian(data.entries);
+  const sec    = document.querySelector(`.queue-section[data-shop-id="${shopId}"]`);
+  if (!sec) return;
+  const row = sec.querySelector('.queue-count-row');
+  const btn = sec.querySelector('.queue-report-btn');
+
+  // 顯示排隊人數（不限時段，有效回報就顯示）
+  if (median === null) {
+    row.innerHTML = '<span class="queue-no-data">暫無回報，你第一個！</span>';
+  } else {
+    row.innerHTML = `<span class="queue-count-num">${median}</span><span class="queue-count-unit"> 人</span>`;
+    const badge = document.querySelector(`.queue-badge-header[data-id="${shopId}"]`);
+    if (badge) { badge.textContent = '~' + median + '人'; badge.hidden = false; }
+  }
+
+  if (!btn) return;
+  if (!canUse('queueReport')) {
+    btn.disabled = true; btn.textContent = '🔒 無回報權限'; btn.classList.add('locked'); return;
+  }
+  if (!auth.currentUser) {
+    btn.disabled = true; btn.textContent = '登入後可回報'; return;
+  }
+
+  // 檢查 rate limit
+  const last = parseInt(localStorage.getItem('qr_' + shopId) || '0');
+  const remaining = QUEUE_RATE_MS - (Date.now() - last);
+  if (remaining > 0) {
+    btn.disabled = true;
+    btn.textContent = `${Math.ceil(remaining / 60000)} 分鐘後可再次回報`;
+  } else {
+    btn.disabled = false; btn.textContent = '我要回報';
+  }
+}
+
+async function openQueueModal(shopId, shopName) {
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
+
+  const shop = getShopById(shopId);
+
+  // 開店時間檢查
+  if (shop && !isWithinPreOpenWindow(shop)) {
+    penalizeTrustScore(-2);
+    showStampToast('距離開店超過 4 小時，此時回報無效');
+    return;
+  }
+
+  // GPS 檢查
+  if (!navigator.geolocation) {
+    showStampToast('您的瀏覽器不支援定位功能');
+    return;
+  }
+  showStampToast('📍 取得定位中...');
+  const gpsResult = await new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ ok: true, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      ()  => resolve({ ok: false }),
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  });
+
+  if (!gpsResult.ok) {
+    penalizeTrustScore(-1);
+    showStampToast('需要開啟定位才能回報排隊狀況');
+    return;
+  }
+
+  if (shop && shop['lat'] && shop['lng']) {
+    const dist   = haversineDistance(gpsResult.lat, gpsResult.lng, shop['lat'], shop['lng']);
+    const radius = queueSettings.gpsRadiusMeters || 500;
+    if (dist > radius) {
+      showStampToast(`距離此店家 ${Math.round(dist)} 公尺，需在 ${radius} 公尺內才能回報`);
+      return;
+    }
+    _queueGps = { lat: gpsResult.lat, lng: gpsResult.lng, confirmed: true };
+  } else {
+    _queueGps = { lat: gpsResult.lat, lng: gpsResult.lng, confirmed: false };
+  }
+
+  _queueShopId = shopId; _queueShopName = shopName;
+  _queueSelected = null;
+  document.getElementById('qmTitle').textContent = '回報排隊人數　' + shopName;
+  document.querySelectorAll('.qm-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById('qmConfirmBtn').disabled = true;
+  document.getElementById('queueBackdrop').style.display = 'block';
+  document.getElementById('queueModal').style.display    = 'block';
+  lockScroll();
+}
+
+function closeQueueModal() {
+  document.getElementById('queueBackdrop').style.display = 'none';
+  document.getElementById('queueModal').style.display    = 'none';
+  unlockScroll();
+}
+
+async function submitQueueReport() {
+  if (!_queueShopId || _queueSelected === null) return;
+  const confirmBtn = document.getElementById('qmConfirmBtn');
+  confirmBtn.disabled = true; confirmBtn.textContent = '送出中...';
+  try {
+    const now  = Date.now();
+    const uid  = auth.currentUser.uid;
+    const entry = { uid, count: _queueSelected, ts: now };
+
+    // 1. 更新即時排隊數據
+    const queueRef = db.collection('queues').doc(_queueShopId);
+    await db.runTransaction(async tx => {
+      const snap   = await tx.get(queueRef);
+      const cutoff = now - 2 * 60 * 60 * 1000;
+      let entries  = snap.exists ? (snap.data().entries || []) : [];
+      entries = entries.filter(e => e.ts > cutoff && e.uid !== uid);
+      entries.push(entry);
+      if (entries.length > 10) entries = entries.slice(-10);
+      tx.set(queueRef, { entries, updatedAt: now });
+    });
+
+    // 2. 寫入 reportLogs（排名計算用）
+    const logData = {
+      uid,
+      shopId:      _queueShopId,
+      count:       _queueSelected,
+      tier:        countToTier(_queueSelected),
+      ts:          now,
+      mealHour:    isQueueHours(),
+      gpsConfirmed: _queueGps?.confirmed || false,
+    };
+    if (_queueGps?.lat) { logData.lat = _queueGps.lat; logData.lng = _queueGps.lng; }
+    await db.collection('reportLogs').add(logData);
+
+    // 3. 更新用戶計數器與信任分
+    const trustDelta = (logData.mealHour ? 1 : 0) + (logData.gpsConfirmed ? 1 : 0);
+    await db.collection('users').doc(uid).update({
+      reportCount:      firebase.firestore.FieldValue.increment(1),
+      reportMonthCount: firebase.firestore.FieldValue.increment(1),
+      trustScore:       firebase.firestore.FieldValue.increment(trustDelta),
+    });
+
+    localStorage.setItem('qr_' + _queueShopId, now.toString());
+    delete queueCache[_queueShopId];
+    closeQueueModal();
+    showStampToast('✅ 回報成功，感謝你的貢獻！');
+    refreshQueueSection(_queueShopId);
+  } catch(e) {
+    confirmBtn.disabled = false; confirmBtn.textContent = '確認送出';
+    showStampToast('❌ 送出失敗，請稍後再試');
+  }
+}
+
 async function loadStamps(uid) {
   const snap = await db.collection('userVisits').doc(uid).get();
   if (snap.exists) {
@@ -1972,7 +3712,7 @@ async function loadStamps(uid) {
 }
 
 function openStampModal(shopId, shopName) {
-  if (!auth.currentUser) { showStampToast('請先登入才能踩點'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
   if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
   _stampShopId   = shopId;
   _stampShopName = shopName;
@@ -1986,11 +3726,13 @@ function openStampModal(shopId, shopName) {
   updateSlider();
   document.getElementById('stampBackdrop').style.display = 'block';
   document.getElementById('stampModal').style.display   = 'block';
+  lockScroll();
 }
 
 function closeStampModal() {
   document.getElementById('stampBackdrop').style.display = 'none';
   document.getElementById('stampModal').style.display   = 'none';
+  unlockScroll();
 }
 
 function updateSmOptions() {
@@ -2015,6 +3757,82 @@ function updateSliderLabel(n) {
 
 document.getElementById('stampBackdrop').addEventListener('click', closeStampModal);
 document.getElementById('smCancelBtn').addEventListener('click', closeStampModal);
+
+document.getElementById('queueBackdrop').addEventListener('click', closeQueueModal);
+document.getElementById('qmCancelBtn').addEventListener('click', closeQueueModal);
+document.getElementById('qmConfirmBtn').addEventListener('click', submitQueueReport);
+document.querySelectorAll('.qm-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.qm-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    _queueSelected = parseInt(el.dataset.value, 10);
+    document.getElementById('qmConfirmBtn').disabled = false;
+  });
+});
+
+// ── Issue Report Modal ────────────────────────────────────────────
+let _irShopId   = null;
+let _irShopName = null;
+
+function openIrModal(shopId, shopName) {
+  if (!canUse('issueReport')) { showAccessToast(); return; }
+  _irShopId   = shopId   || null;
+  _irShopName = shopName || null;
+  document.getElementById('irShopName').textContent = shopName ? shopName : '一般回報';
+  document.getElementById('irCat').value  = '';
+  document.getElementById('irNote').value = '';
+  document.getElementById('irBackdrop').style.display = 'block';
+  document.getElementById('irModal').style.display    = 'block';
+}
+function closeIrModal() {
+  document.getElementById('irBackdrop').style.display = 'none';
+  document.getElementById('irModal').style.display    = 'none';
+}
+async function submitIrReport() {
+  const cat  = document.getElementById('irCat').value.trim();
+  const note = document.getElementById('irNote').value.trim();
+  if (!cat) { showStampToast('請選擇問題分類'); return; }
+  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
+
+  const btn = document.getElementById('irConfirmBtn');
+  btn.disabled = true; btn.textContent = '送出中…';
+  try {
+    const user = auth.currentUser;
+    await db.collection('issueReports').add({
+      shopId:      _irShopId,
+      shopName:    _irShopName,
+      category:    cat,
+      note:        note,
+      uid:         user.uid,
+      displayName: user.displayName || '',
+      email:       user.email       || '',
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeIrModal();
+    showStampToast('✅ 問題已回報，感謝你的協助！');
+  } catch (e) {
+    showStampToast('❌ 送出失敗，請稍後再試');
+    console.error('submitIrReport 失敗', e);
+  }
+  btn.disabled = false; btn.textContent = '確認送出';
+}
+
+document.getElementById('irBackdrop').addEventListener('click', closeIrModal);
+document.getElementById('irCancelBtn').addEventListener('click', closeIrModal);
+document.getElementById('irConfirmBtn').addEventListener('click', submitIrReport);
+
+document.getElementById('drawerIssueBtn').addEventListener('click', () => {
+  document.getElementById('drawer').style.display         = 'none';
+  document.getElementById('drawerBackdrop').style.display = 'none';
+  openIrModal(null, null);
+});
+
+document.getElementById('cardList').addEventListener('click', e => {
+  const btn = e.target.closest('.ir-btn-card');
+  if (!btn) return;
+  if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
+  openIrModal(btn.dataset.id, btn.dataset.name);
+});
 
 document.querySelectorAll('.sm-option').forEach(el => {
   el.addEventListener('click', () => {
@@ -2076,6 +3894,199 @@ document.getElementById('smResetBtn').addEventListener('click', async () => {
   } catch (e) { showStampToast('重置失敗：' + e.message); }
 });
 
+// ── applyFeatureFlags ───────────────────────────────────────────────────────
+function applyFeatureFlags() {
+  // 收藏清單按鈕（profile dropdown + filter btn）
+  const favFilterBtn = document.getElementById('favFilterBtn');
+  if (favFilterBtn) favFilterBtn.style.display = canView('favorites') ? 'flex' : 'none';
+
+  // 排行榜按鈕（profile dropdown）
+  const rkPdBtn = document.getElementById('rankingsPdBtn');
+  if (rkPdBtn) {
+    rkPdBtn.style.display = canView('rankings') ? '' : 'none';
+    rkPdBtn.classList.toggle('ff-locked', canView('rankings') && !canUse('rankings'));
+  }
+
+  // 制霸地圖連結
+  const domLink = document.querySelector('.pd-action[href="domination.html"]');
+  if (domLink) {
+    domLink.style.display = canView('domination') ? '' : 'none';
+    domLink.classList.toggle('ff-locked', canView('domination') && !canUse('domination'));
+  }
+
+  // 貼文 nav bar
+  const bnavPosts = document.getElementById('bnavPosts');
+  if (bnavPosts) {
+    const show = canView('postsNav');
+    bnavPosts.style.display = show ? '' : 'none';
+    bnavPosts.classList.toggle('ff-locked', show && !canUse('postsNav'));
+    if (!show && _currentPage === 'reviews') switchPage('finder');
+  }
+
+  const bnavChallenges = document.getElementById('bnavChallenges');
+  if (bnavChallenges) {
+    const show = canView('challengesNav');
+    bnavChallenges.style.display = show ? '' : 'none';
+    bnavChallenges.classList.toggle('ff-locked', show && !canUse('challengesNav'));
+    if (!show && _currentPage === 'challenges') switchPage('finder');
+  }
+}
+
+// ── Rankings Modal ─────────────────────────────────────────────────────────
+let _rkTab = 'current';
+
+function openRankingsModal() {
+  if (!canUse('rankings')) { showAccessToast(); return; }
+  document.getElementById('drawer').style.display = 'none';
+  document.getElementById('drawerBackdrop').style.display = 'none';
+  _rkTab = 'current';
+  document.querySelectorAll('.rk-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'current'));
+  document.getElementById('rkBackdrop').style.display = 'block';
+  document.getElementById('rkModal').style.display    = 'block';
+  loadRankings('current');
+}
+
+function closeRankingsModal() {
+  document.getElementById('rkBackdrop').style.display = 'none';
+  document.getElementById('rkModal').style.display    = 'none';
+}
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function lastMonthKey() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function loadRankings(tab) {
+  const body = document.getElementById('rkBody');
+  body.innerHTML = '<div class="rk-empty">載入中...</div>';
+  const key  = tab === 'current' ? currentMonthKey() : lastMonthKey();
+  let rankDoc = null;
+  try {
+    const snap = await db.collection('rankings').doc(key).get();
+    rankDoc = snap.exists ? snap.data() : null;
+  } catch(e) {}
+
+  const uid  = auth.currentUser?.uid;
+  let userDoc = null;
+  if (uid) {
+    try {
+      const snap = await db.collection('users').doc(uid).get();
+      userDoc = snap.exists ? snap.data() : null;
+    } catch(e) {}
+  }
+
+  body.innerHTML = renderRankings(tab, rankDoc, userDoc, uid);
+}
+
+function renderRankings(tab, rankDoc, userDoc, uid) {
+  const parts = [];
+
+  // ── 用戶狀態卡 ──
+  if (userDoc) {
+    const total    = userDoc.reportCount      || 0;
+    const placed   = total >= 20;
+    const pct      = Math.min(100, Math.round(total / 20 * 100));
+    parts.push(`<div class="rk-me-card">
+      <div class="rk-me-label">你的回報狀況</div>
+      <div class="rk-me-row">
+        <div class="rk-me-stat">
+          <div class="rk-me-num">${total}</div>
+          <div class="rk-me-sub">累計回報</div>
+        </div>
+        <div style="flex:1;padding:0 12px">
+          ${placed
+            ? `<div style="font-size:13px;color:var(--red);font-weight:600">✅ 已出水，可參與排名</div>`
+            : `<div class="rk-placement-bar"><div class="rk-placement-fill" style="width:${pct}%"></div></div>
+               <div class="rk-placement-hint">累計 ${total} / 20 次可出水參與排名</div>`}
+        </div>
+      </div>
+    </div>`);
+  }
+
+  // ── 排行榜內容 ──
+  if (!rankDoc) {
+    const label = tab === 'current' ? '本月排行榜尚未公布，月底前會自動計算。' : '上月尚無排行資料。';
+    parts.push(`<div class="rk-empty">${label}</div>`);
+    return parts.join('');
+  }
+
+  const top3     = rankDoc.top3     || [];
+  const drawPool = rankDoc.drawPool || [];
+  const medals   = ['gold','silver','bronze'];
+  const medalEmoji = ['🥇','🥈','🥉'];
+
+  if (tab === 'current') {
+    // 前三名講台
+    if (top3.length) {
+      parts.push('<div class="rk-section-label">保證得獎（前 3 名）</div>');
+      parts.push('<div class="rk-podium">');
+      top3.forEach((u, i) => {
+        parts.push(`<div class="rk-podium-item ${medals[i] || ''}">
+          <div class="rk-podium-medal">${medalEmoji[i] || (i+1)}</div>
+          <div class="rk-podium-name">${escapeHtml(u.displayName)}</div>
+          <div class="rk-podium-count">${u.monthCount} 次</div>
+        </div>`);
+      });
+      parts.push('</div>');
+    }
+    // 抽獎池 4–50
+    if (drawPool.length) {
+      parts.push('<div class="rk-section-label" style="margin-top:12px">抽獎池（第 4–50 名）</div>');
+      drawPool.forEach((u, i) => {
+        const isMe = u.uid === uid;
+        parts.push(`<div class="rk-list-item${isMe ? ' is-me' : ''}">
+          <div class="rk-list-rank">${i + 4}</div>
+          <div class="rk-list-name">${escapeHtml(u.displayName)}${isMe ? ' 👈' : ''}</div>
+          <div class="rk-list-count">${u.monthCount} 次</div>
+        </div>`);
+      });
+    }
+    if (!top3.length && !drawPool.length) {
+      parts.push('<div class="rk-empty">本月尚無符合資格的回報者</div>');
+    }
+    const calc = rankDoc.calculatedAt ? new Date(rankDoc.calculatedAt).toLocaleDateString('zh-TW') : '';
+    if (calc) parts.push(`<div style="font-size:11px;color:var(--stone);text-align:center;margin-top:14px">統計時間：${calc}</div>`);
+
+  } else {
+    // 上月結果
+    if (top3.length) {
+      parts.push('<div class="rk-section-label">保證得獎</div>');
+      parts.push('<div class="rk-podium">');
+      top3.forEach((u, i) => {
+        parts.push(`<div class="rk-podium-item ${medals[i] || ''}">
+          <div class="rk-podium-medal">${medalEmoji[i] || (i+1)}</div>
+          <div class="rk-podium-name">${escapeHtml(u.displayName)}</div>
+          <div class="rk-podium-count">${u.monthCount} 次</div>
+        </div>`);
+      });
+      parts.push('</div>');
+    }
+    const drawn = rankDoc.drawnWinners || [];
+    parts.push('<div class="rk-winners-section">');
+    parts.push('<div class="rk-section-label">隨機抽獎得獎者</div>');
+    if (drawn.length) {
+      drawn.forEach(w => {
+        parts.push(`<span class="rk-winner-chip">🎉 ${escapeHtml(w.displayName)}</span>`);
+      });
+    } else {
+      parts.push('<div style="font-size:13px;color:var(--stone)">抽獎尚未進行</div>');
+    }
+    parts.push('</div>');
+  }
+
+  return parts.join('');
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── Clear All Data ─────────────────────────────────────────────────────────
 let _clearTimer = null;
 
@@ -2120,6 +4131,7 @@ document.getElementById('clearConfirmBtn').addEventListener('click', async () =>
     favSet = new Set(); stampMap = {}; reviewMap = {};
     showFavOnly = false;
     document.getElementById('favFilterBtn').classList.remove('active');
+    if (_localAvatarUid) localStorage.removeItem(localAvatarKey(_localAvatarUid));
     render();
     document.getElementById('clearOverlay').classList.remove('show');
     showStampToast('✓ 所有記憶已清除');
@@ -2130,6 +4142,24 @@ document.getElementById('clearConfirmBtn').addEventListener('click', async () =>
 });
 
 // ── onAuthStateChanged ─────────────────────────────────────────────────────
+function hasPermission(userRole, requiredRole) {
+  return getRoleLevel(userRole) >= (ROLE_LEVEL[requiredRole] ?? 99);
+}
+
+function showBetaGate(msg, showLogin = false) {
+  document.getElementById('betaGate').style.display = 'flex';
+  document.getElementById('betaGateMsg').textContent = msg;
+  document.getElementById('betaLoginBtn').style.display = showLogin ? 'flex' : 'none';
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('mainContent').classList.remove('mc-show');
+}
+
+document.getElementById('betaLoginBtn').addEventListener('click', () => {
+  auth.signInWithPopup(provider).catch(err => {
+    if (err.code === 'auth/popup-blocked') auth.signInWithRedirect(provider);
+    else if (err.code !== 'auth/popup-closed-by-user') console.error(err);
+  });
+});
 
 auth.onAuthStateChanged(async user => {
   try {
@@ -2160,15 +4190,15 @@ auth.onAuthStateChanged(async user => {
         } catch (e) {
           console.error('[首次登入] 寫入基本欄位失敗：', e);
         }
-        // Step 2：分配 memberNo（獨立，失敗不影響 Step 1）
+        // Step 2：分配 memberNo（Transaction 確保不重複）
         try {
           const counterRef = db.collection('meta').doc('counters');
-          const cs = await counterRef.get();
-          const memberNo = cs.exists ? (cs.data().memberCount || 0) + 1 : 1;
-          cs.exists
-            ? await counterRef.update({ memberCount: memberNo })
-            : await counterRef.set({ memberCount: 1 });
-          await userRef.update({ memberNo });
+          await db.runTransaction(async tx => {
+            const cs = await tx.get(counterRef);
+            const memberNo = cs.exists ? (cs.data().memberCount || 0) + 1 : 1;
+            tx.set(counterRef, { memberCount: memberNo }, { merge: true });
+            tx.update(userRef, { memberNo });
+          });
         } catch (e) {
           console.error('[首次登入] memberNo 分配失敗：', e);
         }
@@ -2176,34 +4206,89 @@ auth.onAuthStateChanged(async user => {
         Object.assign(userData, snap2.data());
       }
 
-      // 頭像：優先用 Firestore avatarUrl，否則 Google 照片
+      // 同步公開 profile（讓其他登入用戶可讀 nickname / avatarUrl）
+      try {
+        await db.collection('userProfiles').doc(user.uid).set({
+          displayName: userData.nickname || user.displayName || '匿名',
+          nickname:    userData.nickname || '',
+          avatarUrl:   userData.avatarUrl || user.photoURL || '',
+        }, { merge: true });
+      } catch(e) { console.warn('userProfiles sync failed', e); }
+
+      // 從 Firestore 讀取 featureFlags，決定正式版存取門檻
+      let sitePermRole = 'all'; // 預設值
+      try {
+        const ffSnap = await db.collection('meta').doc('featureFlags').get();
+        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
+          sitePermRole = ffSnap.data().siteAccess.perm;
+        }
+      } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }
+
+      if (!hasPermission(userData.role, sitePermRole)) {
+        showBetaGate('此頁面暫時關閉，請稍後再試');
+        userAvatar.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('betaGate').style.display = 'none';
+
+      // 頭像：Firestore avatarUrl > Google photoURL，localStorage 只做 URL 快取加速
+      _localAvatarUid = user.uid;
       const avatar = getAvatarUrl(userData, user.photoURL);
-      userAvatar.src       = avatar;
-      pdHeaderAvatar.src   = avatar;
-      pdAvatarPreview.src  = avatar;
-      pdDisplayName.textContent = userData.nickname || user.displayName || '';
-      pdEmail.textContent       = user.email || '';
-      nicknameInput.value       = userData.nickname || '';
+      applyAvatarUrl(avatar);
+      applyLocalAvatarCache(user.uid); // 若有快取 URL 先顯示（避免閃爍）
+      // Google 帳號區（唯讀）
+      document.getElementById('pdGoogleAvatar').src        = user.photoURL || 'assets/icons/03.png';
+      document.getElementById('pdGoogleName').textContent  = user.displayName || '';
+      pdEmail.value = user.email || '';
+      // 自定義顯示身份區
+      pdDisplayName.textContent                            = userData.nickname || user.displayName || '';
+      nicknameInput.value                                  = userData.nickname || '';
       adminLink.style.display   = userData.role === 'admin' ? 'flex' : 'none';
       isWarned = userData.role === 'warned';
+      currentUserRole    = userData.role || 'viewer';
+      currentDisplayName = userData.nickname || user.displayName || '匿名';
+      currentAvatarUrl   = avatar;
 
       // 載入收藏清單 + 踩點記錄
       const favIds = userData.favorites || [];
       favSet = new Set(favIds);
-      document.getElementById('favFilterBtn').style.display = 'flex';
       await loadStamps(user.uid);
+      applyFeatureFlags();
       render();
+      checkUnreadBadge();
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
       isWarned = false;
+      currentUserRole    = '';
+      currentDisplayName = '';
+      currentAvatarUrl   = '';
+      _localAvatarUid = null;
       favSet = new Set();
       stampMap = {}; reviewMap = {};
-      document.getElementById('favFilterBtn').style.display = 'none';
       showFavOnly = false;
       document.getElementById('favFilterBtn').classList.remove('active');
       closeProfileDropdown();
-      render();
+      applyFeatureFlags();
+
+      // 未登入時檢查 siteAccess.perm，若為 'all' 則開放瀏覽
+      let sitePermRole = 'all';
+      try {
+        const ffSnap = await db.collection('meta').doc('featureFlags').get();
+        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
+          sitePermRole = ffSnap.data().siteAccess.perm;
+        }
+      } catch(e) {}
+
+      if (sitePermRole === 'all') {
+        document.getElementById('betaGate').style.display  = 'none';
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('mainContent').classList.add('mc-show');
+        render();
+      } else {
+        showBetaGate('此頁面暫時關閉，請稍後再試');
+      }
     }
   } catch (err) {
     console.error('auth state 處理失敗', err);
@@ -2242,6 +4327,878 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.
   const homeLink = document.querySelector('.drawer a[href="index.html"]');
   if (homeLink) homeLink.style.display = 'none';
 }
+
+// ── Reviews System ──────────────────────────────────────────────────────────
+const REVIEW_MAX_PHOTOS = 5;
+const REVIEW_PAGE_SIZE  = 5;
+let _rvShopId   = null;
+let _rvShopName = '';
+let _rvRating   = 0;
+let _rvFiles    = [];       // { file, previewUrl }
+let _rvCursors  = {};       // shopId → lastDoc for pagination
+const storage   = firebase.storage();
+
+// ── 圖片壓縮（Canvas，不需外部套件）──────────────────────────────────────────
+function compressImage(file, { maxPx = 1200, maxKB = 400 } = {}) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        const scale = Math.min(maxPx / width, maxPx / height);
+        width  = Math.round(width  * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      // 先嘗試 WebP；iOS 不支援時 canvas.toBlob 會 fallback 成 PNG（blob.type === 'image/png'），
+      // 此時改用 JPEG（有 quality 參數，所有平台皆支援）
+      const tryFormat = (format) => {
+        let q = 0.82;
+        const tryBlob = () => {
+          canvas.toBlob(blob => {
+            if (!blob) { reject(new Error('compress failed')); return; }
+            if (format === 'image/webp' && blob.type === 'image/png') { tryFormat('image/jpeg'); return; }
+            if (blob.size > maxKB * 1024 && q > 0.28) { q = Math.max(0.28, q - 0.15); tryBlob(); return; }
+            resolve(new File([blob], file.name.replace(/\.\w+$/, format === 'image/jpeg' ? '.jpg' : '.webp'), { type: blob.type }));
+          }, format, q);
+        };
+        tryBlob();
+      };
+      tryFormat('image/webp');
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+// thumb 從縮圖 canvas 生成，orig 較寬鬆以減少迭代
+const makeThumb    = f => compressImage(f, { maxPx: 400,  maxKB: 60  });
+const makeOriginal = f => compressImage(f, { maxPx: 1200, maxKB: 400 });
+
+// ── Storage 上傳單張（只存一份壓縮檔，thumb 與 original 共用同一 URL）────────
+async function uploadReviewPhoto(file, shopId, reviewId, idx, onUploadStart) {
+  const t0 = performance.now();
+  const compressed = await compressImage(file, { maxPx: 900, maxKB: 250 });
+  const t1 = performance.now();
+  console.log(`[photo ${idx}] 壓縮: ${(t1-t0).toFixed(0)}ms | ${(compressed.size/1024).toFixed(0)}KB`);
+
+  onUploadStart?.();
+  const path = `reviews/${shopId}/${reviewId}/photo_${idx}.webp`;
+  const snap = await storage.ref(path).put(compressed, { contentType: compressed.type });
+  const t2 = performance.now();
+  console.log(`[photo ${idx}] 上傳: ${(t2-t1).toFixed(0)}ms`);
+
+  const url = await snap.ref.getDownloadURL();
+  return { original: url, thumb: url };
+}
+
+// ── 刪除 Storage 裡的照片 ────────────────────────────────────────────────────
+async function deleteReviewPhotos(shopId, reviewId, photos) {
+  const tasks = [];
+  (photos || []).forEach((_, i) => {
+    const base = `reviews/${shopId}/${reviewId}/photo_${i}`;
+    tasks.push(storage.ref(`${base}_orig.webp`).delete().catch(() => {}));
+    tasks.push(storage.ref(`${base}_thumb.webp`).delete().catch(() => {}));
+  });
+  await Promise.all(tasks);
+}
+
+// ── 載入評論 ─────────────────────────────────────────────────────────────────
+async function loadReviews(shopId, panel, append = false) {
+  if (!append) {
+    _rvCursors[shopId] = null;
+    panel.innerHTML = '<div class="review-loading">載入中…</div>';
+  }
+  try {
+    let q = db.collection('reviews')
+      .where('shopId', '==', shopId)
+      .orderBy('createdAt', 'desc')
+      .limit(REVIEW_PAGE_SIZE);
+    if (_rvCursors[shopId]) q = q.startAfter(_rvCursors[shopId]);
+
+    const snap = await q.get();
+    const docs = snap.docs;
+    if (docs.length) _rvCursors[shopId] = docs[docs.length - 1];
+
+    const uid = auth.currentUser?.uid;
+    const isAdmin = currentUserRole === 'admin';
+
+    if (!append) panel.innerHTML = '';
+
+    // 重繪 header（count + 寫評論 btn）
+    if (!append) {
+      const totalSnap = await db.collection('reviews').where('shopId', '==', shopId).get();
+      const total = totalSnap.size;
+      const headerRow = document.createElement('div');
+      headerRow.className = 'review-header-row';
+      const canWrite = canView('reviews') && canUse('reviews') && auth.currentUser;
+      headerRow.innerHTML = `
+        ${canView('reviews') ? `<button class="write-review-btn${canWrite ? '' : ' locked'}"
+          id="writeReviewBtn_${shopId}"
+          ${canWrite ? '' : 'disabled title="需登入才能評論"'}>
+          ✍ 寫評論
+        </button>` : ''}
+        <span class="review-count-label">共 ${total} 則評論</span>`;
+      panel.insertBefore(headerRow, panel.firstChild);
+      if (canWrite) {
+        headerRow.querySelector(`#writeReviewBtn_${shopId}`)
+          .addEventListener('click', () => openReviewModal(shopId, getShopById(shopId)?.['店名'] || ''));
+      }
+    }
+
+    if (!docs.length && !append) {
+      panel.insertAdjacentHTML('beforeend', '<div class="review-empty">目前還沒有評論，成為第一個吧！</div>');
+      return;
+    }
+
+    const list = document.createElement('div');
+    list.className = 'review-list';
+    docs.forEach(doc => {
+      const d  = doc.data();
+      const ts = d.createdAt?.toDate?.();
+      const dateStr = ts ? ts.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const stars = '★'.repeat(d.rating || 0) + '☆'.repeat(5 - (d.rating || 0));
+      const canDel = uid === d.uid || isAdmin;
+      const photosHtml = (d.photos || []).map(p =>
+        `<img class="review-photo-thumb" src="${p.thumb}" data-original="${p.original}" alt="">`
+      ).join('');
+      const item = document.createElement('div');
+      item.className = 'review-item';
+      item.innerHTML = `
+        <div class="review-item-header">
+          ${d.avatarUrl
+            ? `<img class="review-avatar" src="${d.avatarUrl}" alt="">`
+            : `<div class="review-avatar-placeholder">👤</div>`}
+          <div class="review-meta">
+            <div class="review-name" data-uid="${d.uid}">${escapeHtml(d.displayName || '匿名')}</div>
+            <div class="review-date">${dateStr}</div>
+          </div>
+          <div>
+            <span class="review-stars">${stars}</span>
+            ${canDel ? `<button class="review-del-btn" data-docid="${doc.id}" data-shopid="${shopId}">🗑 刪除</button>` : ''}
+          </div>
+        </div>
+        ${d.text ? `<div class="review-text">${escapeHtml(d.text)}</div>` : ''}
+        ${d.photos?.length ? `<div class="review-photos" data-photo-date="${d.photoDate || ''}">${photosHtml}</div>` : ''}`;
+
+      // 留言區
+      const commentsEl = document.createElement('div');
+      commentsEl.className = 'review-comments';
+      item.appendChild(commentsEl);
+      loadComments(doc.id, commentsEl);
+
+      // 留言表單（登入才顯示）
+      if (auth.currentUser) {
+        const formEl = document.createElement('div');
+        formEl.className = 'review-comment-form';
+        formEl.innerHTML = `<input class="review-comment-input" placeholder="留言…" maxlength="100">
+          <button class="review-comment-send">送出</button>`;
+        item.appendChild(formEl);
+        const cinput = formEl.querySelector('.review-comment-input');
+        const csend  = formEl.querySelector('.review-comment-send');
+        csend.addEventListener('click', async () => {
+          const text = cinput.value.trim();
+          if (!text) return;
+          csend.disabled = true;
+          try {
+            const u = auth.currentUser;
+            await db.collection('reviews').doc(doc.id).collection('comments').add({
+              uid: u.uid,
+              displayName: currentDisplayName || u.displayName || '匿名',
+              avatarUrl: currentAvatarUrl || u.photoURL || null,
+              text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            cinput.value = '';
+            loadComments(doc.id, commentsEl);
+          } catch { showStampToast('留言失敗，請稍後再試'); }
+          csend.disabled = false;
+        });
+      }
+
+      list.appendChild(item);
+    });
+    panel.appendChild(list);
+
+    // 刪除按鈕
+    list.querySelectorAll('.review-del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('確定刪除這則評論？')) return;
+        btn.disabled = true;
+        try {
+          const docId = btn.dataset.docid;
+          await db.collection('reviews').doc(docId).delete();
+          btn.closest('.review-item').remove();
+          showStampToast('✅ 已刪除評論');
+        } catch(e) { showStampToast('❌ 刪除失敗'); btn.disabled = false; }
+      });
+    });
+
+    // 照片瀏覽
+    list.querySelectorAll('.review-photos').forEach(row => {
+      const thumbs    = [...row.querySelectorAll('.review-photo-thumb')];
+      const urls      = thumbs.map(i => i.dataset.original);
+      const item      = row.closest('.review-item');
+      const uid       = item?.querySelector('.review-name')?.dataset.uid || '';
+      const photoDate = row.dataset.photoDate || '';
+      const name      = item?.querySelector('.review-name')?.textContent  || '';
+      thumbs.forEach((img, idx) => {
+        img.addEventListener('click', () => openPhotoViewer(urls, idx, { date: photoDate, uid, authorName: name }));
+      });
+    });
+    updateDisplayNames(list);
+
+    // 載入更多
+    const existing = panel.querySelector('.review-load-more');
+    if (existing) existing.remove();
+    if (docs.length === REVIEW_PAGE_SIZE) {
+      const more = document.createElement('button');
+      more.className = 'review-load-more';
+      more.textContent = '載入更多評論…';
+      more.addEventListener('click', () => loadReviews(shopId, panel, true));
+      panel.appendChild(more);
+    }
+  } catch(e) {
+    panel.innerHTML = `<div class="review-empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── 留言（review 子集合）──────────────────────────────────────────────────────
+async function loadComments(reviewId, container, showAll = false) {
+  try {
+    const snap = await db.collection('reviews').doc(reviewId).collection('comments')
+      .orderBy('createdAt', 'asc').limit(showAll ? 100 : 3).get();
+    if (!snap.docs.length) { container.innerHTML = ''; return; }
+    container.innerHTML = snap.docs.map(d => {
+      const c = d.data();
+      return `<div class="review-comment"><span class="review-comment-name">${escapeHtml(c.displayName || '匿名')}</span>：${escapeHtml(c.text)}</div>`;
+    }).join('');
+    if (!showAll && snap.docs.length >= 3) {
+      const btn = document.createElement('button');
+      btn.className = 'review-comments-more';
+      btn.textContent = '顯示更多留言…';
+      btn.addEventListener('click', () => { btn.remove(); loadComments(reviewId, container, true); });
+      container.appendChild(btn);
+    }
+  } catch {}
+}
+
+// ── User display cache（UID → { name, avatarUrl }）────────────────────────────
+const _userDisplayCache = new Map();
+async function getUserDisplay(uid) {
+  if (_userDisplayCache.has(uid)) return _userDisplayCache.get(uid);
+  try {
+    const snap = await db.collection('userProfiles').doc(uid).get();
+    const d    = snap.data() || {};
+    const result = {
+      name:      d.nickname || d.displayName || '匿名',
+      avatarUrl: d.avatarUrl || d.photoURL   || '',
+    };
+    _userDisplayCache.set(uid, result);
+    return result;
+  } catch {
+    const fallback = { name: '匿名', avatarUrl: '' };
+    _userDisplayCache.set(uid, fallback);
+    return fallback;
+  }
+}
+
+// 渲染後非同步更新容器內所有 [data-uid] 名稱元素
+async function updateDisplayNames(container) {
+  const els  = [...container.querySelectorAll('[data-uid]')];
+  if (!els.length) return;
+  const uids = [...new Set(els.map(e => e.dataset.uid))];
+  await Promise.all(uids.map(uid => getUserDisplay(uid)));
+  els.forEach(el => {
+    const u = _userDisplayCache.get(el.dataset.uid);
+    if (u) el.textContent = u.name;
+  });
+}
+
+// ── Photo Viewer ──────────────────────────────────────────────────────────────
+let _pvUrls = [];
+let _pvIdx  = 0;
+let _pvMeta = {};
+
+function openPhotoViewer(urls, startIdx, meta) {
+  _pvUrls = Array.isArray(urls) ? urls : [urls];
+  _pvIdx  = Math.max(0, Math.min(startIdx || 0, _pvUrls.length - 1));
+  _pvMeta = meta || {};
+  _renderPV();
+  document.getElementById('photoViewer').classList.add('open');
+}
+function closePhotoViewer() {
+  document.getElementById('photoViewer').classList.remove('open');
+  document.getElementById('pvImg').src = '';
+}
+function _renderPV(dir) {
+  const single = _pvUrls.length <= 1;
+  const img = document.getElementById('pvImg');
+  img.classList.remove('pv-enter-right', 'pv-enter-left');
+  if (dir) {
+    void img.offsetWidth;
+    img.classList.add(dir === 1 ? 'pv-enter-right' : 'pv-enter-left');
+  }
+  img.src = _pvUrls[_pvIdx];
+  document.getElementById('pvCounter').textContent       = `${_pvIdx + 1} / ${_pvUrls.length}`;
+  document.getElementById('pvCounter').style.visibility  = single ? 'hidden' : '';
+  document.getElementById('pvPrev').style.display        = single ? 'none' : '';
+  document.getElementById('pvNext').style.display        = single ? 'none' : '';
+  const dateEl = document.getElementById('pvFooterDate');
+  dateEl.textContent = _pvMeta.date ? `拍攝日期 ${_pvMeta.date}` : '';
+  document.getElementById('pvFooterAuthor').textContent  = _pvMeta.authorName ? `by ${_pvMeta.authorName}` : '';
+  if (_pvMeta.uid) {
+    getUserDisplay(_pvMeta.uid).then(u => {
+      document.getElementById('pvFooterAuthor').textContent = `by ${u.name}`;
+    });
+  }
+}
+function _pvGo(delta) {
+  _pvIdx = (_pvIdx + delta + _pvUrls.length) % _pvUrls.length;
+  _renderPV(delta);
+}
+
+document.getElementById('pvClose').addEventListener('click', closePhotoViewer);
+document.getElementById('pvPrev').addEventListener('click', () => _pvGo(-1));
+document.getElementById('pvNext').addEventListener('click', () => _pvGo(1));
+
+let _pvTouchX = 0;
+document.getElementById('photoViewer').addEventListener('touchstart', e => {
+  _pvTouchX = e.touches[0].clientX;
+}, { passive: true });
+document.getElementById('photoViewer').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _pvTouchX;
+  if (Math.abs(dx) > 40) _pvGo(dx < 0 ? 1 : -1);
+}, { passive: true });
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('photoViewer').classList.contains('open')) return;
+  if      (e.key === 'ArrowLeft')  _pvGo(-1);
+  else if (e.key === 'ArrowRight') _pvGo(1);
+  else if (e.key === 'Escape')     closePhotoViewer();
+});
+
+// ── Review Modal ──────────────────────────────────────────────────────────────
+function openReviewModal(shopId, shopName) {
+  if (!auth.currentUser)  { showStampToast('請先登入以使用此功能'); return; }
+  if (!canUse('reviews')) { showStampToast('此功能目前暫不開放'); return; }
+  _rvShopId   = shopId;
+  _rvShopName = shopName;
+  _rvRating   = 0;
+  _rvFiles    = [];
+  document.getElementById('rvTitle').textContent = `✍ 寫評論 — ${shopName}`;
+  document.getElementById('rvText').value = '';
+  document.getElementById('rvPhotoDate').value = '';
+  document.getElementById('rvPhotoDate').max = new Date().toISOString().split('T')[0];
+  document.getElementById('rvPreviewGrid').innerHTML = '';
+  document.getElementById('rvProgress').textContent = '';
+  document.getElementById('rvSubmitBtn').disabled = true;
+  updateRvStars(0);
+  document.getElementById('rvBackdrop').classList.add('open');
+  document.getElementById('rvModal').classList.add('open');
+  lockScroll();
+}
+function closeReviewModal() {
+  document.getElementById('rvBackdrop').classList.remove('open');
+  document.getElementById('rvModal').classList.remove('open');
+  unlockScroll();
+  _rvFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+  _rvFiles = [];
+}
+document.getElementById('rvClose').addEventListener('click',    closeReviewModal);
+document.getElementById('rvCancelBtn').addEventListener('click', closeReviewModal);
+document.getElementById('rvBackdrop').addEventListener('click',  closeReviewModal);
+
+// 星評
+function updateRvStars(val) {
+  _rvRating = val;
+  document.querySelectorAll('.star-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.v) <= val);
+  });
+  checkRvSubmitReady();
+}
+document.querySelectorAll('.star-btn').forEach(b => {
+  b.addEventListener('click', () => updateRvStars(parseInt(b.dataset.v)));
+  b.addEventListener('mouseover', () => {
+    document.querySelectorAll('.star-btn').forEach(s =>
+      s.classList.toggle('active', parseInt(s.dataset.v) <= parseInt(b.dataset.v)));
+  });
+  b.addEventListener('mouseout', () => updateRvStars(_rvRating));
+});
+
+function isValidPhotoDate(val) {
+  if (!val || !/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+  const d = new Date(val + 'T00:00:00');
+  if (isNaN(d.getTime())) return false;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return d <= today;
+}
+
+function checkRvSubmitReady() {
+  const hasContent = _rvRating > 0 || document.getElementById('rvText').value.trim().length > 0;
+  const hasDate    = isValidPhotoDate(document.getElementById('rvPhotoDate').value);
+  document.getElementById('rvSubmitBtn').disabled = !(hasContent && hasDate);
+}
+document.getElementById('rvText').addEventListener('input', checkRvSubmitReady);
+document.getElementById('rvPhotoDate').addEventListener('change', checkRvSubmitReady);
+
+// 圖片上傳區域
+function addRvFiles(newFiles) {
+  const remaining = REVIEW_MAX_PHOTOS - _rvFiles.length;
+  if (remaining <= 0) { showStampToast(`最多只能上傳 ${REVIEW_MAX_PHOTOS} 張`); return; }
+  Array.from(newFiles).slice(0, remaining).forEach(f => {
+    if (!f.type.startsWith('image/')) return;
+    const previewUrl = URL.createObjectURL(f);
+    _rvFiles.push({ file: f, previewUrl });
+    const item = document.createElement('div');
+    item.className = 'rv-preview-item';
+    item.innerHTML = `<img src="${previewUrl}" alt=""><button class="rv-preview-remove">✕</button>`;
+    item.querySelector('.rv-preview-remove').addEventListener('click', () => {
+      URL.revokeObjectURL(previewUrl);
+      _rvFiles = _rvFiles.filter(x => x.previewUrl !== previewUrl);
+      item.remove();
+    });
+    document.getElementById('rvPreviewGrid').appendChild(item);
+  });
+}
+document.getElementById('rvUploadArea').addEventListener('click', () =>
+  document.getElementById('rvFileInput').click());
+document.getElementById('rvFileInput').addEventListener('change', e => {
+  addRvFiles(e.target.files); e.target.value = '';
+});
+const rvUploadArea = document.getElementById('rvUploadArea');
+rvUploadArea.addEventListener('dragover', e => { e.preventDefault(); rvUploadArea.classList.add('drag-over'); });
+rvUploadArea.addEventListener('dragleave', () => rvUploadArea.classList.remove('drag-over'));
+rvUploadArea.addEventListener('drop', e => {
+  e.preventDefault(); rvUploadArea.classList.remove('drag-over');
+  addRvFiles(e.dataTransfer.files);
+});
+
+// 送出評論
+document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
+  if (!_rvShopId || !auth.currentUser) return;
+  const text = document.getElementById('rvText').value.trim();
+  if (!_rvRating && !text && !_rvFiles.length) return;
+  const rvPhotoDate = document.getElementById('rvPhotoDate').value;
+  if (!isValidPhotoDate(rvPhotoDate)) {
+    document.getElementById('rvProgress').textContent = '❌ 日期格式錯誤或不可為未來日期';
+    return;
+  }
+
+  const submitBtn = document.getElementById('rvSubmitBtn');
+  const cancelBtn = document.getElementById('rvCancelBtn');
+  const progress  = document.getElementById('rvProgress');
+  submitBtn.disabled = true; cancelBtn.disabled = true;
+
+  try {
+    const reviewId = db.collection('reviews').doc().id;
+    let photos = [];
+
+    if (_rvFiles.length) {
+      for (let i = 0; i < _rvFiles.length; i++) {
+        progress.textContent = `壓縮照片 ${i + 1} / ${_rvFiles.length}…`;
+        const p = await uploadReviewPhoto(_rvFiles[i].file, _rvShopId, reviewId, i,
+          () => { progress.textContent = `上傳照片 ${i + 1} / ${_rvFiles.length}…`; });
+        photos.push(p);
+      }
+    }
+
+    progress.textContent = '送出評論…';
+    const u = auth.currentUser;
+    // 頭像：直接用目前顯示的頭像 URL（已是 Storage URL 或 DiceBear 或 Google）
+    await db.collection('reviews').doc(reviewId).set({
+      shopId:      _rvShopId,
+      shopName:    _rvShopName,
+      uid:         u.uid,
+      displayName: u.displayName || '匿名',
+      avatarUrl:   userAvatar.src || u.photoURL || '',
+      rating:      _rvRating,
+      text,
+      photos,
+      photoDate:   rvPhotoDate,
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    showStampToast('✅ 評論已送出！');
+    closeReviewModal();
+
+    // 重置評論（下次切換時重新載入）
+    _rfLoaded      = false;
+    _rfPageCursors = [null];
+    _rfCurrentPage = 1;
+    _rfMaxPage     = 1;
+
+    // 重新載入該 shop 的評論 panel
+    const panel = document.querySelector(`.card[data-shop-id="${_rvShopId}"] [data-tab-panel="reviews"]`);
+    if (panel) loadReviews(_rvShopId, panel);
+  } catch(e) {
+    progress.textContent = '❌ 送出失敗：' + e.message;
+    submitBtn.disabled = false;
+  }
+  cancelBtn.disabled = false;
+});
+
+// ── Desktop header height var (for sidebar layout calc) ─────────────────────
+(function() {
+  function setHH() {
+    const h = document.querySelector('header');
+    if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+  }
+  setHH();
+  window.addEventListener('resize', setHH);
+})();
+
+// ── Reviews Feed ──────────────────────────────────────────────────────────────
+const RF_SEEN_KEY  = 'rvFeedSeen';
+const RF_PAGE_SIZE   = 10;
+let _rfPageCursors   = [null]; // index 0 = 起點，[n] = 第 n+1 頁的 startAfter cursor
+let _rfCurrentPage   = 1;
+let _rfMaxPage       = 1;
+let _rfLoaded        = false;
+let _rfTab           = 'reviews'; // 'reviews' | 'menus'
+let _mnuFeedLoaded   = false;
+let _mnuFeedPage     = 1;
+let _mnuFeedMaxPage  = 1;
+let _mnuFeedCursors  = [null];
+let _currentPage     = 'finder';
+
+function getFeedSeen() {
+  try { return new Set(JSON.parse(localStorage.getItem(RF_SEEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function addFeedSeen(ids) {
+  const seen = getFeedSeen();
+  ids.forEach(id => seen.add(id));
+  let arr = [...seen];
+  if (arr.length > 500) arr = arr.slice(arr.length - 500);
+  localStorage.setItem(RF_SEEN_KEY, JSON.stringify(arr));
+}
+function updateUnreadBadge() {
+  if (_currentPage === 'finder') return;
+  const hasUnread = !!document.querySelector('#rfList .rf-card.unread');
+  document.getElementById('bnavPosts').classList.toggle('has-badge', hasUnread);
+}
+function markFeedPageSeen() {
+  const ids = [...document.querySelectorAll('#rfList .rf-card[data-docid]')]
+    .map(el => el.dataset.docid);
+  if (ids.length) {
+    addFeedSeen(ids);
+    ids.forEach(id => {
+      const el = document.querySelector(`#rfList .rf-card[data-docid="${id}"]`);
+      if (el) el.classList.remove('unread');
+    });
+  }
+  document.getElementById('bnavPosts').classList.remove('has-badge');
+}
+async function checkUnreadBadge() {
+  if (!auth.currentUser || _currentPage === 'finder') return;
+  try {
+    const snap = await db.collection('reviews').orderBy('createdAt', 'desc').limit(20).get();
+    const seen = getFeedSeen();
+    const hasUnread = snap.docs.some(d => !seen.has(d.id));
+    document.getElementById('bnavPosts').classList.toggle('has-badge', hasUnread);
+  } catch {}
+}
+
+async function loadReviewsFeedPage(page = 1) {
+  _rfCurrentPage = page;
+  const list = document.getElementById('rfList');
+  list.innerHTML = '<div class="rf-empty">載入中…</div>';
+
+  try {
+    let q = db.collection('reviews').orderBy('createdAt', 'desc').limit(RF_PAGE_SIZE);
+    const cursor = _rfPageCursors[page - 1];
+    if (cursor) q = q.startAfter(cursor);
+
+    const snap = await q.get();
+    const docs = snap.docs;
+
+    // 記錄下一頁的起點 cursor
+    if (docs.length >= RF_PAGE_SIZE) {
+      if (!_rfPageCursors[page]) _rfPageCursors[page] = docs[docs.length - 1];
+      _rfMaxPage = Math.max(_rfMaxPage, page + 1);
+    } else {
+      _rfMaxPage = page; // 這是最後一頁
+    }
+
+    list.innerHTML = '';
+    if (!docs.length) {
+      list.innerHTML = '<div class="rf-empty">目前還沒有評論</div>';
+      renderRfPagination();
+      _rfLoaded = true;
+      return;
+    }
+
+    const seen = getFeedSeen();
+    docs.forEach(doc => {
+      const d = doc.data();
+      const isUnread = !seen.has(doc.id);
+      const ts = d.createdAt?.toDate?.();
+      const dateStr = ts
+        ? ts.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
+        : '';
+      const stars = '★'.repeat(d.rating || 0) + '☆'.repeat(5 - (d.rating || 0));
+      const photosHtml = (d.photos || []).slice(0, 5).map(p =>
+        `<img class="rf-thumb" src="${p.thumb}" data-original="${p.original}" alt="" loading="lazy">`
+      ).join('');
+
+      const card = document.createElement('div');
+      card.className = 'rf-card' + (isUnread ? ' unread' : '');
+      card.dataset.docid = doc.id;
+      card.innerHTML = `
+        <div class="rf-card-header">
+          ${d.avatarUrl
+            ? `<img class="rf-avatar" src="${d.avatarUrl}" alt="">`
+            : `<div class="rf-avatar-ph">👤</div>`}
+          <div class="rf-user-info">
+            <span class="rf-username" data-uid="${d.uid}">${escapeHtml(d.displayName || '匿名')}</span>
+            <span class="rf-shopname">📍 ${escapeHtml(d.shopName || '')}</span>
+          </div>
+          <div class="rf-right">
+            <span class="rf-stars">${stars}</span>
+            <span class="rf-date">${dateStr}</span>
+          </div>
+        </div>
+        ${d.text ? `<div class="rf-text">${escapeHtml(d.text)}</div>` : ''}
+        ${photosHtml ? `<div class="rf-photos" data-photo-date="${d.photoDate || ''}">${photosHtml}</div>` : ''}
+        <span class="rf-unread-dot"></span>`;
+
+      const rfThumbs    = [...card.querySelectorAll('.rf-thumb')];
+      const rfUrls      = rfThumbs.map(i => i.dataset.original);
+      const rfUid       = d.uid || '';
+      const rfPhotoDate = d.photoDate || '';
+      const rfName      = d.displayName || '匿名';
+      rfThumbs.forEach((img, idx) => {
+        img.addEventListener('click', () => openPhotoViewer(rfUrls, idx, { date: rfPhotoDate, uid: rfUid, authorName: rfName }));
+      });
+
+      // 留言區
+      const rfCommentsEl = document.createElement('div');
+      rfCommentsEl.className = 'review-comments';
+      card.appendChild(rfCommentsEl);
+      loadComments(doc.id, rfCommentsEl);
+
+      if (auth.currentUser) {
+        const rfFormEl = document.createElement('div');
+        rfFormEl.className = 'review-comment-form';
+        rfFormEl.innerHTML = `<input class="review-comment-input" placeholder="留言…" maxlength="100">
+          <button class="review-comment-send">送出</button>`;
+        card.appendChild(rfFormEl);
+        const rci = rfFormEl.querySelector('.review-comment-input');
+        const rcs = rfFormEl.querySelector('.review-comment-send');
+        rcs.addEventListener('click', async () => {
+          const text = rci.value.trim();
+          if (!text) return;
+          rcs.disabled = true;
+          try {
+            const u = auth.currentUser;
+            await db.collection('reviews').doc(doc.id).collection('comments').add({
+              uid: u.uid,
+              displayName: currentDisplayName || u.displayName || '匿名',
+              avatarUrl: currentAvatarUrl || u.photoURL || null,
+              text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            rci.value = '';
+            loadComments(doc.id, rfCommentsEl);
+          } catch { showStampToast('留言失敗，請稍後再試'); }
+          rcs.disabled = false;
+        });
+      }
+
+      list.appendChild(card);
+    });
+    updateDisplayNames(list);
+    renderRfPagination();
+    _rfLoaded = true;
+    updateUnreadBadge();
+  } catch (e) {
+    console.error('loadReviewsFeedPage 失敗', e);
+    list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderRfPagination() {
+  const el = document.getElementById('rfPagination');
+  if (!el) return;
+  const pages = Array.from({ length: _rfMaxPage }, (_, i) => i + 1);
+  el.innerHTML =
+    `<button class="rf-page-btn rf-page-prev" ${_rfCurrentPage <= 1 ? 'disabled' : ''}>◄</button>` +
+    pages.map(p => `<button class="rf-page-btn${p === _rfCurrentPage ? ' active' : ''}" data-page="${p}">${p}</button>`).join('') +
+    `<button class="rf-page-btn rf-page-next" ${_rfCurrentPage >= _rfMaxPage ? 'disabled' : ''}>►</button>`;
+  el.querySelector('.rf-page-prev').addEventListener('click', () => {
+    if (_rfCurrentPage > 1) loadReviewsFeedPage(_rfCurrentPage - 1);
+  });
+  el.querySelector('.rf-page-next').addEventListener('click', () => {
+    if (_rfCurrentPage < _rfMaxPage) loadReviewsFeedPage(_rfCurrentPage + 1);
+  });
+  el.querySelectorAll('.rf-page-btn[data-page]').forEach(btn =>
+    btn.addEventListener('click', () => loadReviewsFeedPage(+btn.dataset.page))
+  );
+}
+
+// ── Menus Feed ────────────────────────────────────────────────────────────────
+const MNU_PAGE_SIZE = 10;
+
+async function loadMenusFeedPage(page = 1) {
+  _mnuFeedPage = page;
+  const list = document.getElementById('rfMenuList');
+  list.innerHTML = '<div class="rf-empty">載入中…</div>';
+  try {
+    let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MNU_PAGE_SIZE);
+    const cursor = _mnuFeedCursors[page - 1];
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.get();
+    const docs = snap.docs;
+    if (docs.length >= MNU_PAGE_SIZE) {
+      if (!_mnuFeedCursors[page]) _mnuFeedCursors[page] = docs[docs.length - 1];
+      _mnuFeedMaxPage = Math.max(_mnuFeedMaxPage, page + 1);
+    } else {
+      _mnuFeedMaxPage = page;
+    }
+    list.innerHTML = '';
+    if (!docs.length) {
+      list.innerHTML = '<div class="rf-empty">目前還沒有菜單照片</div>';
+      renderMnuPagination();
+      _mnuFeedLoaded = true;
+      return;
+    }
+    docs.forEach(doc => {
+      const d = doc.data();
+      const ts = d.createdAt?.toDate?.();
+      const dateStr = ts ? ts.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) : '';
+      const card = document.createElement('div');
+      card.className = 'mnu-card';
+      card.dataset.docid = doc.id;
+      card.innerHTML = `
+        <img class="mnu-photo" src="${d.photo?.thumb || d.photo?.original || ''}" data-original="${d.photo?.original || ''}" alt="" loading="lazy">
+        <div class="mnu-info">
+          <span class="mnu-shop">📍 ${escapeHtml(d.shopName || '')}</span>
+          <span class="mnu-date">${escapeHtml(d.photoDate || dateStr)}</span>
+          <span class="mnu-user" data-uid="${d.uid || ''}">${escapeHtml(d.displayName || '匿名')}</span>
+        </div>`;
+      card.querySelector('.mnu-photo').addEventListener('click', e => {
+        const original = e.target.dataset.original || e.target.src;
+        openPhotoViewer([original], 0, { date: d.photoDate || '', uid: d.uid || '', authorName: d.displayName || '匿名' });
+      });
+      list.appendChild(card);
+    });
+    updateDisplayNames(list);
+    renderMnuPagination();
+    _mnuFeedLoaded = true;
+  } catch (e) {
+    console.error('loadMenusFeedPage 失敗', e);
+    list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderMnuPagination() {
+  const el = document.getElementById('rfMenuPagination');
+  if (!el) return;
+  const pages = Array.from({ length: _mnuFeedMaxPage }, (_, i) => i + 1);
+  el.innerHTML =
+    `<button class="rf-page-btn rf-page-prev" ${_mnuFeedPage <= 1 ? 'disabled' : ''}>◄</button>` +
+    pages.map(p => `<button class="rf-page-btn${p === _mnuFeedPage ? ' active' : ''}" data-page="${p}">${p}</button>`).join('') +
+    `<button class="rf-page-btn rf-page-next" ${_mnuFeedPage >= _mnuFeedMaxPage ? 'disabled' : ''}>►</button>`;
+  el.querySelector('.rf-page-prev').addEventListener('click', () => {
+    if (_mnuFeedPage > 1) loadMenusFeedPage(_mnuFeedPage - 1);
+  });
+  el.querySelector('.rf-page-next').addEventListener('click', () => {
+    if (_mnuFeedPage < _mnuFeedMaxPage) loadMenusFeedPage(_mnuFeedPage + 1);
+  });
+  el.querySelectorAll('.rf-page-btn[data-page]').forEach(btn =>
+    btn.addEventListener('click', () => loadMenusFeedPage(+btn.dataset.page))
+  );
+}
+
+document.getElementById('rfTabToggleBtn').addEventListener('click', () => {
+  _rfTab = _rfTab === 'reviews' ? 'menus' : 'reviews';
+  const isMenus = _rfTab === 'menus';
+  document.getElementById('rfTabToggleBtn').textContent  = isMenus ? '📝 評論' : '🍜 菜單';
+  document.getElementById('rfFeedTitle').textContent     = isMenus ? '🍜 菜單' : '📝 貼文';
+  document.getElementById('rfList').style.display        = isMenus ? 'none' : '';
+  document.getElementById('rfPagination').style.display  = isMenus ? 'none' : '';
+  document.getElementById('rfToolbar').style.display     = isMenus ? 'none' : '';
+  document.getElementById('rfMenuList').style.display        = isMenus ? '' : 'none';
+  document.getElementById('rfMenuPagination').style.display  = isMenus ? '' : 'none';
+  if (isMenus && !_mnuFeedLoaded) loadMenusFeedPage(1);
+});
+
+// ── Scroll lock (modal 開啟時鎖定 mainContent 捲動，nav bar 不受影響) ─────────
+function lockScroll()   { document.getElementById('mainContent').classList.add('scroll-locked'); }
+function unlockScroll() { document.getElementById('mainContent').classList.remove('scroll-locked'); }
+
+// ── Bottom Nav ────────────────────────────────────────────────────────────────
+function switchPage(page) {
+  _currentPage = page;
+  const finderEl     = document.getElementById('mainContent');
+  const reviewsEl    = document.getElementById('pageReviews');
+  const challengesEl = document.getElementById('pageChallenges');
+
+  // 重置所有頁面和 nav
+  finderEl.classList.remove('page-active', 'page-left', 'page-right');
+  reviewsEl.classList.remove('page-active', 'page-left', 'page-right');
+  challengesEl.classList.remove('page-active', 'page-left', 'page-right');
+  ['bnavFinder', 'bnavPosts', 'bnavChallenges'].forEach(id =>
+    document.getElementById(id)?.classList.remove('active')
+  );
+
+  if (page === 'finder') {
+    document.body.classList.remove('finder-hidden');
+    document.body.classList.add('reviews-hidden');
+    document.body.classList.add('challenges-hidden');
+    finderEl.classList.add('page-active');
+    reviewsEl.classList.add('page-right');
+    challengesEl.classList.add('page-right');
+    document.getElementById('bnavFinder').classList.add('active');
+  } else if (page === 'reviews') {
+    document.body.classList.add('finder-hidden');
+    document.body.classList.remove('reviews-hidden');
+    document.body.classList.add('challenges-hidden');
+    finderEl.classList.add('page-left');
+    reviewsEl.classList.add('page-active');
+    challengesEl.classList.add('page-right');
+    document.getElementById('bnavPosts').classList.add('active');
+    if (!_rfLoaded) loadReviewsFeedPage(1);
+    markFeedPageSeen();
+  } else if (page === 'challenges') {
+    document.body.classList.add('finder-hidden');
+    document.body.classList.add('reviews-hidden');
+    document.body.classList.remove('challenges-hidden');
+    finderEl.classList.add('page-left');
+    reviewsEl.classList.add('page-left');
+    challengesEl.classList.add('page-active');
+    document.getElementById('bnavChallenges').classList.add('active');
+  }
+}
+
+document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
+document.getElementById('bnavPosts').addEventListener('click', () => {
+  if (!canUse('postsNav')) { showAccessToast(); return; }
+  switchPage('reviews');
+});
+
+document.getElementById('bnavChallenges').addEventListener('click', () => {
+  if (!canUse('challengesNav')) { showAccessToast(); return; }
+  switchPage('challenges');
+});
+
+document.getElementById('bnavTop').addEventListener('click', () => {
+  if (_currentPage === 'reviews') {
+    document.getElementById('pageReviews').scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (_currentPage === 'challenges') {
+    document.getElementById('pageChallenges').scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (window.innerWidth >= 900) {
+    const cl = document.getElementById('cardList');
+    if (cl) cl.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
 </script>
 </body>
 </html>
