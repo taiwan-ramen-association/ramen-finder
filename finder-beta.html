@@ -352,6 +352,7 @@
     font-family: 'Noto Serif TC', serif;
     font-size: 16px; font-weight: 700;
     color: var(--ink); line-height: 1.3; flex: 1;
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
   }
   .status-badge {
     flex-shrink: 0; font-size: 10px; font-weight: 500;
@@ -360,6 +361,15 @@
   .s-open  { background: var(--open-bg);  color: var(--open-txt); }
   .s-pause { background: var(--pause-bg); color: var(--pause-txt); }
   .s-prep  { background: var(--prep-bg);  color: var(--prep-txt); }
+  .name-label {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 8px; letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .nl-closed { background: #e8e8e8; color: #888; }
+  .nl-moved  { background: #fff0d9; color: #b86c00; }
+  .nl-pause  { background: var(--pause-bg); color: var(--pause-txt); }
+  .nl-prep   { background: var(--prep-bg);  color: var(--prep-txt); }
 
   .card-meta { padding: 0 13px 8px; }
   .meta-row {
@@ -939,13 +949,14 @@
   }
 
   /* ── LOCATE ── */
-  .locate-btn, .now-open-btn {
+  .locate-btn, .now-open-btn, .non-active-btn {
     border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
     border-radius: 7px; padding: 5px 10px; font-size: 13px; cursor: pointer;
     font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
   }
   .locate-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
   .now-open-btn.active { border-color: #2d7a2d; color: #2d7a2d; background: var(--open-bg); font-weight: 500; }
+  .non-active-btn.active { border-color: #7a4a2d; color: #7a4a2d; background: #fff3ed; font-weight: 500; }
   .dist-badge {
     font-size: 11px; color: #1a73e8; background: #edf3ff;
     border-radius: 10px; padding: 1px 7px; font-weight: 500;
@@ -1553,7 +1564,7 @@
   </div>
 
   <div class="result-bar">
-    <div>共 <strong id="resultCount">0</strong> 間店家</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">共 <strong id="resultCount">0</strong> 間店家<button class="non-active-btn" id="nonActiveBtn" style="display:none">👻 顯示非現存店家</button></div>
     <div class="result-actions">
       <button class="now-open-btn" id="nowOpenBtn">🟢 現在營業中</button>
       <button class="locate-btn" id="locateBtn">📍 定位</button>
@@ -1850,11 +1861,16 @@ const DATA_URL = './data/data.json';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let ALL_DATA         = [];
+let NON_ACTIVE_DATA  = [];
 let serverDate       = new Date();
 let serverTimeOffset = 0;
 let selectedDay      = '';
 let isNowOpen        = false;
 let showFavOnly      = false;
+let showNonActive    = false;
+let _filtered        = [];
+let _displayedCount  = 0;
+let _scrollObserver  = null;
 let favSet           = new Set();   // 儲存 shop ID，由 Firestore 載入
 const BD_SKIP_KEY    = 'tw-ramen-bd-skip';
 
@@ -1920,7 +1936,8 @@ async function loadData() {
     }
     const rows = await res.json();
 
-    ALL_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
+    ALL_DATA        = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
+    NON_ACTIVE_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] !== '營業中');
 
     // City dropdown — 自訂排序
     const CITY_ORDER = [
@@ -2063,25 +2080,28 @@ function getFiltered() {
   const timeVal = document.getElementById('timeFilter').value;
   selectedDay   = document.getElementById('dayFilter').value;
 
-  const result = ALL_DATA.filter(shop => {
+  const source = showNonActive ? [...ALL_DATA, ...NON_ACTIVE_DATA] : ALL_DATA;
+  const result = source.filter(shop => {
     if (showFavOnly && !favSet.has(shop['ID'])) return false;
     if (city && shop['縣市'] !== city) return false;
 
-    if (selectedDay) {
-      if (!shop['週' + selectedDay]) return false;
-    }
-
-    if (timeVal) {
-      const mins = toMins(timeVal);
-      if (mins === null) return false;
+    if (!showNonActive) {
       if (selectedDay) {
-        if (!isOpenAt(shop['週' + selectedDay], mins)) return false;
-      } else {
-        const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
-        const open = hasWeekData
-          ? ALL_DAYS.some(d => isOpenAt(shop['週'+d], mins))
-          : isOpenAt(shop['營業時段'], mins);
-        if (!open) return false;
+        if (!shop['週' + selectedDay]) return false;
+      }
+
+      if (timeVal) {
+        const mins = toMins(timeVal);
+        if (mins === null) return false;
+        if (selectedDay) {
+          if (!isOpenAt(shop['週' + selectedDay], mins)) return false;
+        } else {
+          const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
+          const open = hasWeekData
+            ? ALL_DAYS.some(d => isOpenAt(shop['週'+d], mins))
+            : isOpenAt(shop['營業時段'], mins);
+          if (!open) return false;
+        }
       }
     }
 
@@ -2355,6 +2375,21 @@ function statusBadge(s) {
   return `<span class="status-badge ${cls}">${s === '暫停營業' ? '暫停' : s}</span>`;
 }
 
+function nonActiveLabel(s) {
+  if (!s || s === '營業中') return '';
+  const map = {
+    '已歇業':   { cls: 'nl-closed', text: '歇業' },
+    '已搬遷':   { cls: 'nl-moved',  text: '搬遷' },
+    '暫時關閉': { cls: 'nl-pause',  text: '暫停' },
+    '暫停營業': { cls: 'nl-pause',  text: '暫停' },
+    '籌備中':   { cls: 'nl-prep',   text: '籌備中' },
+    '準備中':   { cls: 'nl-prep',   text: '準備中' },
+  };
+  const m = map[s];
+  if (!m) return '';
+  return `<span class="name-label ${m.cls}">${m.text}</span>`;
+}
+
 function isValidUrl(s) {
   return s && s.startsWith('http') && !['無',''].includes(s);
 }
@@ -2404,13 +2439,12 @@ function renderCard(shop) {
   return `
   <div class="card${member ? ' member' : ''}${birthday ? ' birthday' : ''}" data-shop-id="${escapeAttr(shop['ID'] || '')}">
     <div class="card-header">
-      <div class="card-name">${shop['店名']}</div>
+      <div class="card-name">${shop['店名']}${nonActiveLabel(shop['營業狀態'])}</div>
       <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
         ${dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : ''}
         ${birthday ? '<span class="birthday-badge">🎂 本日壽星</span>' : ''}
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
-        ${statusBadge(shop['營業狀態'])}
         <span class="queue-badge-header" data-id="${escapeAttr(shop['ID'] || '')}" hidden></span>
         ${canView('favorites') ? `<button class="fav-btn${!auth.currentUser || isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
         ${canView('stamps') ? `<button class="stamp-btn${!auth.currentUser || isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
@@ -2457,8 +2491,9 @@ function renderCard(shop) {
 }
 
 function render() {
-  const filtered = getFiltered();
-  document.getElementById('resultCount').textContent = filtered.length;
+  if (_scrollObserver) { _scrollObserver.disconnect(); _scrollObserver = null; }
+  _filtered = getFiltered();
+  document.getElementById('resultCount').textContent = _filtered.length;
 
   if (currentView === 'map') {
     renderMap();
@@ -2467,14 +2502,41 @@ function render() {
 
   const list = document.getElementById('cardList');
   expandedCard = null;
+  list.innerHTML = '';
+  _displayedCount = 0;
 
-  if (!filtered.length) {
+  if (!_filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="big">🍜</div><p>找不到符合的店家<br>請調整篩選條件</p></div>`;
     return;
   }
+  _appendCards();
+}
 
-  list.innerHTML = filtered.map(renderCard).join('');
-  list.querySelectorAll('.card').forEach(card => {
+function _appendCards() {
+  if (_scrollObserver) { _scrollObserver.disconnect(); _scrollObserver = null; }
+  const list = document.getElementById('cardList');
+  const batch = _filtered.slice(_displayedCount, _displayedCount + 20);
+  if (!batch.length) return;
+
+  const frag = document.createElement('div');
+  frag.innerHTML = batch.map(renderCard).join('');
+  _bindCardEvents(frag);
+  while (frag.firstChild) list.appendChild(frag.firstChild);
+  _displayedCount += batch.length;
+
+  if (_displayedCount < _filtered.length) {
+    const sentinel = document.createElement('div');
+    sentinel.className = 'scroll-sentinel';
+    list.appendChild(sentinel);
+    _scrollObserver = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) _appendCards();
+    }, { rootMargin: '200px' });
+    _scrollObserver.observe(sentinel);
+  }
+}
+
+function _bindCardEvents(scope) {
+  scope.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
       if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.write-review-btn') || e.target.closest('.review-del-btn') || e.target.closest('.review-photo-thumb') || e.target.closest('.review-load-more') || e.target.closest('.review-comment-form') || e.target.closest('.review-comments-more') || e.target.closest('.card-tab') || e.target.closest('.mnu-thumb') || e.target.closest('.mnu-del-btn')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
@@ -2489,37 +2551,30 @@ function render() {
     card.querySelectorAll('.card-tab').forEach(tab => {
       tab.addEventListener('click', e => {
         e.stopPropagation();
-        if (tab.classList.contains('ff-locked')) {
-          showAccessToast();
-          return;
-        }
+        if (tab.classList.contains('ff-locked')) { showAccessToast(); return; }
         const target = tab.dataset.tabTarget;
         const detail = card.querySelector('.card-detail');
         detail.querySelectorAll('.card-tab').forEach(t => t.classList.toggle('active', t.dataset.tabTarget === target));
         detail.querySelectorAll('.card-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tabPanel === target));
-        // 切到資訊時補刷新排隊資料
         if (target === 'info') {
           const shopId = card.dataset.shopId;
           if (shopId) refreshQueueSection(shopId);
         }
-        // 切到菜單時 lazy load
         if (target === 'menu' && canView('menuTab')) {
-          const shopId   = card.dataset.shopId;
-          const shop     = ALL_DATA.find(s => s['ID'] === shopId);
+          const shopId = card.dataset.shopId;
+          const shop = findShopById(shopId);
           const menuPanel = detail.querySelector('[data-tab-panel="menu"] .menu-tab-inner');
           if (shop && menuPanel && !menuPanel.dataset.loaded) {
             menuPanel.dataset.loaded = '1';
             loadShopMenu(shop, menuPanel);
           }
         }
-        // 切到照片時 lazy load
         if (target === 'photos' && canView('photosTab')) {
           const shopId = card.dataset.shopId;
-          const shop   = ALL_DATA.find(s => s['ID'] === shopId);
+          const shop = findShopById(shopId);
           const photoPanel = detail.querySelector('[data-tab-panel="photos"]');
           if (shop && photoPanel) loadShopPhotos(shop, photoPanel);
         }
-        // 切到貼文時 lazy load
         if (target === 'reviews') {
           const shopId = card.dataset.shopId;
           const rvPanel = detail.querySelector('[data-tab-panel="reviews"]');
@@ -2531,7 +2586,7 @@ function render() {
       });
     });
   });
-  list.querySelectorAll('.fav-btn').forEach(btn => {
+  scope.querySelectorAll('.fav-btn').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
       if (btn.classList.contains('locked')) { showAccessToast(); return; }
@@ -2542,14 +2597,14 @@ function render() {
       if (showFavOnly) render();
     });
   });
-  list.querySelectorAll('.stamp-btn').forEach(btn => {
+  scope.querySelectorAll('.stamp-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       if (btn.classList.contains('locked')) { showAccessToast(); return; }
       openStampModal(btn.dataset.id, btn.dataset.name);
     });
   });
-  list.querySelectorAll('.queue-report-btn').forEach(btn => {
+  scope.querySelectorAll('.queue-report-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
@@ -2561,8 +2616,14 @@ function render() {
 // ── Event listeners ────────────────────────────────────────────────────────
 document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('cityFilter').addEventListener('change', render);
-document.getElementById('timeFilter').addEventListener('change', render);
-document.getElementById('dayFilter').addEventListener('change', render);
+document.getElementById('timeFilter').addEventListener('change', () => {
+  if (showNonActive) { showNonActive = false; document.getElementById('nonActiveBtn').classList.remove('active'); }
+  render();
+});
+document.getElementById('dayFilter').addEventListener('change', () => {
+  if (showNonActive) { showNonActive = false; document.getElementById('nonActiveBtn').classList.remove('active'); }
+  render();
+});
 document.getElementById('viewToggleBtn').addEventListener('click', () => switchView(currentView === 'list' ? 'map' : 'list'));
 document.getElementById('locateBtn').addEventListener('click', locateUser);
 document.getElementById('nowOpenBtn').addEventListener('click', toggleNowOpen);
@@ -2574,9 +2635,22 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   document.getElementById('dayFilter').value   = '';
   isNowOpen = false;
   showFavOnly = false;
+  showNonActive = false;
   document.getElementById('nowOpenBtn').classList.remove('active');
+  document.getElementById('nonActiveBtn').classList.remove('active');
   document.getElementById('mainContent').classList.remove('fav-mode');
   if (_currentPage === 'favorites') switchPage('finder');
+  render();
+});
+
+document.getElementById('nonActiveBtn').addEventListener('click', () => {
+  if (!canUse('nonActiveShops')) { showAccessToast(); return; }
+  showNonActive = !showNonActive;
+  document.getElementById('nonActiveBtn').classList.toggle('active', showNonActive);
+  if (showNonActive) {
+    document.getElementById('timeFilter').value = '';
+    document.getElementById('dayFilter').value  = '';
+  }
   render();
 });
 
@@ -3074,7 +3148,12 @@ let featureFlags = {
   domination:     { vis: 'viewer',   perm: 'viewer'   },
   reviews:        { vis: 'all',      perm: 'viewer'   },
   challengesNav:  { vis: 'admin',    perm: 'admin'    },
+  nonActiveShops: { vis: 'all',      perm: 'viewer'   },
 };
+
+function findShopById(id) {
+  return ALL_DATA.find(s => s['ID'] === id) || NON_ACTIVE_DATA.find(s => s['ID'] === id) || null;
+}
 
 const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
 const MEMBER_ROLES = ['member_individual','member_group','member_sponsor','member_honorary'];
@@ -3349,7 +3428,7 @@ document.getElementById('mnuSubmitBtn').addEventListener('click', async () => {
     // 重新載入該 shop 的菜單 panel（同 review 做法）
     const menuPanel = document.querySelector(`.card[data-shop-id="${_mnuShopId}"] [data-tab-panel="menu"] .menu-tab-inner`);
     if (menuPanel) {
-      const shop = ALL_DATA.find(s => s['ID'] === _mnuShopId);
+      const shop = findShopById(_mnuShopId);
       if (shop) loadShopMenu(shop, menuPanel);
     }
   } catch(e) {
@@ -3368,7 +3447,7 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 }
 
 function getShopById(shopId) {
-  return ALL_DATA.find(s => s['ID'] === shopId) || null;
+  return findShopById(shopId);
 }
 
 function getShopTodayOpenTimes(shop) {
@@ -3901,6 +3980,10 @@ document.getElementById('smResetBtn').addEventListener('click', async () => {
 
 // ── applyFeatureFlags ───────────────────────────────────────────────────────
 function applyFeatureFlags() {
+  // 非現存店家按鈕
+  const nonActiveBtn = document.getElementById('nonActiveBtn');
+  if (nonActiveBtn) nonActiveBtn.style.display = canView('nonActiveShops') ? '' : 'none';
+
   // 收藏按鈕（bottom nav）
   const bnavFavorites = document.getElementById('bnavFavorites');
   if (bnavFavorites) bnavFavorites.style.display = canView('favorites') ? '' : 'none';
