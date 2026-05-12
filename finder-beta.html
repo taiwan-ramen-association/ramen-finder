@@ -1966,6 +1966,91 @@
   </button>
 </nav>
 
+<!-- ── Search Filter Modal ─────────────────────────────────────────────── -->
+<div class="sf-backdrop" id="sfBackdrop"></div>
+<div class="sf-modal" id="sfModal">
+  <div class="sf-header">
+    <span class="sf-title">篩選條件</span>
+    <button class="sf-close" id="sfClose">✕</button>
+  </div>
+  <div class="sf-body">
+
+    <div class="sf-search-wrap">
+      <span class="sf-search-icon">🔍</span>
+      <input type="text" id="searchInput" class="sf-search-input" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
+    </div>
+
+    <div class="sf-quick-row">
+      <button class="sf-quick-btn" id="sfNowOpen">🟢 現在營業中</button>
+      <button class="sf-quick-btn" id="sfLocateBtn">📍 附近</button>
+      <select class="sf-dist-select" id="sfDistSelect" disabled>
+        <option value="">不限</option>
+        <option value="200">200m</option>
+        <option value="500">500m</option>
+        <option value="1000" selected>1km</option>
+        <option value="2000">2km</option>
+        <option value="5000">5km</option>
+        <option value="10000">10km</option>
+        <option value="20000">20km</option>
+        <option value="50000">50km</option>
+      </select>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">地區</div>
+      <div class="sf-chips-scroll" id="sfCityChips"></div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">類型</div>
+      <div class="sf-chips-scroll" id="sfTypeChips"></div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">營業日</div>
+      <div class="sf-chips-scroll" id="sfDayChips">
+        <button class="sf-chip" data-day="一">週一</button>
+        <button class="sf-chip" data-day="二">週二</button>
+        <button class="sf-chip" data-day="三">週三</button>
+        <button class="sf-chip" data-day="四">週四</button>
+        <button class="sf-chip" data-day="五">週五</button>
+        <button class="sf-chip" data-day="六">週六</button>
+        <button class="sf-chip" data-day="日">週日</button>
+      </div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">用餐時間</div>
+      <div class="sf-time-wrap">
+        <input type="time" id="sfMealTime" class="sf-time-input">
+        <button class="sf-time-clear" id="sfMealTimeClear" style="display:none">✕</button>
+      </div>
+    </div>
+
+    <div class="sf-other-wrap">
+      <div class="sf-other-header">
+        <span>其他設定</span>
+        <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
+      </div>
+      <div class="sf-other-body" id="sfOtherBody">
+        <label class="sf-toggle-row">
+          <span>顯示非現存店家</span>
+          <span class="ios-sw"><input type="checkbox" id="sfShowNonActive"><span class="ios-knob"></span></span>
+        </label>
+        <label class="sf-toggle-row">
+          <span>以地圖顯示</span>
+          <span class="ios-sw"><input type="checkbox" id="sfShowMap"><span class="ios-knob"></span></span>
+        </label>
+      </div>
+    </div>
+
+  </div>
+  <div class="sf-footer">
+    <button class="sf-clear-btn" id="sfClearBtn">清除篩選</button>
+    <button class="sf-apply-btn" id="sfApplyBtn">套用</button>
+  </div>
+</div>
+
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
 // 讀同一個 repo 下的 data.json（由 GitHub Actions 自動同步自 Google Sheets）
@@ -5631,89 +5716,5 @@ document.getElementById('bnavTop').addEventListener('click', () => {
 });
 </script>
 
-<!-- ── Search Filter Modal ─────────────────────────────────────────────── -->
-<div class="sf-backdrop" id="sfBackdrop"></div>
-<div class="sf-modal" id="sfModal">
-  <div class="sf-header">
-    <span class="sf-title">篩選條件</span>
-    <button class="sf-close" id="sfClose">✕</button>
-  </div>
-  <div class="sf-body">
-
-    <div class="sf-search-wrap">
-      <span class="sf-search-icon">🔍</span>
-      <input type="text" id="searchInput" class="sf-search-input" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
-    </div>
-
-    <div class="sf-quick-row">
-      <button class="sf-quick-btn" id="sfNowOpen">🟢 現在營業中</button>
-      <button class="sf-quick-btn" id="sfLocateBtn">📍 附近</button>
-      <select class="sf-dist-select" id="sfDistSelect" disabled>
-        <option value="">不限</option>
-        <option value="200">200m</option>
-        <option value="500">500m</option>
-        <option value="1000" selected>1km</option>
-        <option value="2000">2km</option>
-        <option value="5000">5km</option>
-        <option value="10000">10km</option>
-        <option value="20000">20km</option>
-        <option value="50000">50km</option>
-      </select>
-    </div>
-
-    <div class="sf-row">
-      <div class="sf-row-label">地區</div>
-      <div class="sf-chips-scroll" id="sfCityChips"></div>
-    </div>
-
-    <div class="sf-row">
-      <div class="sf-row-label">類型</div>
-      <div class="sf-chips-scroll" id="sfTypeChips"></div>
-    </div>
-
-    <div class="sf-row">
-      <div class="sf-row-label">營業日</div>
-      <div class="sf-chips-scroll" id="sfDayChips">
-        <button class="sf-chip" data-day="一">週一</button>
-        <button class="sf-chip" data-day="二">週二</button>
-        <button class="sf-chip" data-day="三">週三</button>
-        <button class="sf-chip" data-day="四">週四</button>
-        <button class="sf-chip" data-day="五">週五</button>
-        <button class="sf-chip" data-day="六">週六</button>
-        <button class="sf-chip" data-day="日">週日</button>
-      </div>
-    </div>
-
-    <div class="sf-row">
-      <div class="sf-row-label">用餐時間</div>
-      <div class="sf-time-wrap">
-        <input type="time" id="sfMealTime" class="sf-time-input">
-        <button class="sf-time-clear" id="sfMealTimeClear" style="display:none">✕</button>
-      </div>
-    </div>
-
-    <div class="sf-other-wrap">
-      <div class="sf-other-header">
-        <span>其他設定</span>
-        <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
-      </div>
-      <div class="sf-other-body" id="sfOtherBody">
-        <label class="sf-toggle-row">
-          <span>顯示非現存店家</span>
-          <span class="ios-sw"><input type="checkbox" id="sfShowNonActive"><span class="ios-knob"></span></span>
-        </label>
-        <label class="sf-toggle-row">
-          <span>以地圖顯示</span>
-          <span class="ios-sw"><input type="checkbox" id="sfShowMap"><span class="ios-knob"></span></span>
-        </label>
-      </div>
-    </div>
-
-  </div>
-  <div class="sf-footer">
-    <button class="sf-clear-btn" id="sfClearBtn">清除篩選</button>
-    <button class="sf-apply-btn" id="sfApplyBtn">套用</button>
-  </div>
-</div>
 </body>
 </html>
