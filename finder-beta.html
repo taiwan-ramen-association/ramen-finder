@@ -318,6 +318,11 @@
     padding: 9px 14px; font-size: 12px; color: var(--stone);
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1px solid var(--line); background: var(--white);
+    flex-wrap: wrap; row-gap: 6px;
+  }
+  @media (max-width: 540px) {
+    .result-bar > div:first-child { flex: 1 1 100%; }
+    .result-actions { width: 100%; justify-content: flex-end; }
   }
   .result-bar strong { color: var(--red); font-weight: 700; font-size: 15px; }
   .clear-btn {
