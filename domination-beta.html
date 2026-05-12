@@ -96,7 +96,20 @@ header a:hover { opacity: 1; }
 .legend-item { display: flex; align-items: center; gap: 5px; }
 .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 
-#loadingMsg { text-align: center; padding: 60px; color: var(--stone); font-size: 14px; }
+/* Loading progress */
+#loadingMsg {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px 20px; min-height: 280px;
+  transition: opacity 0.3s ease;
+}
+#loadingMsg.fade-out { opacity: 0; }
+.ld-wrap { width: 100%; max-width: 300px; text-align: center; }
+.ld-icon { font-size: 32px; margin-bottom: 10px; }
+.ld-label { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 14px; }
+.ld-text { font-size: 13px; color: var(--stone); margin-bottom: 10px; min-height: 18px; }
+.ld-track { width: 100%; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.ld-fill { height: 100%; width: 0%; background: var(--red); border-radius: 3px; transition: width 0.2s ease; }
+.ld-pct { font-size: 11px; color: var(--stone); }
 
 /* Zoom */
 #mapSvg { touch-action: none; cursor: grab; }
@@ -158,7 +171,15 @@ header a:hover { opacity: 1; }
 </div>
 
 <div id="app">
-  <div id="loadingMsg">載入中…</div>
+  <div id="loadingMsg">
+    <div class="ld-wrap">
+      <div class="ld-icon">🗾</div>
+      <div class="ld-label">拉麵制霸地圖</div>
+      <div class="ld-text" id="ldText">初始化中…</div>
+      <div class="ld-track"><div class="ld-fill" id="ldFill"></div></div>
+      <div class="ld-pct" id="ldPct">0%</div>
+    </div>
+  </div>
 
   <div class="stats-bar" id="statsBar" style="display:none">
     <div class="stat-card"><div class="val" id="statScore">0</div><div class="lbl">制霸總分</div></div>
@@ -198,6 +219,95 @@ header a:hover { opacity: 1; }
 </div>
 
 <script>
+// ── GeoJSON 快取設定 ──────────────────────────────────────────────────────────
+// 需要強制使用者重新下載地圖資料時（行政區劃修正等），改版號即可清除舊快取
+const GEO_CACHE_NAME = 'dom-geo-v1';
+const GEO_URLS = [
+  'https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twTown2010.geo.json',
+  'https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twTown1982.geo.json',
+];
+
+// ── 載入進度條 ────────────────────────────────────────────────────────────────
+// 各資源進度佔比：data.json 10% + districts 5% + userVisits 20% + GeoJSON 60% = 95%
+// 最後 setProgress(100) 補足剩餘 5%
+let _prog = 0;
+function setProgress(pct, text) {
+  _prog = Math.min(100, Math.max(_prog, pct));
+  document.getElementById('ldFill').style.width = _prog + '%';
+  document.getElementById('ldPct').textContent = Math.round(_prog) + '%';
+  if (text) document.getElementById('ldText').textContent = text;
+}
+function addProgress(delta, text) { setProgress(_prog + delta, text); }
+
+// ── GeoJSON 取得（快取優先，串流追蹤進度）────────────────────────────────────
+async function fetchGeoJSON() {
+  const cache = await caches.open(GEO_CACHE_NAME);
+
+  // ① 快取命中 → 直接回傳，加上等同串流的進度量
+  for (const url of GEO_URLS) {
+    const hit = await cache.match(url);
+    if (hit) { addProgress(60, '讀取快取地圖資料…'); return hit.json(); }
+  }
+
+  // ② 依序嘗試 CDN，串流讀取並追蹤進度
+  let lastErr;
+  for (const url of GEO_URLS) {
+    try { return await _streamGeo(url, cache); }
+    catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
+async function _streamGeo(url, cache) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const contentLength = res.headers.get('Content-Length');
+  const total = contentLength ? parseInt(contentLength) : 0;
+  const reader = res.body.getReader();
+  const chunks = [];
+  let received = 0, geoContrib = 0;
+  const GEO_WEIGHT = 60;
+
+  let fakeTimer = null;
+  if (!total) {
+    // CDN 回 gzip 時無 Content-Length → 模擬平滑進度
+    fakeTimer = setInterval(() => {
+      const inc = Math.min((GEO_WEIGHT - geoContrib) * 0.03, GEO_WEIGHT - geoContrib - 1);
+      if (inc > 0.1) { addProgress(inc, '下載地圖資料…'); geoContrib += inc; }
+    }, 180);
+  }
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    if (total) {
+      const contrib = (received / total) * GEO_WEIGHT;
+      const delta = contrib - geoContrib;
+      if (delta > 0) { addProgress(delta, '下載地圖資料…'); geoContrib = contrib; }
+    }
+  }
+
+  if (fakeTimer) clearInterval(fakeTimer);
+  const remaining = GEO_WEIGHT - geoContrib;
+  if (remaining > 0) addProgress(remaining, '處理地圖資料…');
+
+  // Uint8Array 合併 → JSON
+  const totalBytes = chunks.reduce((s, c) => s + c.length, 0);
+  const buf = new Uint8Array(totalBytes);
+  let off = 0;
+  for (const c of chunks) { buf.set(c, off); off += c.length; }
+  const text = new TextDecoder().decode(buf);
+  const json = JSON.parse(text);
+
+  // 存入快取（下次瞬間讀取）
+  cache.put(url, new Response(text, { headers: { 'Content-Type': 'application/json' } }));
+  return json;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
   authDomain: "taiwan-ramen-association.firebaseapp.com",
@@ -315,14 +425,17 @@ auth.onAuthStateChanged(async user => {
 
 // ===== 主載入 =====
 async function loadAll(uid) {
+  _prog = 0;
+  setProgress(0, '初始化中…');
   try {
     const [shopsRes, visitsSnap, geoRes, districtsRes] = await Promise.all([
-      fetch('data/data.json').then(r => r.json()),
-      db.collection('userVisits').doc(uid).get(),
-      fetch('https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twTown2010.geo.json')
-        .then(r => { if (!r.ok) throw new Error('2010 not found'); return r.json(); })
-        .catch(() => fetch('https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twTown1982.geo.json').then(r => r.json())),
-      fetch('data/districts.json').then(r => r.json()),
+      fetch('data/data.json').then(r => r.json())
+        .then(d => { addProgress(10, '店家資料已載入'); return d; }),
+      db.collection('userVisits').doc(uid).get()
+        .then(d => { addProgress(20, '踩點記錄已載入'); return d; }),
+      fetchGeoJSON(),
+      fetch('data/districts.json').then(r => r.json())
+        .then(d => { addProgress(5, '地區資料已載入'); return d; }),
     ]);
     initDistrictSets(districtsRes);
 
@@ -395,13 +508,19 @@ async function loadAll(uid) {
       document.getElementById('statFull').textContent  = stats.fullTowns + '/' + totalTownsWithShops;
     });
 
-    document.getElementById('loadingMsg').style.display  = 'none';
-    document.getElementById('statsBar').style.display    = 'flex';
-    document.getElementById('mapWrap').style.display     = 'block';
-    document.getElementById('legendBox').style.display   = 'flex';
+    setProgress(100, '完成！');
+    const ldMsg = document.getElementById('loadingMsg');
+    ldMsg.classList.add('fade-out');
+    setTimeout(() => {
+      ldMsg.style.display = 'none';
+      document.getElementById('statsBar').style.display  = 'flex';
+      document.getElementById('mapWrap').style.display   = 'block';
+      document.getElementById('legendBox').style.display = 'flex';
+    }, 300);
 
   } catch (e) {
-    document.getElementById('loadingMsg').textContent = '地圖載入失敗：' + e.message;
+    const ldMsg = document.getElementById('loadingMsg');
+    ldMsg.innerHTML = `<div class="ld-wrap"><div class="ld-icon">⚠️</div><div class="ld-label" style="color:var(--red)">地圖載入失敗</div><div class="ld-text">${e.message}</div></div>`;
     console.error(e);
   }
 }

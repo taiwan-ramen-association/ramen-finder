@@ -81,8 +81,6 @@
   body.dark .link-fb { background: #101830; color: #7090d8; }
   body.dark .member-badge { background: #201a04; color: #c8a030; border-color: #604810; }
   body.dark .birthday-badge { background: #200e18; color: #e06090; border-color: #501830; }
-  body.dark .locate-btn.located { background: #0e1828; color: #6090d8; border-color: #2040a0; }
-  body.dark .dist-badge { background: #0e1828; color: #6090d8; }
   body.dark .sm-option:hover:not(.selected) { background: #281010; }
   body.dark .sm-option.selected { background: #2e1010; }
   body.dark .sm-slider-wrap { background: #2a1010; }
@@ -269,66 +267,221 @@
   }
   .btn-google:hover { background: #f5f5f5; }
 
-  /* ── FILTER BAR ── */
+  /* ── FILTER BAR (compact trigger strip) ── */
   .filter-bar {
     background: var(--white);
     border-bottom: 1px solid var(--line);
-    padding: 12px 14px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
   }
-  .search-box { position: relative; margin-bottom: 10px; }
-  .search-box input {
-    width: 100%;
-    border: 1.5px solid var(--line);
-    border-radius: 8px;
-    padding: 9px 14px 9px 38px;
-    font-size: 15px;
+  .sf-trigger {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer;
+    transition: border-color 0.15s; min-width: 0;
+  }
+  .sf-trigger:hover { border-color: var(--red); }
+  .sf-trigger-icon { font-size: 15px; flex-shrink: 0; }
+  .sf-trigger-text {
+    flex: 1; font-size: 14px; color: var(--stone);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-family: 'Noto Sans TC', sans-serif;
-    background: var(--paper); color: var(--ink);
-    outline: none; transition: border-color 0.2s;
   }
-  .search-box input:focus { border-color: var(--red); }
-  .search-box::before {
-    content: "🔍"; position: absolute;
-    left: 11px; top: 50%; transform: translateY(-50%);
+  .sf-trigger-text.has-query { color: var(--ink); }
+  .sf-badge {
+    flex-shrink: 0; background: var(--red); color: #fff;
+    font-size: 11px; font-weight: 700; border-radius: 10px;
+    padding: 1px 6px; line-height: 1.4;
+  }
+  .sf-count {
+    flex-shrink: 0; font-size: 12px; color: var(--stone);
+    white-space: nowrap;
+  }
+  .sf-count strong { color: var(--red); font-weight: 700; font-size: 14px; }
+  .dist-badge {
+    font-size: 11px; color: #1a73e8; background: #edf3ff;
+    border-radius: 10px; padding: 1px 7px; font-weight: 500;
+  }
+
+  /* ── SF MODAL ── */
+  .sf-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 600;
+  }
+  .sf-modal {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 601;
+    background: var(--white); border-radius: 20px 20px 0 0;
+    display: flex; flex-direction: column;
+    max-height: 92vh;
+    transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sf-modal.open { transform: translateY(0); }
+  .sf-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px 12px; border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .sf-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .sf-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: var(--line); color: var(--stone);
+    font-size: 13px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .sf-body {
+    flex: 1; overflow-y: auto; padding: 14px 0 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* search inside modal */
+  .sf-search-wrap {
+    position: relative; margin: 0 16px 14px;
+  }
+  .sf-search-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
     font-size: 15px; pointer-events: none;
   }
-
-  .filter-row { display: flex; gap: 8px; }
-  .filter-group { flex: 1; min-width: 0; }
-  .filter-group label {
-    display: block; font-size: 10px; color: var(--stone);
-    font-weight: 500; letter-spacing: 0.5px; margin-bottom: 3px;
-    text-transform: uppercase;
-  }
-  .filter-group select {
-    width: 100%;
-    border: 1.5px solid var(--line); border-radius: 6px;
-    padding: 7px 22px 7px 7px;
-    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
+  .sf-search-input {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 9px 14px 9px 36px; font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif;
     background: var(--paper); color: var(--ink);
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 7px center;
-    cursor: pointer; outline: none; transition: border-color 0.2s;
+    outline: none; transition: border-color 0.2s; box-sizing: border-box;
   }
-  .filter-group select:focus { border-color: var(--red); }
+  .sf-search-input:focus { border-color: var(--red); }
 
-  /* ── RESULT BAR ── */
-  .result-bar {
-    padding: 9px 14px; font-size: 12px; color: var(--stone);
+  /* quick row: 現在營業中 | 附近 | 距離 */
+  .sf-quick-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px 14px; border-bottom: 1px solid var(--line);
+  }
+  .sf-quick-btn {
+    flex: 1; padding: 7px 6px; border: 1.5px solid var(--line);
+    border-radius: 8px; background: var(--paper); color: var(--stone);
+    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    font-weight: 500;
+  }
+  .sf-quick-btn.active { border-color: var(--red); color: var(--red); background: #fff0f0; font-weight: 600; }
+  .sf-quick-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
+  .sf-dist-select {
+    flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 7px 6px; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper); color: var(--ink);
+    cursor: pointer; outline: none; appearance: none;
+    text-align: center;
+  }
+  .sf-dist-select:disabled { opacity: 0.4; cursor: default; }
+  .sf-dist-select:not(:disabled) { border-color: #1a73e8; color: #1a73e8; }
+
+  /* label | chips-scroll rows */
+  .sf-row {
+    display: flex; align-items: center; gap: 0;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .sf-row-label {
+    flex-shrink: 0; width: 52px; padding: 0 0 0 16px;
+    font-size: 12px; color: var(--stone); font-weight: 500;
+  }
+  .sf-chips-scroll {
+    flex: 1; display: flex; gap: 6px;
+    overflow-x: auto; padding: 2px 16px 2px 8px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .sf-chips-scroll::-webkit-scrollbar { display: none; }
+  .sf-chip {
+    flex-shrink: 0; padding: 5px 12px;
+    border: 1.5px solid var(--line); border-radius: 20px;
+    background: var(--paper); color: var(--stone);
+    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer; transition: all 0.12s; white-space: nowrap;
+  }
+  .sf-chip.active {
+    border-color: var(--red); background: var(--red);
+    color: #fff; font-weight: 600;
+  }
+
+  /* 用餐時間 */
+  .sf-time-wrap {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 16px 0 8px;
+  }
+  .sf-time-input {
+    border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--ink); background: var(--paper);
+    outline: none; transition: border-color 0.2s;
+  }
+  .sf-time-input:focus { border-color: var(--red); }
+  .sf-time-clear {
+    border: none; background: none; color: var(--stone);
+    font-size: 14px; cursor: pointer; padding: 4px;
+  }
+
+  /* 其他設定 (collapsible) */
+  .sf-other-wrap { padding: 0; }
+  .sf-other-header {
     display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid var(--line); background: var(--white);
-    flex-wrap: wrap; row-gap: 6px;
+    padding: 12px 16px; cursor: pointer;
   }
-  @media (max-width: 540px) {
-    .result-bar > div:first-child { flex: 1 1 100%; }
-    .result-actions { width: 100%; justify-content: flex-end; }
-  }
-  .result-bar strong { color: var(--red); font-weight: 700; font-size: 15px; }
-  .clear-btn {
-    border: none; background: none; color: var(--red);
+  .sf-other-header span { font-size: 12px; color: var(--stone); font-weight: 500; }
+  .sf-expand-btn {
+    border: none; background: none; color: var(--stone);
     font-size: 12px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; text-decoration: underline;
+    font-family: 'Noto Sans TC', sans-serif; padding: 0;
+  }
+  .sf-other-body {
+    display: none; padding: 4px 16px 8px;
+    border-top: 1px solid var(--line);
+  }
+  .sf-other-body.open { display: block; }
+  .sf-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; cursor: pointer;
+    font-size: 13px; color: var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+  .sf-toggle-row:last-child { border-bottom: none; }
+
+  /* iOS-style toggle switch */
+  .ios-sw {
+    position: relative; display: inline-block;
+    width: 44px; height: 26px; flex-shrink: 0;
+  }
+  .ios-sw input { display: none; }
+  .ios-knob {
+    position: absolute; inset: 0;
+    background: #ccc; border-radius: 13px;
+    transition: background 0.2s;
+  }
+  .ios-knob::before {
+    content: ''; position: absolute;
+    width: 22px; height: 22px; left: 2px; top: 2px;
+    background: #fff; border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .ios-sw input:checked + .ios-knob { background: #34c759; }
+  .ios-sw input:checked + .ios-knob::before { transform: translateX(18px); }
+
+  /* footer */
+  .sf-footer {
+    display: flex; gap: 10px; padding: 12px 16px;
+    border-top: 1px solid var(--line); flex-shrink: 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .sf-clear-btn {
+    flex: 1; padding: 11px; border: 1.5px solid var(--line);
+    border-radius: 10px; background: var(--paper); color: var(--stone);
+    font-size: 14px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+  }
+  .sf-apply-btn {
+    flex: 2; padding: 11px; border: none;
+    border-radius: 10px; background: var(--red); color: #fff;
+    font-size: 14px; font-weight: 600;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
   }
 
   /* ── CARDS ── */
@@ -773,6 +926,8 @@
   body.finder-hidden .rv-modal,
   body.finder-hidden #mnuBackdrop,
   body.finder-hidden #mnuModal,
+  body.finder-hidden .sf-backdrop,
+  body.finder-hidden .sf-modal,
   /* reviews-page modals */
   body.reviews-hidden .rk-backdrop,
   body.reviews-hidden .rk-modal { display: none !important; }
@@ -909,34 +1064,24 @@
 
     #mainContent.mc-show {
       display: grid;
-      grid-template-columns: 300px 1fr;
+      grid-template-columns: 1fr;
       grid-template-rows: auto 1fr;
-      /* top/bottom already fixed by .page-layer, height fills automatically */
       overflow: hidden;
     }
 
-    /* Filter bar → left sidebar */
+    /* Filter bar → top strip (full width) */
     .filter-bar {
-      grid-column: 1;
-      grid-row: 1 / span 2;
-      border-right: 1px solid var(--line);
-      border-bottom: none;
-      overflow-y: auto;
-      padding: 18px 16px;
-    }
-    .search-box { margin-bottom: 14px; }
-    .filter-row { flex-direction: column; gap: 12px; }
-    .filter-group select { font-size: 13px; padding: 8px 24px 8px 10px; }
-
-    /* Result bar → top of right panel */
-    .result-bar {
-      grid-column: 2;
+      grid-column: 1 / span 2;
       grid-row: 1;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      overflow-y: visible;
+      padding: 8px 16px;
     }
 
-    /* Card list → scrollable right panel */
+    /* Card list → scrollable (full width) */
     .card-list {
-      grid-column: 2;
+      grid-column: 1 / span 2;
       grid-row: 2;
       overflow-y: auto;
       padding: 10px 14px 20px;
@@ -944,27 +1089,27 @@
 
     /* Map → same grid cell as card list */
     #mapContainer {
-      grid-column: 2;
+      grid-column: 1 / span 2;
       grid-row: 2;
+    }
+
+    /* sf-modal on desktop: centered card */
+    .sf-modal {
+      left: 50%; right: auto;
+      top: 50%; bottom: auto;
+      transform: translate(-50%, -30%);
+      width: 480px; border-radius: 16px;
+      max-height: 80vh;
+      opacity: 0; transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .sf-modal.open {
+      transform: translate(-50%, -50%);
+      opacity: 1;
     }
 
     .rf-list-inner { max-width: 680px; margin: 0 auto; }
     .rf-feed-title { font-size: 19px; }
     #pageReviews { padding: 20px 24px 80px; }
-  }
-
-  /* ── LOCATE ── */
-  .locate-btn, .now-open-btn, .non-active-btn {
-    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
-    border-radius: 7px; padding: 5px 10px; font-size: 13px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
-  }
-  .locate-btn.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
-  .now-open-btn.active { border-color: #2d7a2d; color: #2d7a2d; background: var(--open-bg); font-weight: 500; }
-  .non-active-btn.active { border-color: #7a4a2d; color: #7a4a2d; background: #fff3ed; font-weight: 500; }
-  .dist-badge {
-    font-size: 11px; color: #1a73e8; background: #edf3ff;
-    border-radius: 10px; padding: 1px 7px; font-weight: 500;
   }
 
   /* ── HEADER extras ── */
@@ -1112,16 +1257,8 @@
   .drawer-item:active { background: var(--paper); }
   .drawer-item.active { color: var(--red); font-weight: 500; }
 
-  /* ── VIEW TOGGLE ── */
-  .result-actions { display: flex; gap: 8px; align-items: center; }
-  .view-toggle-btn {
-    border: 1.5px solid var(--line); background: var(--paper); color: var(--stone);
-    border-radius: 7px; padding: 5px 11px; font-size: 13px; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; transition: all 0.15s; white-space: nowrap;
-  }
-  .view-toggle-btn:active { background: var(--line); }
 
-  /* ── FAV BUTTON ── */
+/* ── FAV BUTTON ── */
   .fav-btn {
     border: none; background: none; cursor: pointer;
     font-size: 18px; padding: 0 2px; line-height: 1;
@@ -1295,7 +1432,6 @@
 
   /* ── FAV MODE ── */
   #mainContent.fav-mode .filter-bar { display: none; }
-  #mainContent.fav-mode #nonActiveBtn { display: none !important; }
 
   /* ── BOTTOM NAV ── */
   .bottom-nav {
@@ -1540,45 +1676,16 @@
 
 <div id="mainContent" class="page-layer">
   <div class="filter-bar">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
+    <div class="sf-trigger" id="sfTrigger">
+      <span class="sf-trigger-icon">🔍</span>
+      <span class="sf-trigger-text" id="sfTriggerText">搜尋店名、地址、派系…</span>
+      <span class="sf-badge" id="sfBadge" style="display:none">0</span>
     </div>
-    <div class="filter-row">
-      <div class="filter-group">
-        <label>縣市</label>
-        <select id="cityFilter"><option value="">全部縣市</option></select>
-      </div>
-      <div class="filter-group">
-        <label>營業日</label>
-        <select id="dayFilter">
-          <option value="">全部</option>
-          <option value="一">週一</option>
-          <option value="二">週二</option>
-          <option value="三">週三</option>
-          <option value="四">週四</option>
-          <option value="五">週五</option>
-          <option value="六">週六</option>
-          <option value="日">週日</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>營業時間</label>
-        <select id="timeFilter"><option value="">不限時間</option></select>
-      </div>
-    </div>
+    <div class="sf-count">共 <strong id="resultCount">0</strong> 間</div>
   </div>
 
-  <div class="result-bar">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">共 <strong id="resultCount">0</strong> 間店家<button class="non-active-btn" id="nonActiveBtn" style="display:none">👻 顯示非現存店家</button></div>
-    <div class="result-actions">
-      <button class="now-open-btn" id="nowOpenBtn">🟢 現在營業中</button>
-      <button class="locate-btn" id="locateBtn">📍 定位</button>
-      <button class="view-toggle-btn" id="viewToggleBtn">🗺 地圖</button>
-      <button class="clear-btn" id="clearBtn">清除篩選</button>
-    </div>
-  </div>
 
-  <div class="card-list" id="cardList"></div>
+<div class="card-list" id="cardList"></div>
   <div id="mapContainer"></div>
 </div><!-- end #mainContent -->
 
@@ -1869,8 +1976,13 @@ let ALL_DATA         = [];
 let NON_ACTIVE_DATA  = [];
 let serverDate       = new Date();
 let serverTimeOffset = 0;
-let selectedDay      = '';
+let selectedDays     = new Set();   // multi-select days
+let selectedCities   = new Set();   // multi-select cities
+let selectedTypes    = new Set();   // multi-select types
+let mealTime         = '';          // HH:MM string
 let isNowOpen        = false;
+let locEnabled       = false;       // GPS locate enabled
+let locRadius        = 0;           // meters, 0 = 不限
 let showFavOnly      = false;
 let showNonActive    = false;
 let _filtered        = [];
@@ -1908,19 +2020,6 @@ let userAccCircle = null;
 let watchId      = null;
 let followMode   = false;
 
-// ── Build time options (00:00 ~ 23:30, step 30min) ────────────────────────
-function buildTimeOptions() {
-  const sel = document.getElementById('timeFilter');
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const label = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      const opt = document.createElement('option');
-      opt.value = label; opt.textContent = label;
-      sel.appendChild(opt);
-    }
-  }
-}
-buildTimeOptions();
 
 // ── Load ───────────────────────────────────────────────────────────────────
 async function loadData() {
@@ -1944,7 +2043,7 @@ async function loadData() {
     ALL_DATA        = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] === '營業中');
     NON_ACTIVE_DATA = rows.filter(r => r['店名'] && r['店名'].trim() && r['營業狀態'] !== '營業中');
 
-    // City dropdown — 自訂排序
+    // City chips — 自訂排序
     const CITY_ORDER = [
       '臺北市','新北市','桃園市','臺中市','臺南市','高雄市',
       '基隆市','新竹市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣',
@@ -1956,11 +2055,35 @@ async function loadData() {
       ...CITY_ORDER.filter(c => citySet.has(c)),
       ...[...citySet].filter(c => !CITY_ORDER.includes(c)).sort()
     ];
-    const sel = document.getElementById('cityFilter');
-    sel.innerHTML = '<option value="">全部縣市</option>';
+    const cityChipsEl = document.getElementById('sfCityChips');
     cities.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c; o.textContent = c; sel.appendChild(o);
+      const btn = document.createElement('button');
+      btn.className = 'sf-chip';
+      btn.textContent = c;
+      btn.dataset.city = c;
+      btn.addEventListener('click', () => btn.classList.toggle('active'));
+      cityChipsEl.appendChild(btn);
+    });
+
+    // Type chips — from data 類型 field
+    const typeCount = {};
+    ALL_DATA.forEach(s => {
+      (s['類型'] || '').split(',').forEach(t => {
+        t = t.trim();
+        if (t) typeCount[t] = (typeCount[t] || 0) + 1;
+      });
+    });
+    const typesSorted = Object.entries(typeCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t]) => t);
+    const typeChipsEl = document.getElementById('sfTypeChips');
+    typesSorted.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'sf-chip';
+      btn.textContent = t;
+      btn.dataset.type = t;
+      btn.addEventListener('click', () => btn.classList.toggle('active'));
+      typeChipsEl.appendChild(btn);
     });
 
     document.getElementById('loadingScreen').style.display = 'none';
@@ -2080,30 +2203,44 @@ function formatDayStr(shop) {
 }
 
 function getFiltered() {
-  const query   = document.getElementById('searchInput').value.trim().toLowerCase();
-  const city    = document.getElementById('cityFilter').value;
-  const timeVal = document.getElementById('timeFilter').value;
-  selectedDay   = document.getElementById('dayFilter').value;
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
   const source = showNonActive ? [...ALL_DATA, ...NON_ACTIVE_DATA] : ALL_DATA;
   const result = source.filter(shop => {
     if (showFavOnly && !favSet.has(shop['ID'])) return false;
-    if (city && shop['縣市'] !== city) return false;
+
+    // 地區（多選 OR）
+    if (selectedCities.size && !selectedCities.has(shop['縣市'])) return false;
+
+    // 類型（多選 OR）
+    if (selectedTypes.size) {
+      const shopTypes = (shop['類型'] || '').split(',').map(t => t.trim()).filter(Boolean);
+      if (!shopTypes.some(t => selectedTypes.has(t))) return false;
+    }
+
+    // 附近距離過濾
+    if (locEnabled && locRadius > 0 && userLat !== null) {
+      const d = shopDist(shop);
+      if (d === null || d * 1000 > locRadius) return false;
+    }
 
     if (!showNonActive) {
-      if (selectedDay) {
-        if (!shop['週' + selectedDay]) return false;
+      // 營業日（多選 OR：任一選中日有開）
+      if (selectedDays.size) {
+        if (!ALL_DAYS.some(d => selectedDays.has(d) && shop['週' + d])) return false;
       }
 
-      if (timeVal) {
-        const mins = toMins(timeVal);
+      // 用餐時間
+      if (mealTime) {
+        const mins = toMins(mealTime);
         if (mins === null) return false;
-        if (selectedDay) {
-          if (!isOpenAt(shop['週' + selectedDay], mins)) return false;
+        if (selectedDays.size) {
+          // 任一選中日在該時間有開
+          if (![...selectedDays].some(d => isOpenAt(shop['週' + d], mins))) return false;
         } else {
-          const hasWeekData = ALL_DAYS.some(d => shop['週'+d]);
+          const hasWeekData = ALL_DAYS.some(d => shop['週' + d]);
           const open = hasWeekData
-            ? ALL_DAYS.some(d => isOpenAt(shop['週'+d], mins))
+            ? ALL_DAYS.some(d => isOpenAt(shop['週' + d], mins))
             : isOpenAt(shop['營業時段'], mins);
           if (!open) return false;
         }
@@ -2111,7 +2248,7 @@ function getFiltered() {
     }
 
     if (query) {
-      const newOpenQuery  = query === 'new open'   || query === '新開幕';
+      const newOpenQuery  = query === 'new open'    || query === '新開幕';
       const memberQuery   = query === 'member shop' || query === '會員';
       const birthdayQuery = query === '本月壽星';
       if (newOpenQuery) {
@@ -2132,7 +2269,7 @@ function getFiltered() {
   result.sort((a, b) => {
     const diff = sortScore(a) - sortScore(b);
     if (diff !== 0) return diff;
-    if (userLat !== null) return (shopDist(a) ?? Infinity) - (shopDist(b) ?? Infinity);
+    if (locEnabled && userLat !== null) return (shopDist(a) ?? Infinity) - (shopDist(b) ?? Infinity);
     return 0;
   });
   return result;
@@ -2184,14 +2321,20 @@ function fitLocate() {
 }
 
 function locateUser() {
-  const btn = document.getElementById('locateBtn');
-  if (userLat !== null) {
+  const btn     = document.getElementById('sfLocateBtn');
+  const distSel = document.getElementById('sfDistSelect');
+  if (!btn) return;
+
+  if (locEnabled && userLat !== null) {
+    // Toggle off
+    locEnabled = false;
     userLat = userLng = null;
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; followMode = false; }
     if (userMarker    && leafletMap) { leafletMap.removeLayer(userMarker);    userMarker    = null; }
     if (userAccCircle && leafletMap) { leafletMap.removeLayer(userAccCircle); userAccCircle = null; }
-    btn.textContent = '📍 定位';
-    btn.classList.remove('located');
+    btn.textContent = '📍 附近';
+    btn.classList.remove('active', 'located');
+    if (distSel) distSel.disabled = true;
     render();
     return;
   }
@@ -2199,23 +2342,30 @@ function locateUser() {
   btn.textContent = '⏳ 定位中…';
   btn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
+    locEnabled = true;
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
-    btn.textContent = '📍 已定位';
+    locRadius = distSel && distSel.value ? parseInt(distSel.value) : 1000;
+    btn.textContent = '📍 附近';
     btn.classList.add('located');
     btn.disabled = false;
+    if (distSel) {
+      distSel.disabled = false;
+      if (!distSel.value) distSel.value = '1000';
+    }
     if (leafletMap) { showUserMarker(pos.coords.accuracy); fitLocate(); }
     render();
   }, () => {
-    btn.textContent = '📍 定位';
+    btn.textContent = '📍 附近';
     btn.disabled = false;
-    alert('無法取得位置，請確認已允許定位權限');
+    showToast('無法取得位置，請確認已允許定位權限');
   });
 }
 
 function toggleNowOpen() {
   isNowOpen = !isNowOpen;
-  document.getElementById('nowOpenBtn').classList.toggle('active', isNowOpen);
+  const btn = document.getElementById('sfNowOpen');
+  if (btn) btn.classList.toggle('active', isNowOpen);
   if (isNowOpen) {
     const now = serverNow();
     const DAY_NAMES = ['日','一','二','三','四','五','六'];
@@ -2223,13 +2373,28 @@ function toggleNowOpen() {
     const rounded = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30) * 30;
     const hh = String(Math.floor(rounded / 60)).padStart(2, '0');
     const mm = String(rounded % 60).padStart(2, '0');
-    document.getElementById('dayFilter').value  = day;
-    document.getElementById('timeFilter').value = `${hh}:${mm}`;
+    // Set selectedDays to current day only; set mealTime
+    selectedDays.clear();
+    selectedDays.add(day);
+    mealTime = `${hh}:${mm}`;
+    // Sync UI
+    document.querySelectorAll('#sfDayChips .sf-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.day === day);
+    });
+    const mt = document.getElementById('sfMealTime');
+    if (mt) { mt.value = mealTime; mt.disabled = true; }
+    document.querySelectorAll('#sfDayChips .sf-chip').forEach(c => c.disabled = true);
   } else {
-    document.getElementById('dayFilter').value  = '';
-    document.getElementById('timeFilter').value = '';
+    selectedDays.clear();
+    mealTime = '';
+    document.querySelectorAll('#sfDayChips .sf-chip').forEach(c => {
+      c.classList.remove('active');
+      c.disabled = false;
+    });
+    const mt = document.getElementById('sfMealTime');
+    if (mt) { mt.value = ''; mt.disabled = false; }
   }
-  render();
+  // Don't call render() here — only on sfApply
 }
 
 function toggleFollow() {
@@ -2250,8 +2415,8 @@ function toggleFollow() {
     watchId = navigator.geolocation.watchPosition(pos => {
       userLat = pos.coords.latitude;
       userLng = pos.coords.longitude;
-      document.getElementById('locateBtn').textContent = '📍 已定位';
-      document.getElementById('locateBtn').classList.add('located');
+      const sfLb = document.getElementById('sfLocateBtn');
+      if (sfLb) { sfLb.textContent = '📍 附近'; sfLb.classList.add('located'); }
       showUserMarker(pos.coords.accuracy);
       if (followMode && leafletMap) {
         if (firstFix) { fitLocate(); firstFix = false; }
@@ -2271,9 +2436,11 @@ function toggleFollow() {
 // ── Map ────────────────────────────────────────────────────────────────────
 function switchView(v) {
   currentView = v;
-  document.getElementById('viewToggleBtn').textContent = v === 'list' ? '🗺 地圖' : '☰ 清單';
   document.getElementById('cardList').style.display     = v === 'list' ? '' : 'none';
   document.getElementById('mapContainer').style.display = v === 'map'  ? 'block' : 'none';
+  // Sync the iOS toggle in sf-modal
+  const sfShowMap = document.getElementById('sfShowMap');
+  if (sfShowMap) sfShowMap.checked = (v === 'map');
   if (v === 'map' && !leafletMap) initMap();
   render();
 }
@@ -2305,8 +2472,9 @@ function initMap() {
           btn.disabled = false;
           showUserMarker(pos.coords.accuracy);
           fitLocate();
-          const lb = document.getElementById('locateBtn');
-          if (lb) { lb.textContent = '📍 已定位'; lb.classList.add('located'); }
+          const sfLb = document.getElementById('sfLocateBtn');
+          if (sfLb) { sfLb.textContent = '📍 附近'; sfLb.classList.add('located'); }
+          locEnabled = true;
           render();
         }, () => {
           btn.style.opacity = '';
@@ -2618,46 +2786,194 @@ function _bindCardEvents(scope) {
   });
 }
 
-// ── Event listeners ────────────────────────────────────────────────────────
-document.getElementById('searchInput').addEventListener('input', render);
-document.getElementById('cityFilter').addEventListener('change', render);
-document.getElementById('timeFilter').addEventListener('change', () => {
-  if (showNonActive) { showNonActive = false; document.getElementById('nonActiveBtn').classList.remove('active'); }
+// ── Search Filter Modal ─────────────────────────────────────────────────────
+function openSfModal() {
+  syncSfModal();
+  document.getElementById('sfModal').classList.add('open');
+  document.getElementById('sfBackdrop').style.display = 'block';
+  const inp = document.getElementById('searchInput');
+  if (inp) setTimeout(() => inp.focus(), 100);
+}
+
+function closeSfModal() {
+  document.getElementById('sfModal').classList.remove('open');
+  document.getElementById('sfBackdrop').style.display = 'none';
+}
+
+function syncSfModal() {
+  // Cities
+  document.querySelectorAll('#sfCityChips .sf-chip').forEach(btn =>
+    btn.classList.toggle('active', selectedCities.has(btn.dataset.city))
+  );
+  // Types
+  document.querySelectorAll('#sfTypeChips .sf-chip').forEach(btn =>
+    btn.classList.toggle('active', selectedTypes.has(btn.dataset.type))
+  );
+  // Days
+  document.querySelectorAll('#sfDayChips .sf-chip').forEach(btn => {
+    btn.classList.toggle('active', selectedDays.has(btn.dataset.day));
+    btn.disabled = isNowOpen;
+  });
+  // Meal time
+  const mt = document.getElementById('sfMealTime');
+  if (mt) { mt.value = mealTime; mt.disabled = isNowOpen; }
+  const mtClear = document.getElementById('sfMealTimeClear');
+  if (mtClear) mtClear.style.display = mealTime && !isNowOpen ? '' : 'none';
+  // Now open
+  const nowOpenBtn = document.getElementById('sfNowOpen');
+  if (nowOpenBtn) nowOpenBtn.classList.toggle('active', isNowOpen);
+  // Locate
+  const locBtn = document.getElementById('sfLocateBtn');
+  if (locBtn) {
+    locBtn.classList.toggle('located', locEnabled && userLat !== null);
+    locBtn.classList.toggle('active', locEnabled && userLat !== null);
+  }
+  const distSel = document.getElementById('sfDistSelect');
+  if (distSel) {
+    distSel.disabled = !(locEnabled && userLat !== null);
+    distSel.value = locRadius ? String(locRadius) : '';
+  }
+  // Other settings
+  const sfNonActive = document.getElementById('sfShowNonActive');
+  if (sfNonActive) sfNonActive.checked = showNonActive;
+  const sfMap = document.getElementById('sfShowMap');
+  if (sfMap) sfMap.checked = (currentView === 'map');
+}
+
+function applySfFilters() {
+  // Collect cities
+  selectedCities.clear();
+  document.querySelectorAll('#sfCityChips .sf-chip.active').forEach(btn =>
+    selectedCities.add(btn.dataset.city)
+  );
+  // Collect types
+  selectedTypes.clear();
+  document.querySelectorAll('#sfTypeChips .sf-chip.active').forEach(btn =>
+    selectedTypes.add(btn.dataset.type)
+  );
+  // Collect days (only if not nowOpen — nowOpen already set selectedDays)
+  if (!isNowOpen) {
+    selectedDays.clear();
+    document.querySelectorAll('#sfDayChips .sf-chip.active').forEach(btn =>
+      selectedDays.add(btn.dataset.day)
+    );
+    // Meal time
+    const mt = document.getElementById('sfMealTime');
+    mealTime = mt ? mt.value : '';
+  }
+  // locRadius
+  const distSel = document.getElementById('sfDistSelect');
+  if (distSel && locEnabled) locRadius = distSel.value ? parseInt(distSel.value) : 0;
+  // Non-active
+  const sfNonActive = document.getElementById('sfShowNonActive');
+  if (sfNonActive) {
+    showNonActive = sfNonActive.checked;
+    if (showNonActive) { selectedDays.clear(); mealTime = ''; isNowOpen = false; }
+  }
+  // Map view
+  const sfMap = document.getElementById('sfShowMap');
+  if (sfMap) {
+    const wantMap = sfMap.checked;
+    if (wantMap && currentView !== 'map') switchView('map');
+    else if (!wantMap && currentView !== 'list') switchView('list');
+  }
+  updateSfTrigger();
+  closeSfModal();
   render();
-});
-document.getElementById('dayFilter').addEventListener('change', () => {
-  if (showNonActive) { showNonActive = false; document.getElementById('nonActiveBtn').classList.remove('active'); }
-  render();
-});
-document.getElementById('viewToggleBtn').addEventListener('click', () => switchView(currentView === 'list' ? 'map' : 'list'));
-document.getElementById('locateBtn').addEventListener('click', locateUser);
-document.getElementById('nowOpenBtn').addEventListener('click', toggleNowOpen);
-document.getElementById('retryBtn').addEventListener('click', loadData);
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('cityFilter').value  = '';
-  document.getElementById('timeFilter').value  = '';
-  document.getElementById('dayFilter').value   = '';
+}
+
+function clearSfFilters() {
+  selectedCities.clear();
+  selectedTypes.clear();
+  selectedDays.clear();
+  mealTime = '';
   isNowOpen = false;
-  showFavOnly = false;
   showNonActive = false;
-  document.getElementById('nowOpenBtn').classList.remove('active');
-  document.getElementById('nonActiveBtn').classList.remove('active');
-  document.getElementById('mainContent').classList.remove('fav-mode');
-  if (_currentPage === 'favorites') switchPage('finder');
+  showFavOnly   = false;
+  document.querySelectorAll('.sf-chip.active').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#sfDayChips .sf-chip').forEach(c => { c.disabled = false; });
+  const mt = document.getElementById('sfMealTime');
+  if (mt) { mt.value = ''; mt.disabled = false; }
+  const mtClear = document.getElementById('sfMealTimeClear');
+  if (mtClear) mtClear.style.display = 'none';
+  const nowOpenBtn = document.getElementById('sfNowOpen');
+  if (nowOpenBtn) nowOpenBtn.classList.remove('active');
+  const sfNonActive = document.getElementById('sfShowNonActive');
+  if (sfNonActive) sfNonActive.checked = false;
+  const inp = document.getElementById('searchInput');
+  if (inp) inp.value = '';
+  // keep locEnabled/locRadius/GPS state
+  updateSfTrigger();
+}
+
+function updateSfTrigger() {
+  let count = 0;
+  if (selectedCities.size)  count++;
+  if (selectedTypes.size)   count++;
+  if (selectedDays.size)    count++;
+  if (mealTime)             count++;
+  if (isNowOpen)            count++;
+  if (locEnabled && userLat !== null) count++;
+  if (showNonActive)        count++;
+  const query = (document.getElementById('searchInput') || {}).value || '';
+  if (query.trim()) count++;
+
+  const badge      = document.getElementById('sfBadge');
+  const trigText   = document.getElementById('sfTriggerText');
+
+  if (count > 0) {
+    if (badge)    { badge.textContent = count; badge.style.display = ''; }
+    if (trigText) { trigText.textContent = query.trim() || '已設定篩選條件'; trigText.classList.add('has-query'); }
+  } else {
+    if (badge)    badge.style.display = 'none';
+    if (trigText) { trigText.textContent = '搜尋店名、地址、派系…'; trigText.classList.remove('has-query'); }
+  }
+}
+
+// ── Event listeners ────────────────────────────────────────────────────────
+document.getElementById('retryBtn').addEventListener('click', loadData);
+// sf-modal open/close
+document.getElementById('sfTrigger').addEventListener('click', openSfModal);
+document.getElementById('sfBackdrop').addEventListener('click', closeSfModal);
+document.getElementById('sfClose').addEventListener('click', closeSfModal);
+document.getElementById('sfApplyBtn').addEventListener('click', applySfFilters);
+document.getElementById('sfClearBtn').addEventListener('click', clearSfFilters);
+
+// search input — live filter as user types (inside modal)
+document.getElementById('searchInput').addEventListener('input', () => {
+  updateSfTrigger();
   render();
 });
 
-document.getElementById('nonActiveBtn').addEventListener('click', () => {
-  if (!canUse('nonActiveShops')) { showAccessToast(); return; }
-  showNonActive = !showNonActive;
-  document.getElementById('nonActiveBtn').classList.toggle('active', showNonActive);
-  if (showNonActive) {
-    document.getElementById('timeFilter').value = '';
-    document.getElementById('dayFilter').value  = '';
-  }
-  render();
+// Now open
+document.getElementById('sfNowOpen').addEventListener('click', toggleNowOpen);
+
+// Locate
+document.getElementById('sfLocateBtn').addEventListener('click', locateUser);
+document.getElementById('sfDistSelect').addEventListener('change', e => {
+  locRadius = e.target.value ? parseInt(e.target.value) : 0;
+  if (locEnabled && userLat !== null) render();
 });
+
+// Meal time clear
+document.getElementById('sfMealTimeClear').addEventListener('click', () => {
+  mealTime = '';
+  document.getElementById('sfMealTime').value = '';
+  document.getElementById('sfMealTimeClear').style.display = 'none';
+});
+document.getElementById('sfMealTime').addEventListener('change', e => {
+  mealTime = e.target.value;
+  document.getElementById('sfMealTimeClear').style.display = mealTime ? '' : 'none';
+});
+
+// 其他設定 expand/collapse
+document.getElementById('sfExpandBtn').addEventListener('click', () => {
+  const body = document.getElementById('sfOtherBody');
+  const btn  = document.getElementById('sfExpandBtn');
+  const open = body.classList.toggle('open');
+  btn.textContent = open ? '收起 ▴' : '展開 ▾';
+});
+document.getElementById('sfOtherBody').addEventListener('click', e => e.stopPropagation());
 
 document.getElementById('hamburgerBtn').addEventListener('click', () => {
   const drawer   = document.getElementById('drawer');
@@ -3985,9 +4301,9 @@ document.getElementById('smResetBtn').addEventListener('click', async () => {
 
 // ── applyFeatureFlags ───────────────────────────────────────────────────────
 function applyFeatureFlags() {
-  // 非現存店家按鈕
-  const nonActiveBtn = document.getElementById('nonActiveBtn');
-  if (nonActiveBtn) nonActiveBtn.style.display = canView('nonActiveShops') ? '' : 'none';
+  // 非現存店家設定（sf-modal 內）
+  const sfNonActiveRow = document.querySelector('.sf-toggle-row:has(#sfShowNonActive)');
+  if (sfNonActiveRow) sfNonActiveRow.style.display = canView('nonActiveShops') ? '' : 'none';
 
   // 收藏按鈕（bottom nav）
   const bnavFavorites = document.getElementById('bnavFavorites');
@@ -5314,5 +5630,90 @@ document.getElementById('bnavTop').addEventListener('click', () => {
   }
 });
 </script>
+
+<!-- ── Search Filter Modal ─────────────────────────────────────────────── -->
+<div class="sf-backdrop" id="sfBackdrop"></div>
+<div class="sf-modal" id="sfModal">
+  <div class="sf-header">
+    <span class="sf-title">篩選條件</span>
+    <button class="sf-close" id="sfClose">✕</button>
+  </div>
+  <div class="sf-body">
+
+    <div class="sf-search-wrap">
+      <span class="sf-search-icon">🔍</span>
+      <input type="text" id="searchInput" class="sf-search-input" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
+    </div>
+
+    <div class="sf-quick-row">
+      <button class="sf-quick-btn" id="sfNowOpen">🟢 現在營業中</button>
+      <button class="sf-quick-btn" id="sfLocateBtn">📍 附近</button>
+      <select class="sf-dist-select" id="sfDistSelect" disabled>
+        <option value="">不限</option>
+        <option value="200">200m</option>
+        <option value="500">500m</option>
+        <option value="1000" selected>1km</option>
+        <option value="2000">2km</option>
+        <option value="5000">5km</option>
+        <option value="10000">10km</option>
+        <option value="20000">20km</option>
+        <option value="50000">50km</option>
+      </select>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">地區</div>
+      <div class="sf-chips-scroll" id="sfCityChips"></div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">類型</div>
+      <div class="sf-chips-scroll" id="sfTypeChips"></div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">營業日</div>
+      <div class="sf-chips-scroll" id="sfDayChips">
+        <button class="sf-chip" data-day="一">週一</button>
+        <button class="sf-chip" data-day="二">週二</button>
+        <button class="sf-chip" data-day="三">週三</button>
+        <button class="sf-chip" data-day="四">週四</button>
+        <button class="sf-chip" data-day="五">週五</button>
+        <button class="sf-chip" data-day="六">週六</button>
+        <button class="sf-chip" data-day="日">週日</button>
+      </div>
+    </div>
+
+    <div class="sf-row">
+      <div class="sf-row-label">用餐時間</div>
+      <div class="sf-time-wrap">
+        <input type="time" id="sfMealTime" class="sf-time-input">
+        <button class="sf-time-clear" id="sfMealTimeClear" style="display:none">✕</button>
+      </div>
+    </div>
+
+    <div class="sf-other-wrap">
+      <div class="sf-other-header">
+        <span>其他設定</span>
+        <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
+      </div>
+      <div class="sf-other-body" id="sfOtherBody">
+        <label class="sf-toggle-row">
+          <span>顯示非現存店家</span>
+          <span class="ios-sw"><input type="checkbox" id="sfShowNonActive"><span class="ios-knob"></span></span>
+        </label>
+        <label class="sf-toggle-row">
+          <span>以地圖顯示</span>
+          <span class="ios-sw"><input type="checkbox" id="sfShowMap"><span class="ios-knob"></span></span>
+        </label>
+      </div>
+    </div>
+
+  </div>
+  <div class="sf-footer">
+    <button class="sf-clear-btn" id="sfClearBtn">清除篩選</button>
+    <button class="sf-apply-btn" id="sfApplyBtn">套用</button>
+  </div>
+</div>
 </body>
 </html>
