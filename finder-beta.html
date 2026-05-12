@@ -309,11 +309,14 @@
     background: rgba(0,0,0,0.45); z-index: 600;
   }
   .sf-modal {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 601;
-    background: var(--white); border-radius: 20px 20px 0 0;
+    position: fixed; left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+    z-index: 601;
+    background: var(--white); border-radius: 20px;
     display: flex; flex-direction: column;
-    max-height: 92vh;
-    transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    max-height: calc(92vh - env(safe-area-inset-bottom, 0px) - 76px);
+    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 76px));
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
   }
   .sf-modal.open { transform: translateY(0); }
   .sf-header {
