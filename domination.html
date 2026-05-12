@@ -374,7 +374,7 @@ function renderMap(geo, shopsByTown, visits, townStats, cb) {
     .data(geo.features)
     .join('path')
     .attr('class', 'town-path')
-    .attr('d', path)
+    .attr('d', d => path(d) || '')
     .attr('fill', d => {
       const key = normGeo(d.properties.COUNTYNAME, d.properties.TOWNNAME);
       const { count, score, max, hasVisit, visitedCount } = townStats(key);
