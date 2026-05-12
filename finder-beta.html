@@ -5283,7 +5283,7 @@ function switchPage(page) {
 
 document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
 document.getElementById('bnavFavorites').addEventListener('click', () => {
-  if (!currentUser) { showAccessToast(); return; }
+  if (!auth.currentUser) { showAccessToast(); return; }
   switchPage(_currentPage === 'favorites' ? 'finder' : 'favorites');
 });
 document.getElementById('bnavPosts').addEventListener('click', () => {
