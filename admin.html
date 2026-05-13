@@ -441,6 +441,32 @@
   </div>
 </div>
 
+<div class="reports-card" id="queueLogsCard" style="display:none">
+  <h3>🚶 排隊回報紀錄</h3>
+  <p class="reports-desc">所有排隊回報紀錄（最新 200 筆）。刪除後同步移除即時排隊資料中的對應條目，但不回溯用戶信任分。</p>
+  <div class="reports-toolbar">
+    <span class="reports-count" id="queueLogsCount">載入中…</span>
+    <input type="text" id="queueLogsShopFilter" placeholder="依店家 ID 篩選…"
+      style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:180px">
+    <button class="reports-reload-btn" id="queueLogsReloadBtn">🔄 重新載入</button>
+  </div>
+  <table class="reports-table" id="queueLogsTable" style="display:none">
+    <thead>
+      <tr>
+        <th style="width:130px">時間</th>
+        <th style="width:120px">店家 ID</th>
+        <th style="width:110px">回報人 UID</th>
+        <th style="width:60px;text-align:center">人數</th>
+        <th style="width:50px;text-align:center">GPS</th>
+        <th style="width:50px;text-align:center">餐期</th>
+        <th style="width:52px"></th>
+      </tr>
+    </thead>
+    <tbody id="queueLogsTbody"></tbody>
+  </table>
+  <div class="reports-empty" id="queueLogsEmpty" style="display:none">目前沒有回報紀錄</div>
+</div>
+
 <div class="ff-card" id="ffCard" style="display:none">
   <h3>🔐 功能權限設定</h3>
   <p class="ff-desc">設定每個功能對不同身份的「顯示」與「使用」權限。階層：all &lt; viewer &lt; member &lt; director &lt; admin</p>
@@ -723,6 +749,7 @@ auth.onAuthStateChanged(async user => {
   loadUsers();
   loadQueueSettings();
   loadFeatureFlags();
+  loadQueueLogs();
   loadIssueReports();
   loadAdminReviews();
   loadAdminMenus();
@@ -1194,6 +1221,104 @@ document.getElementById('settingsSaveBtn').addEventListener('click', async () =>
 })();
 
 // ── 問題回報 ────────────────────────────────────────────────────
+// ── 排隊回報紀錄 ──────────────────────────────────────────────────────────────
+let _queueLogsAll = [];
+
+async function loadQueueLogs() {
+  const card  = document.getElementById('queueLogsCard');
+  const tbody = document.getElementById('queueLogsTbody');
+  const table = document.getElementById('queueLogsTable');
+  const empty = document.getElementById('queueLogsEmpty');
+  const count = document.getElementById('queueLogsCount');
+  card.style.display = '';
+  count.textContent = '載入中…';
+  tbody.innerHTML = '';
+  table.style.display = 'none';
+  empty.style.display = 'none';
+
+  try {
+    const snap = await db.collection('reportLogs').orderBy('ts', 'desc').limit(200).get();
+    _queueLogsAll = snap.docs;
+    _renderQueueLogs(_queueLogsAll);
+  } catch (e) {
+    count.textContent = '載入失敗';
+    showToast('❌ 載入失敗：' + e.message);
+  }
+}
+
+function _renderQueueLogs(docs) {
+  const tbody = document.getElementById('queueLogsTbody');
+  const table = document.getElementById('queueLogsTable');
+  const empty = document.getElementById('queueLogsEmpty');
+  const count = document.getElementById('queueLogsCount');
+
+  const filter = (document.getElementById('queueLogsShopFilter').value || '').trim().toLowerCase();
+  const filtered = filter ? docs.filter(d => (d.data().shopId || '').toLowerCase().includes(filter)) : docs;
+
+  count.textContent = `共 ${filtered.length} 筆${_queueLogsAll.length > filtered.length ? '（已篩選）' : '（最新 200）'}`;
+
+  if (!filtered.length) {
+    table.style.display = 'none';
+    empty.style.display = '';
+    return;
+  }
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(doc => {
+    const d   = doc.data();
+    const ts  = d.ts ? new Date(d.ts).toLocaleString('zh-TW', { hour12: false }) : '─';
+    const uid = d.uid ? d.uid.slice(0, 8) + '…' : '─';
+    const gps  = d.gpsConfirmed ? '✅' : '─';
+    const meal = d.mealHour     ? '✅' : '─';
+    return `
+      <tr>
+        <td style="white-space:nowrap;font-size:11px;color:var(--stone)">${ts}</td>
+        <td><span class="report-shop">${d.shopId || '─'}</span></td>
+        <td style="font-size:11px;color:var(--stone)">${uid}</td>
+        <td style="text-align:center;font-weight:700">${d.count ?? '─'}</td>
+        <td style="text-align:center">${gps}</td>
+        <td style="text-align:center">${meal}</td>
+        <td><button class="report-del-btn"
+              data-docid="${doc.id}"
+              data-shopid="${d.shopId || ''}"
+              data-uid="${d.uid || ''}"
+              data-ts="${d.ts || ''}">刪除</button></td>
+      </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.report-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('確定刪除此筆回報？\n同時會從即時排隊資料中移除對應條目。')) return;
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        const { docid, shopid, uid, ts } = btn.dataset;
+        await db.collection('reportLogs').doc(docid).delete();
+        if (shopid) {
+          const qRef = db.collection('queues').doc(shopid);
+          await db.runTransaction(async tx => {
+            const snap = await tx.get(qRef);
+            if (!snap.exists) return;
+            const entries = (snap.data().entries || []).filter(
+              e => !(e.uid === uid && String(e.ts) === String(ts))
+            );
+            tx.update(qRef, { entries });
+          });
+        }
+        _queueLogsAll = _queueLogsAll.filter(d => d.id !== docid);
+        _renderQueueLogs(_queueLogsAll);
+        showToast('✓ 已刪除');
+      } catch (e) {
+        showToast('❌ 刪除失敗：' + e.message);
+        btn.disabled = false; btn.textContent = '刪除';
+      }
+    });
+  });
+}
+
+document.getElementById('queueLogsReloadBtn').addEventListener('click', loadQueueLogs);
+document.getElementById('queueLogsShopFilter').addEventListener('input', () => _renderQueueLogs(_queueLogsAll));
+
 async function loadIssueReports() {
   const card  = document.getElementById('reportsCard');
   const tbody = document.getElementById('reportsTbody');
