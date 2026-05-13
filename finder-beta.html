@@ -1562,6 +1562,94 @@
   #pvImg.pv-enter-left  { animation: pvSlideInLeft  0.22s ease; }
   .rv-date-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--paper); color: var(--ink); outline: none; box-sizing: border-box; transition: border-color 0.2s; }
   .rv-date-input:focus { border-color: var(--red); }
+
+  /* ── Fullscreen Modals (Privacy / Onboarding) ── */
+  .fullscreen-modal {
+    position: fixed; inset: 0; z-index: 3000;
+    background: rgba(0,0,0,0.65);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .fullscreen-modal.open { display: flex; }
+  .fmod-card {
+    background: var(--white); border-radius: 20px;
+    width: 100%; max-width: 440px;
+    display: flex; flex-direction: column;
+    max-height: calc(100dvh - 40px); overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  }
+  .fmod-header {
+    padding: 24px 24px 16px; border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .fmod-title { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0; }
+  .fmod-subtitle { font-size: 13px; color: var(--stone); margin: 4px 0 0; }
+  .fmod-scroll {
+    flex: 1; overflow-y: auto; padding: 16px 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .fmod-section { margin-bottom: 16px; }
+  .fmod-section:last-child { margin-bottom: 0; }
+  .fmod-section-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .fmod-section p { font-size: 13px; color: var(--stone); margin: 0; line-height: 1.6; }
+  .fmod-footer {
+    padding: 16px 24px 20px; border-top: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .fmod-google-btn {
+    width: 100%; padding: 13px 16px;
+    background: var(--red); color: #fff; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: opacity 0.15s;
+  }
+  .fmod-google-btn:active { opacity: 0.82; }
+  .fmod-skip {
+    font-size: 13px; color: var(--stone); cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  /* Onboarding slides */
+  .fmod-slides-wrap { position: relative; overflow: hidden; flex: 1; }
+  .fmod-slide {
+    display: none; padding: 28px 24px 16px;
+    flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  }
+  .fmod-slide.active { display: flex; }
+  .fmod-slide-icon { font-size: 48px; line-height: 1; }
+  .fmod-slide-title { font-size: 18px; font-weight: 800; color: var(--ink); }
+  .fmod-slide-desc { font-size: 14px; color: var(--stone); line-height: 1.7; max-width: 320px; }
+  .fmod-dots {
+    display: flex; justify-content: center; gap: 7px;
+    padding: 4px 0 16px; flex-shrink: 0;
+  }
+  .fmod-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--line); transition: background 0.2s, width 0.2s;
+  }
+  .fmod-dot.active { background: var(--red); width: 20px; border-radius: 4px; }
+  .fmod-nav-row {
+    padding: 0 24px 24px; display: flex; flex-direction: column;
+    align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .fmod-next-btn {
+    width: 100%; padding: 13px 16px;
+    background: var(--ink); color: #fff; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
+  }
+  .fmod-next-btn:active { opacity: 0.82; }
+  .fmod-confirm-btn {
+    width: 100%; padding: 13px 16px;
+    background: var(--red); color: #fff; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
+    display: none;
+  }
+  .fmod-confirm-btn:active { opacity: 0.82; }
+  body.dark .fmod-card { background: #1e1c18; }
+  body.dark .fmod-next-btn { background: rgba(255,255,255,0.12); }
 </style>
 </head>
 <body class="reviews-hidden challenges-hidden">
@@ -2055,6 +2143,85 @@
   <div class="sf-footer">
     <button class="sf-clear-btn" id="sfClearBtn">清除篩選</button>
     <button class="sf-apply-btn" id="sfApplyBtn">套用</button>
+  </div>
+</div>
+
+<!-- ── Privacy Modal ──────────────────────────────────────────────────────── -->
+<div class="fullscreen-modal" id="privacyModal">
+  <div class="fmod-card">
+    <div class="fmod-header">
+      <p class="fmod-title">登入前請詳閱說明</p>
+      <p class="fmod-subtitle">請確認您同意以下事項後再繼續</p>
+    </div>
+    <div class="fmod-scroll">
+      <div class="fmod-section">
+        <p class="fmod-section-title">帳號連結用途</p>
+        <p>您的 Google 帳號僅用於識別身份，我們記錄您的顯示名稱及 Email，用於提供收藏、踩點等個人化服務。</p>
+      </div>
+      <div class="fmod-section">
+        <p class="fmod-section-title">個資蒐集聲明</p>
+        <p>我們蒐集您在本站的踩點紀錄、收藏清單及評論，不會販售或提供予第三方。</p>
+      </div>
+      <div class="fmod-section">
+        <p class="fmod-section-title">資料存放</p>
+        <p>個人資料存放於安全的雲端環境，不會在您的裝置以外留存明文資料。</p>
+      </div>
+      <div class="fmod-section">
+        <p class="fmod-section-title">退出與刪除</p>
+        <p>您可隨時登出。如需刪除帳號資料，請聯繫台灣拉麵協會。</p>
+      </div>
+    </div>
+    <div class="fmod-footer">
+      <button class="fmod-google-btn" id="privacyGoogleBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57C21.36 18.5 22.56 15.68 22.56 12.25z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 帳號登入
+      </button>
+      <span class="fmod-skip" id="privacySkipBtn">先不登入</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Onboarding Modal ────────────────────────────────────────────────────── -->
+<div class="fullscreen-modal" id="onboardingModal">
+  <div class="fmod-card">
+    <div class="fmod-slides-wrap">
+      <div class="fmod-slide active" data-slide="0">
+        <div class="fmod-slide-icon">🍜</div>
+        <p class="fmod-slide-title">歡迎加入台灣拉麵協會</p>
+        <p class="fmod-slide-desc">全台 800+ 間拉麵店，一個搜尋器，全部找得到。</p>
+      </div>
+      <div class="fmod-slide" data-slide="1">
+        <div class="fmod-slide-icon">🔍</div>
+        <p class="fmod-slide-title">搜尋與篩選</p>
+        <p class="fmod-slide-desc">點擊頂部搜尋欄，可依地區、類型、營業日、距離等條件篩選店家。</p>
+      </div>
+      <div class="fmod-slide" data-slide="2">
+        <div class="fmod-slide-icon">♥</div>
+        <p class="fmod-slide-title">收藏與踩點</p>
+        <p class="fmod-slide-desc">♥ 收藏喜愛的店，📍 踩點記錄你去過的每一間，累積你的拉麵足跡。</p>
+      </div>
+      <div class="fmod-slide" data-slide="3">
+        <div class="fmod-slide-icon">📝</div>
+        <p class="fmod-slide-title">評論與照片</p>
+        <p class="fmod-slide-desc">展開店家卡片，切換至評論 tab 可留下評分、文字與照片。</p>
+      </div>
+      <div class="fmod-slide" data-slide="4">
+        <div class="fmod-slide-icon">🗺️</div>
+        <p class="fmod-slide-title">制霸地圖</p>
+        <p class="fmod-slide-desc">踩點後可到制霸地圖，看你走過了全台幾個鄉鎮，挑戰制霸全台！</p>
+      </div>
+    </div>
+    <div class="fmod-dots" id="onboardingDots">
+      <span class="fmod-dot active"></span>
+      <span class="fmod-dot"></span>
+      <span class="fmod-dot"></span>
+      <span class="fmod-dot"></span>
+      <span class="fmod-dot"></span>
+    </div>
+    <div class="fmod-nav-row">
+      <button class="fmod-next-btn" id="onboardingNextBtn">下一步 →</button>
+      <button class="fmod-confirm-btn" id="onboardingConfirmBtn">確認，開始探索！</button>
+    </div>
   </div>
 </div>
 
@@ -2807,6 +2974,8 @@ function _bindCardEvents(scope) {
   scope.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
       if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.write-review-btn') || e.target.closest('.review-del-btn') || e.target.closest('.review-photo-thumb') || e.target.closest('.review-load-more') || e.target.closest('.review-comment-form') || e.target.closest('.review-comments-more') || e.target.closest('.card-tab') || e.target.closest('.mnu-thumb') || e.target.closest('.mnu-del-btn')) return;
+      // 已展開時點 card-detail 內部不縮起
+      if (card.classList.contains('expanded') && e.target.closest('.card-detail')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
       card.classList.toggle('expanded');
       expandedCard = card.classList.contains('expanded') ? card : null;
@@ -3003,23 +3172,37 @@ function clearSfFilters() {
 }
 
 function updateSfTrigger() {
+  const badge    = document.getElementById('sfBadge');
+  const trigText = document.getElementById('sfTriggerText');
+  const query    = (document.getElementById('searchInput') || {}).value?.trim() || '';
+
+  // 展示用 tag 列表（純顯示，不影響篩選邏輯）
+  const tags = [];
+  if (query)                            tags.push(query);
+  if (isNowOpen)                        tags.push('現在營業中');
+  if (selectedCities.size)             [...selectedCities].forEach(c => tags.push(c));
+  if (selectedTypes.size)              [...selectedTypes].forEach(t => tags.push(t));
+  if (selectedDays.size && !isNowOpen) {
+    const sorted = ALL_DAYS.filter(d => selectedDays.has(d));
+    tags.push('週' + sorted.join(''));
+  }
+  if (mealTime && !isNowOpen)           tags.push(mealTime);
+  if (locEnabled && userLat !== null)   tags.push('📍' + (locRadius >= 1000 ? locRadius/1000+'km' : locRadius+'m'));
+  if (showNonActive)                    tags.push('含非現存');
+
+  // badge 用條件組數
   let count = 0;
-  if (selectedCities.size)  count++;
-  if (selectedTypes.size)   count++;
-  if (selectedDays.size)    count++;
-  if (mealTime)             count++;
-  if (isNowOpen)            count++;
-  if (locEnabled && userLat !== null) count++;
-  if (showNonActive)        count++;
-  const query = (document.getElementById('searchInput') || {}).value || '';
-  if (query.trim()) count++;
+  if (query)                            count++;
+  if (isNowOpen)                        count++;
+  else { if (selectedDays.size) count++; if (mealTime) count++; }
+  if (selectedCities.size)             count++;
+  if (selectedTypes.size)              count++;
+  if (locEnabled && userLat !== null)  count++;
+  if (showNonActive)                   count++;
 
-  const badge      = document.getElementById('sfBadge');
-  const trigText   = document.getElementById('sfTriggerText');
-
-  if (count > 0) {
+  if (tags.length) {
     if (badge)    { badge.textContent = count; badge.style.display = ''; }
-    if (trigText) { trigText.textContent = query.trim() || '已設定篩選條件'; trigText.classList.add('has-query'); }
+    if (trigText) { trigText.textContent = tags.join(' · '); trigText.classList.add('has-query'); }
   } else {
     if (badge)    badge.style.display = 'none';
     if (trigText) { trigText.textContent = '搜尋店名、地址、派系…'; trigText.classList.remove('has-query'); }
@@ -3071,6 +3254,13 @@ document.getElementById('sfMealTimeClear').addEventListener('click', () => {
   mealTime = '';
   document.getElementById('sfMealTime').value = '';
   document.getElementById('sfMealTimeClear').style.display = 'none';
+});
+document.getElementById('sfMealTime').addEventListener('focus', e => {
+  if (!e.target.value) {
+    const now = serverNow();
+    e.target.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('sfMealTimeClear').style.display = '';
+  }
 });
 document.getElementById('sfMealTime').addEventListener('change', e => {
   mealTime = e.target.value;
@@ -4675,12 +4865,7 @@ function showBetaGate(msg, showLogin = false) {
   document.getElementById('mainContent').classList.remove('mc-show');
 }
 
-document.getElementById('betaLoginBtn').addEventListener('click', () => {
-  auth.signInWithPopup(provider).catch(err => {
-    if (err.code === 'auth/popup-blocked') auth.signInWithRedirect(provider);
-    else if (err.code !== 'auth/popup-closed-by-user') console.error(err);
-  });
-});
+document.getElementById('betaLoginBtn').addEventListener('click', () => openPrivacyModal());
 
 auth.onAuthStateChanged(async user => {
   try {
@@ -4778,6 +4963,7 @@ auth.onAuthStateChanged(async user => {
       applyFeatureFlags();
       render();
       checkUnreadBadge();
+      if (!localStorage.getItem('onboarding_done')) openOnboardingModal();
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
@@ -4819,8 +5005,15 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
-// ── Login ──────────────────────────────────────────────────────────────────
-loginBtn.addEventListener('click', () => {
+// ── Privacy Modal ──────────────────────────────────────────────────────────
+function openPrivacyModal() {
+  document.getElementById('privacyModal').classList.add('open');
+}
+function closePrivacyModal() {
+  document.getElementById('privacyModal').classList.remove('open');
+}
+function doGoogleSignIn() {
+  closePrivacyModal();
   auth.signInWithPopup(provider).catch(err => {
     if (err.code === 'auth/popup-blocked') {
       auth.signInWithRedirect(provider).catch(e => console.error('redirect 登入失敗', e));
@@ -4828,7 +5021,43 @@ loginBtn.addEventListener('click', () => {
       console.error('登入失敗', err);
     }
   });
+}
+document.getElementById('privacyGoogleBtn').addEventListener('click', doGoogleSignIn);
+document.getElementById('privacySkipBtn').addEventListener('click', closePrivacyModal);
+
+// ── Onboarding Modal ───────────────────────────────────────────────────────
+const ONBOARDING_SLIDES = 5;
+let _obSlide = 0;
+
+function openOnboardingModal() {
+  _obSlide = 0;
+  _obGotoSlide(0);
+  document.getElementById('onboardingModal').classList.add('open');
+}
+function closeOnboardingModal() {
+  document.getElementById('onboardingModal').classList.remove('open');
+}
+function _obGotoSlide(n) {
+  document.querySelectorAll('.fmod-slide').forEach((s, i) =>
+    s.classList.toggle('active', i === n)
+  );
+  document.querySelectorAll('#onboardingDots .fmod-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === n)
+  );
+  const isLast = n === ONBOARDING_SLIDES - 1;
+  document.getElementById('onboardingNextBtn').style.display    = isLast ? 'none' : '';
+  document.getElementById('onboardingConfirmBtn').style.display = isLast ? '' : 'none';
+}
+document.getElementById('onboardingNextBtn').addEventListener('click', () => {
+  if (_obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
 });
+document.getElementById('onboardingConfirmBtn').addEventListener('click', () => {
+  localStorage.setItem('onboarding_done', '1');
+  closeOnboardingModal();
+});
+
+// ── Login ──────────────────────────────────────────────────────────────────
+loginBtn.addEventListener('click', () => openPrivacyModal());
 auth.getRedirectResult().catch(err => {
   if (err.code && err.code !== 'auth/no-auth-event') {
     console.error('redirect 登入失敗', err);
