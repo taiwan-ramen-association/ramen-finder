@@ -1422,7 +1422,20 @@
   .map-ctrl-group { display: flex; flex-direction: column; gap: 6px; }
 
   /* ── MAP ── */
-  #mapContainer { display: none; height: calc(100dvh - 270px); min-height: 300px; }
+  #mapContainer { display: none; height: calc(100dvh - 270px); min-height: 300px; position: relative; }
+  /* map-mode: 全頁地圖（filter-bar保留，result count隱藏，map撐高） */
+  #mainContent.map-mode .sf-count { display: none; }
+  #mainContent.map-mode #mapContainer {
+    height: calc(100svh - 54px - env(safe-area-inset-bottom, 0px) - 76px);
+  }
+  .map-back-btn {
+    position: absolute; top: 10px; right: 10px; z-index: 500;
+    background: #fff; border: 1px solid rgba(0,0,0,0.15); border-radius: 10px;
+    padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none;
+  }
+  body.dark .map-back-btn { background: #1e1c18; color: var(--ink); border-color: rgba(255,255,255,0.15); }
   .leaflet-popup-content-wrapper { border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; }
   .leaflet-popup-content { margin: 12px 14px; }
   .map-popup-name { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
@@ -1693,7 +1706,9 @@
 
 
 <div class="card-list" id="cardList"></div>
-  <div id="mapContainer"></div>
+  <div id="mapContainer">
+    <button class="map-back-btn" id="mapBackBtn">☰ 清單</button>
+  </div>
 </div><!-- end #mainContent -->
 
 <div id="pageReviews" class="page-layer page-right">
@@ -2528,12 +2543,17 @@ function toggleFollow() {
 // ── Map ────────────────────────────────────────────────────────────────────
 function switchView(v) {
   currentView = v;
+  const mc = document.getElementById('mainContent');
+  mc.classList.toggle('map-mode', v === 'map');
   document.getElementById('cardList').style.display     = v === 'list' ? '' : 'none';
   document.getElementById('mapContainer').style.display = v === 'map'  ? 'block' : 'none';
+  const backBtn = document.getElementById('mapBackBtn');
+  if (backBtn) backBtn.style.display = v === 'map' ? 'block' : 'none';
   // Sync the iOS toggle in sf-modal
   const sfShowMap = document.getElementById('sfShowMap');
   if (sfShowMap) sfShowMap.checked = (v === 'map');
   if (v === 'map' && !leafletMap) initMap();
+  else if (v === 'map' && leafletMap) leafletMap.invalidateSize();
   render();
 }
 
@@ -3023,6 +3043,9 @@ function updateSfTrigger() {
 }
 
 // ── Event listeners ────────────────────────────────────────────────────────
+
+// map back button
+document.getElementById('mapBackBtn').addEventListener('click', () => switchView('list'));
 
 // sf-day chips: toggle active（static HTML，需手動掛 listener）
 document.querySelectorAll('#sfDayChips .sf-chip').forEach(btn => {
