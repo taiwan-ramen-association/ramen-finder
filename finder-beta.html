@@ -3022,6 +3022,16 @@ function updateSfTrigger() {
 }
 
 // ── Event listeners ────────────────────────────────────────────────────────
+
+// sf-chips-scroll: 滑鼠滾輪轉橫向捲動（桌面版）
+document.querySelectorAll('.sf-chips-scroll').forEach(el => {
+  el.addEventListener('wheel', e => {
+    if (e.deltaY === 0) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  }, { passive: false });
+});
+
 document.getElementById('retryBtn').addEventListener('click', loadData);
 // sf-modal open/close
 document.getElementById('sfTrigger').addEventListener('click', openSfModal);
