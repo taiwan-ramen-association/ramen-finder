@@ -374,7 +374,8 @@
     font-family: 'Noto Sans TC', sans-serif;
     background: var(--paper); color: var(--ink);
     cursor: pointer; outline: none; appearance: none;
-    text-align: center;
+    text-align: center; text-align-last: center;
+    line-height: 1.4; vertical-align: middle;
   }
   .sf-dist-select:disabled { opacity: 0.4; cursor: default; }
   .sf-dist-select:not(:disabled) { border-color: #1a73e8; color: #1a73e8; }
@@ -3022,6 +3023,11 @@ function updateSfTrigger() {
 }
 
 // ── Event listeners ────────────────────────────────────────────────────────
+
+// sf-day chips: toggle active（static HTML，需手動掛 listener）
+document.querySelectorAll('#sfDayChips .sf-chip').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('active'));
+});
 
 // sf-chips-scroll: 滑鼠滾輪轉橫向捲動（桌面版）
 document.querySelectorAll('.sf-chips-scroll').forEach(el => {
