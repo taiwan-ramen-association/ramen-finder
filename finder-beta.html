@@ -455,7 +455,7 @@
     position: relative; display: inline-block;
     width: 44px; height: 26px; flex-shrink: 0;
   }
-  .ios-sw input { display: none; }
+  .ios-sw input { opacity: 0; position: absolute; width: 0; height: 0; pointer-events: none; }
   .ios-knob {
     position: absolute; inset: 0;
     background: #ccc; border-radius: 13px;
@@ -1994,8 +1994,8 @@
         <option value="">不限</option>
         <option value="200">200m</option>
         <option value="500">500m</option>
-        <option value="1000" selected>1km</option>
-        <option value="2000">2km</option>
+        <option value="1000">1km</option>
+        <option value="2000" selected>2km</option>
         <option value="5000">5km</option>
         <option value="10000">10km</option>
         <option value="20000">20km</option>
@@ -2297,7 +2297,8 @@ function formatDayStr(shop) {
 function getFiltered() {
   const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
-  const source = showNonActive ? [...ALL_DATA, ...NON_ACTIVE_DATA] : ALL_DATA;
+  const nonActiveQuery = query === '非營業' || query === '非現存';
+  const source = (showNonActive || nonActiveQuery) ? [...ALL_DATA, ...NON_ACTIVE_DATA] : ALL_DATA;
   const result = source.filter(shop => {
     if (showFavOnly && !favSet.has(shop['ID'])) return false;
 
@@ -2343,7 +2344,9 @@ function getFiltered() {
       const newOpenQuery  = query === 'new open'    || query === '新開幕';
       const memberQuery   = query === 'member shop' || query === '會員';
       const birthdayQuery = query === '本月壽星';
-      if (newOpenQuery) {
+      if (nonActiveQuery) {
+        if (shop['營業狀態'] === '營業中') return false;
+      } else if (newOpenQuery) {
         if (!isNewOpen(shop)) return false;
       } else if (memberQuery) {
         if (shop['會員'] !== 'Y') return false;
@@ -2437,13 +2440,13 @@ function locateUser() {
     locEnabled = true;
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
-    locRadius = distSel && distSel.value ? parseInt(distSel.value) : 1000;
+    locRadius = distSel && distSel.value ? parseInt(distSel.value) : 2000;
     btn.textContent = '📍 附近';
     btn.classList.add('located');
     btn.disabled = false;
     if (distSel) {
       distSel.disabled = false;
-      if (!distSel.value) distSel.value = '1000';
+      if (!distSel.value) distSel.value = '2000';
     }
     if (leafletMap) { showUserMarker(pos.coords.accuracy); fitLocate(); }
     render();
@@ -2963,15 +2966,16 @@ function applySfFilters() {
     if (showNonActive) { selectedDays.clear(); mealTime = ''; isNowOpen = false; }
   }
   // Map view
+  let viewSwitched = false;
   const sfMap = document.getElementById('sfShowMap');
   if (sfMap) {
     const wantMap = sfMap.checked;
-    if (wantMap && currentView !== 'map') switchView('map');
-    else if (!wantMap && currentView !== 'list') switchView('list');
+    if (wantMap && currentView !== 'map') { switchView('map'); viewSwitched = true; }
+    else if (!wantMap && currentView !== 'list') { switchView('list'); viewSwitched = true; }
   }
   updateSfTrigger();
   closeSfModal();
-  render();
+  if (!viewSwitched) render();
 }
 
 function clearSfFilters() {
@@ -5709,7 +5713,10 @@ function switchPage(page) {
   }
 }
 
-document.getElementById('bnavFinder').addEventListener('click', () => switchPage('finder'));
+document.getElementById('bnavFinder').addEventListener('click', () => {
+  if (_currentPage === 'finder') openSfModal();
+  else switchPage('finder');
+});
 document.getElementById('bnavFavorites').addEventListener('click', () => {
   if (!auth.currentUser) { showAccessToast(); return; }
   switchPage(_currentPage === 'favorites' ? 'finder' : 'favorites');
