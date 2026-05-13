@@ -317,8 +317,9 @@
     max-height: calc(92vh - env(safe-area-inset-bottom, 0px) - 76px);
     transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 76px));
     transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    pointer-events: none;
   }
-  .sf-modal.open { transform: translateY(0); }
+  .sf-modal.open { transform: translateY(0); pointer-events: auto; }
   .sf-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 18px 12px; border-bottom: 1px solid var(--line);
@@ -1104,10 +1105,12 @@
       width: 480px; border-radius: 16px;
       max-height: 80vh;
       opacity: 0; transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: none;
     }
     .sf-modal.open {
       transform: translate(-50%, -50%);
       opacity: 1;
+      pointer-events: auto;
     }
 
     .rf-list-inner { max-width: 680px; margin: 0 auto; }
