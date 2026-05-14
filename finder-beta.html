@@ -1611,12 +1611,15 @@
     text-decoration: underline; text-underline-offset: 2px;
   }
   /* Onboarding slides */
-  .fmod-slides-wrap { position: relative; overflow-y: auto; overflow-x: hidden; flex: 1; -webkit-overflow-scrolling: touch; }
+  .fmod-slides-wrap { position: relative; overflow: hidden; flex: 1; }
   .fmod-slide {
-    display: none; padding: 28px 24px 16px;
-    flex-direction: column; align-items: center; text-align: center; gap: 12px;
+    position: absolute; inset: 0;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 28px 24px 16px; box-sizing: border-box; gap: 12px;
+    transform: translateX(100%); pointer-events: none;
   }
-  .fmod-slide.active { display: flex; }
+  .fmod-slide.active { pointer-events: auto; }
   .fmod-slide-img { display: none; width: 100%; height: auto; border-radius: 12px; margin-top: 4px; }
   .fmod-slide-img[src]:not([src=""]) { display: block; }
   .fmod-slide-icon { font-size: 48px; line-height: 1; }
@@ -1706,7 +1709,7 @@
 
   <div class="pd-actions">
     <button class="pd-action" id="darkModeBtn">🌙 深色模式<span class="dark-toggle" id="darkToggle"></span></button>
-    <a class="pd-action" href="domination.html">🗾 制霸地圖</a>
+    <a class="pd-action" href="domination.html">🗺️ 制霸地圖</a>
     <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 後台管理</a>
     <button class="pd-action" id="clearDataBtn" style="color:#c00">🗑 清除我的所有記憶</button>
     <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
@@ -3341,8 +3344,21 @@ function bdToday() {
   return new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
 }
 
+// 壽星動畫完成偵測
+let _bdAnimating = false;
+const _bdDoneCbs = [];
+function _onBdAnimDone(cb) {
+  if (!_bdAnimating) { cb(); return; }
+  _bdDoneCbs.push(cb);
+}
+function _resolveBdAnim() {
+  _bdAnimating = false;
+  _bdDoneCbs.splice(0).forEach(cb => cb());
+}
+
 function launchFireworks(birthdayShops) {
   if (localStorage.getItem(BD_SKIP_KEY) === bdToday()) return;
+  _bdAnimating = true;
 
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:auto;';
@@ -3476,6 +3492,7 @@ function launchFireworks(birthdayShops) {
         setTimeout(() => el.remove(), 450);
       }
     });
+    setTimeout(_resolveBdAnim, 500);
   }
 
   function loop(ts) {
@@ -3541,7 +3558,7 @@ function launchFireworks(birthdayShops) {
       overlay.remove();
       canvas.style.transition = 'opacity 1s ease';
       canvas.style.opacity = '0';
-      setTimeout(() => canvas.remove(), 1100);
+      setTimeout(() => { canvas.remove(); _resolveBdAnim(); }, 1100);
     }
   }
   requestAnimationFrame(loop);
@@ -4986,7 +5003,7 @@ auth.onAuthStateChanged(async user => {
       applyFeatureFlags();
       render();
       checkUnreadBadge();
-      if (!localStorage.getItem('onboarding_done')) openOnboardingModal();
+      _onBdAnimDone(() => { if (!localStorage.getItem('onboarding_done')) openOnboardingModal(); });
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
@@ -5054,8 +5071,15 @@ let _obSlide = 0;
 let _obTimer = null;
 
 function openOnboardingModal() {
+  const slides = document.querySelectorAll('#onboardingModal .fmod-slide');
+  slides.forEach((s, i) => {
+    s.style.transition = 'none';
+    s.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100%)';
+    s.classList.toggle('active', i === 0);
+    s.scrollTop = 0;
+  });
   _obSlide = 0;
-  _obGotoSlide(0);
+  _obUpdateUI(0);
   document.getElementById('onboardingModal').classList.add('open');
 }
 function closeOnboardingModal() {
@@ -5067,43 +5091,74 @@ function _obStopTimer() {
 }
 function _obGotoSlide(n) {
   _obStopTimer();
-  document.getElementById('onboardingSlidesWrap').scrollTop = 0;
-  document.querySelectorAll('.fmod-slide').forEach((s, i) =>
-    s.classList.toggle('active', i === n)
-  );
+  const slides = document.querySelectorAll('#onboardingModal .fmod-slide');
+  const from = slides[_obSlide];
+  const to   = slides[n];
+  const dir  = n >= _obSlide ? 1 : -1;
+  _obSlide = n;
+
+  if (from !== to) {
+    to.style.transition = 'none';
+    to.style.transform  = `translateX(${dir > 0 ? '100%' : '-100%'})`;
+    to.scrollTop = 0;
+    to.offsetHeight; // reflow
+    const ease = 'transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94)';
+    from.style.transition = ease;
+    to.style.transition   = ease;
+    from.style.transform  = `translateX(${dir > 0 ? '-100%' : '100%'})`;
+    to.style.transform    = 'translateX(0)';
+    to.classList.add('active');
+    setTimeout(() => {
+      from.classList.remove('active');
+      from.style.transition = 'none';
+    }, 390);
+  }
+  _obUpdateUI(n);
+}
+function _obUpdateUI(n) {
+  const isLast  = n === ONBOARDING_SLIDES - 1;
+  const isFirst = n === 0;
   document.querySelectorAll('#onboardingDots .fmod-dot').forEach((d, i) =>
     d.classList.toggle('active', i === n)
   );
-  const isLast = n === ONBOARDING_SLIDES - 1;
-  const isFirst = n === 0;
-  document.getElementById('onboardingPrevBtn').disabled = isFirst;
-  document.getElementById('onboardingNextArrow').disabled = isLast;
+  document.getElementById('onboardingPrevBtn').disabled    = isFirst;
+  document.getElementById('onboardingNextArrow').disabled  = isLast;
   document.getElementById('onboardingConfirmBtn').style.display = isLast ? 'block' : 'none';
   if (!isLast) {
-    _obTimer = setTimeout(() => _obGotoSlide(++_obSlide), 5000);
+    _obTimer = setTimeout(() => _obGotoSlide(++_obSlide), 10000);
   }
 }
 
 // 左右箭頭
 document.getElementById('onboardingPrevBtn').addEventListener('click', () => {
-  if (_obSlide > 0) _obGotoSlide(--_obSlide);
+  if (_obSlide > 0) _obGotoSlide(_obSlide - 1);
 });
 document.getElementById('onboardingNextArrow').addEventListener('click', () => {
-  if (_obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
+  if (_obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(_obSlide + 1);
 });
 
-// 手機滑動
+// 手機左右滑動
 (function () {
   const wrap = document.getElementById('onboardingSlidesWrap');
-  let _tx = null;
-  wrap.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
-  wrap.addEventListener('touchend', e => {
+  let _tx = null, _ty = null, _locked = null;
+  wrap.addEventListener('touchstart', e => {
+    _tx = e.touches[0].clientX;
+    _ty = e.touches[0].clientY;
+    _locked = null;
+  }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
     if (_tx === null) return;
+    const dx = e.touches[0].clientX - _tx;
+    const dy = e.touches[0].clientY - _ty;
+    if (_locked === null) _locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (_tx === null || _locked !== 'h') { _tx = null; return; }
     const dx = e.changedTouches[0].clientX - _tx;
     _tx = null;
     if (Math.abs(dx) < 50) return;
-    if (dx < 0 && _obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
-    if (dx > 0 && _obSlide > 0) _obGotoSlide(--_obSlide);
+    if (dx < 0 && _obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(_obSlide + 1);
+    if (dx > 0 && _obSlide > 0) _obGotoSlide(_obSlide - 1);
   }, { passive: true });
 })();
 
