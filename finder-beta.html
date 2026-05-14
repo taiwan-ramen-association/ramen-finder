@@ -2371,6 +2371,7 @@ async function loadData() {
     render();
     const bdShops = ALL_DATA.filter(s => isBirthday(s)).map(s => s['店名']);
     if (bdShops.length) launchFireworks(bdShops);
+    _resolveDataLoaded();
   } catch(e) {
     console.error(e);
     document.getElementById('loadingScreen').style.display = 'none';
@@ -3342,6 +3343,18 @@ document.getElementById('resetBdSkipBtn').addEventListener('click', () => {
 // ── Fireworks ──────────────────────────────────────────────────────────────
 function bdToday() {
   return new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+}
+
+// 資料載入完成偵測（loadData 結束後才知道有沒有壽星）
+let _dataLoaded = false;
+const _dataLoadedCbs = [];
+function _onDataLoaded(cb) {
+  if (_dataLoaded) { cb(); return; }
+  _dataLoadedCbs.push(cb);
+}
+function _resolveDataLoaded() {
+  _dataLoaded = true;
+  _dataLoadedCbs.splice(0).forEach(cb => cb());
 }
 
 // 壽星動畫完成偵測
@@ -5003,7 +5016,7 @@ auth.onAuthStateChanged(async user => {
       applyFeatureFlags();
       render();
       checkUnreadBadge();
-      _onBdAnimDone(() => { if (!localStorage.getItem('onboarding_done')) openOnboardingModal(); });
+      _onDataLoaded(() => _onBdAnimDone(() => { if (!localStorage.getItem('onboarding_done')) openOnboardingModal(); }));
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
@@ -5125,7 +5138,7 @@ function _obUpdateUI(n) {
   document.getElementById('onboardingNextArrow').disabled  = isLast;
   document.getElementById('onboardingConfirmBtn').style.display = isLast ? 'block' : 'none';
   if (!isLast) {
-    _obTimer = setTimeout(() => _obGotoSlide(++_obSlide), 10000);
+    _obTimer = setTimeout(() => _obGotoSlide(_obSlide + 1), 10000);
   }
 }
 
