@@ -5045,8 +5045,8 @@ function _obGotoSlide(n) {
     d.classList.toggle('active', i === n)
   );
   const isLast = n === ONBOARDING_SLIDES - 1;
-  document.getElementById('onboardingNextBtn').style.display    = isLast ? 'none' : '';
-  document.getElementById('onboardingConfirmBtn').style.display = isLast ? '' : 'none';
+  document.getElementById('onboardingNextBtn').style.display    = isLast ? 'none' : 'block';
+  document.getElementById('onboardingConfirmBtn').style.display = isLast ? 'block' : 'none';
 }
 document.getElementById('onboardingNextBtn').addEventListener('click', () => {
   if (_obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
