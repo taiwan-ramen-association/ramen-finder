@@ -2217,9 +2217,16 @@
         <p class="fmod-slide-title">制霸地圖</p>
         <p class="fmod-slide-desc">踩點後可到制霸地圖，看你走過了全台幾個鄉鎮，挑戰制霸全台！</p>
       </div>
+      <div class="fmod-slide" data-slide="5">
+        <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2FIMG_2261.jpg?alt=media" alt="顯示名稱設定示意">
+        <div class="fmod-slide-icon"></div>
+        <p class="fmod-slide-title">設定你的顯示名稱</p>
+        <p class="fmod-slide-desc">點擊右上角頭像，可自訂在評論中顯示的頭像與暱稱。</p>
+      </div>
     </div>
     <div class="fmod-dots" id="onboardingDots">
       <span class="fmod-dot active"></span>
+      <span class="fmod-dot"></span>
       <span class="fmod-dot"></span>
       <span class="fmod-dot"></span>
       <span class="fmod-dot"></span>
@@ -5042,7 +5049,7 @@ document.getElementById('privacyGoogleBtn').addEventListener('click', doGoogleSi
 document.getElementById('privacySkipBtn').addEventListener('click', closePrivacyModal);
 
 // ── Onboarding Modal ───────────────────────────────────────────────────────
-const ONBOARDING_SLIDES = 5;
+const ONBOARDING_SLIDES = 6;
 let _obSlide = 0;
 
 function openOnboardingModal() {

@@ -13,5 +13,8 @@
   "firestore": {
     "rules": "ramen-finder-notes/firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "ramen-finder-notes/storage.rules"
   }
 }
