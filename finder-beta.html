@@ -1611,47 +1611,44 @@
     text-decoration: underline; text-underline-offset: 2px;
   }
   /* Onboarding slides */
-  .fmod-slides-wrap { position: relative; overflow: hidden; flex: 1; }
+  .fmod-slides-wrap { position: relative; overflow-y: auto; overflow-x: hidden; flex: 1; -webkit-overflow-scrolling: touch; }
   .fmod-slide {
     display: none; padding: 28px 24px 16px;
     flex-direction: column; align-items: center; text-align: center; gap: 12px;
   }
   .fmod-slide.active { display: flex; }
-  .fmod-slide-img { display: none; width: 100%; max-height: 200px; object-fit: contain; border-radius: 12px; margin-bottom: 4px; }
+  .fmod-slide-img { display: none; width: 100%; height: auto; border-radius: 12px; margin-top: 4px; }
   .fmod-slide-img[src]:not([src=""]) { display: block; }
   .fmod-slide-icon { font-size: 48px; line-height: 1; }
   .fmod-slide-title { font-size: 18px; font-weight: 800; color: var(--ink); }
   .fmod-slide-desc { font-size: 14px; color: var(--stone); line-height: 1.7; max-width: 320px; }
-  .fmod-dots {
-    display: flex; justify-content: center; gap: 7px;
-    padding: 4px 0 16px; flex-shrink: 0;
+  .fmod-nav-row {
+    padding: 10px 16px 4px; display: flex; flex-direction: row;
+    align-items: center; justify-content: center; gap: 12px; flex-shrink: 0;
   }
+  .fmod-dots { display: flex; justify-content: center; gap: 7px; }
   .fmod-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--line); transition: background 0.2s, width 0.2s;
   }
   .fmod-dot.active { background: var(--red); width: 20px; border-radius: 4px; }
-  .fmod-nav-row {
-    padding: 0 24px 24px; display: flex; flex-direction: column;
-    align-items: center; gap: 10px; flex-shrink: 0;
+  .fmod-arrow-btn {
+    width: 36px; height: 36px; background: none; border: none; cursor: pointer;
+    font-size: 26px; color: var(--ink); display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s; flex-shrink: 0;
   }
-  .fmod-next-btn {
-    width: 100%; padding: 13px 16px;
-    background: var(--ink); color: #fff; border: none; border-radius: 12px;
-    font-size: 15px; font-weight: 700; cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
-  }
-  .fmod-next-btn:active { opacity: 0.82; }
+  .fmod-arrow-btn:active { opacity: 0.5; }
+  .fmod-arrow-btn:disabled { opacity: 0.15; cursor: default; }
+  .fmod-confirm-wrap { padding: 8px 24px 24px; flex-shrink: 0; }
   .fmod-confirm-btn {
     width: 100%; padding: 13px 16px;
     background: var(--red); color: #fff; border: none; border-radius: 12px;
     font-size: 15px; font-weight: 700; cursor: pointer;
     font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
-    display: none;
   }
   .fmod-confirm-btn:active { opacity: 0.82; }
   body.dark .fmod-card { background: #1e1c18; }
-  body.dark .fmod-next-btn { background: rgba(255,255,255,0.12); }
+  body.dark .fmod-arrow-btn { color: rgba(255,255,255,0.8); }
 </style>
 </head>
 <body class="reviews-hidden challenges-hidden">
@@ -2186,55 +2183,58 @@
 <!-- ── Onboarding Modal ────────────────────────────────────────────────────── -->
 <div class="fullscreen-modal" id="onboardingModal">
   <div class="fmod-card">
-    <div class="fmod-slides-wrap">
+    <div class="fmod-slides-wrap" id="onboardingSlidesWrap">
       <div class="fmod-slide active" data-slide="0">
-        <img class="fmod-slide-img" src="" alt="">
         <div class="fmod-slide-icon">🍜</div>
         <p class="fmod-slide-title">歡迎加入台灣拉麵協會</p>
         <p class="fmod-slide-desc">全台 800+ 間拉麵店，一個搜尋器，全部找得到。</p>
+        <img class="fmod-slide-img" src="" alt="">
       </div>
       <div class="fmod-slide" data-slide="1">
-        <img class="fmod-slide-img" src="" alt="">
         <div class="fmod-slide-icon">🔍</div>
         <p class="fmod-slide-title">搜尋與篩選</p>
         <p class="fmod-slide-desc">點擊頂部搜尋欄，可依地區、類型、營業日、距離等條件篩選店家。</p>
+        <img class="fmod-slide-img" src="" alt="">
       </div>
       <div class="fmod-slide" data-slide="2">
-        <img class="fmod-slide-img" src="" alt="">
         <div class="fmod-slide-icon">♥</div>
         <p class="fmod-slide-title">收藏與踩點</p>
         <p class="fmod-slide-desc">♥ 收藏喜愛的店，📍 踩點記錄你去過的每一間，累積你的拉麵足跡。</p>
+        <img class="fmod-slide-img" src="" alt="">
       </div>
       <div class="fmod-slide" data-slide="3">
-        <img class="fmod-slide-img" src="" alt="">
         <div class="fmod-slide-icon">📝</div>
         <p class="fmod-slide-title">評論與照片</p>
         <p class="fmod-slide-desc">展開店家卡片，切換至評論 tab 可留下評分、文字與照片。</p>
+        <img class="fmod-slide-img" src="" alt="">
       </div>
       <div class="fmod-slide" data-slide="4">
-        <img class="fmod-slide-img" src="" alt="">
         <div class="fmod-slide-icon">🗺️</div>
         <p class="fmod-slide-title">制霸地圖</p>
         <p class="fmod-slide-desc">踩點後可到制霸地圖，看你走過了全台幾個鄉鎮，挑戰制霸全台！</p>
+        <img class="fmod-slide-img" src="" alt="">
       </div>
       <div class="fmod-slide" data-slide="5">
-        <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2FIMG_2261.jpg?alt=media" alt="顯示名稱設定示意">
-        <div class="fmod-slide-icon"></div>
+        <div class="fmod-slide-icon">👤</div>
         <p class="fmod-slide-title">設定你的顯示名稱</p>
         <p class="fmod-slide-desc">點擊右上角頭像，可自訂在評論中顯示的頭像與暱稱。</p>
+        <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2FIMG_2261.jpg?alt=media" alt="顯示名稱設定示意">
       </div>
     </div>
-    <div class="fmod-dots" id="onboardingDots">
-      <span class="fmod-dot active"></span>
-      <span class="fmod-dot"></span>
-      <span class="fmod-dot"></span>
-      <span class="fmod-dot"></span>
-      <span class="fmod-dot"></span>
-      <span class="fmod-dot"></span>
-    </div>
     <div class="fmod-nav-row">
-      <button class="fmod-next-btn" id="onboardingNextBtn">下一步 →</button>
-      <button class="fmod-confirm-btn" id="onboardingConfirmBtn">確認，開始探索！</button>
+      <button class="fmod-arrow-btn" id="onboardingPrevBtn" disabled>‹</button>
+      <div class="fmod-dots" id="onboardingDots">
+        <span class="fmod-dot active"></span>
+        <span class="fmod-dot"></span>
+        <span class="fmod-dot"></span>
+        <span class="fmod-dot"></span>
+        <span class="fmod-dot"></span>
+        <span class="fmod-dot"></span>
+      </div>
+      <button class="fmod-arrow-btn" id="onboardingNextArrow">›</button>
+    </div>
+    <div class="fmod-confirm-wrap">
+      <button class="fmod-confirm-btn" id="onboardingConfirmBtn" style="display:none">開始探索！</button>
     </div>
   </div>
 </div>
@@ -5051,6 +5051,7 @@ document.getElementById('privacySkipBtn').addEventListener('click', closePrivacy
 // ── Onboarding Modal ───────────────────────────────────────────────────────
 const ONBOARDING_SLIDES = 6;
 let _obSlide = 0;
+let _obTimer = null;
 
 function openOnboardingModal() {
   _obSlide = 0;
@@ -5058,9 +5059,15 @@ function openOnboardingModal() {
   document.getElementById('onboardingModal').classList.add('open');
 }
 function closeOnboardingModal() {
+  _obStopTimer();
   document.getElementById('onboardingModal').classList.remove('open');
 }
+function _obStopTimer() {
+  if (_obTimer) { clearTimeout(_obTimer); _obTimer = null; }
+}
 function _obGotoSlide(n) {
+  _obStopTimer();
+  document.getElementById('onboardingSlidesWrap').scrollTop = 0;
   document.querySelectorAll('.fmod-slide').forEach((s, i) =>
     s.classList.toggle('active', i === n)
   );
@@ -5068,12 +5075,38 @@ function _obGotoSlide(n) {
     d.classList.toggle('active', i === n)
   );
   const isLast = n === ONBOARDING_SLIDES - 1;
-  document.getElementById('onboardingNextBtn').style.display    = isLast ? 'none' : 'block';
+  const isFirst = n === 0;
+  document.getElementById('onboardingPrevBtn').disabled = isFirst;
+  document.getElementById('onboardingNextArrow').disabled = isLast;
   document.getElementById('onboardingConfirmBtn').style.display = isLast ? 'block' : 'none';
+  if (!isLast) {
+    _obTimer = setTimeout(() => _obGotoSlide(++_obSlide), 5000);
+  }
 }
-document.getElementById('onboardingNextBtn').addEventListener('click', () => {
+
+// 左右箭頭
+document.getElementById('onboardingPrevBtn').addEventListener('click', () => {
+  if (_obSlide > 0) _obGotoSlide(--_obSlide);
+});
+document.getElementById('onboardingNextArrow').addEventListener('click', () => {
   if (_obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
 });
+
+// 手機滑動
+(function () {
+  const wrap = document.getElementById('onboardingSlidesWrap');
+  let _tx = null;
+  wrap.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (_tx === null) return;
+    const dx = e.changedTouches[0].clientX - _tx;
+    _tx = null;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0 && _obSlide < ONBOARDING_SLIDES - 1) _obGotoSlide(++_obSlide);
+    if (dx > 0 && _obSlide > 0) _obGotoSlide(--_obSlide);
+  }, { passive: true });
+})();
+
 document.getElementById('onboardingConfirmBtn').addEventListener('click', () => {
   // localStorage.setItem('onboarding_done', '1');  // TODO: 測試完成後恢復
   closeOnboardingModal();
