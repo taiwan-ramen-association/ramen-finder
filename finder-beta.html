@@ -1703,6 +1703,7 @@
 
 <div class="drawer-backdrop" id="drawerBackdrop" style="display:none"></div>
 <div class="drawer" id="drawer" style="display:none">
+  <button class="drawer-item" id="resetOnboardBtn" style="display:none">📖 新手導覽</button>
   <button class="drawer-item" id="resetBdSkipBtn">🎂 重設壽星通知</button>
   <button class="drawer-item" id="drawerIssueBtn">⚑ 問題回報</button>
   <a class="drawer-item" href="index.html">🏠 回首頁</a>
@@ -2174,7 +2175,7 @@
     <div class="fmod-slides-wrap" id="onboardingSlidesWrap">
       <div class="fmod-slide active" data-slide="0">
         <div class="fmod-slide-icon">🍜</div>
-        <p class="fmod-slide-title">歡迎加入台灣拉麵協會</p>
+        <p class="fmod-slide-title">歡迎使用台灣拉麵協會－拉麵搜尋器</p>
         <p class="fmod-slide-desc">全台 800+ 間拉麵店，一個搜尋器，全部找得到。</p>
         <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2Fs01.gif?alt=media" alt="草葉">
       </div>
@@ -3797,6 +3798,7 @@ let featureFlags = {
   reviews:        { vis: 'all',      perm: 'viewer'   },
   challengesNav:  { vis: 'admin',    perm: 'admin'    },
   nonActiveShops: { vis: 'all',      perm: 'viewer'   },
+  onboardingTour: { vis: 'viewer',   perm: 'viewer'   },
 };
 
 function findShopById(id) {
@@ -4666,6 +4668,10 @@ function applyFeatureFlags() {
     bnavChallenges.classList.toggle('ff-locked', show && !canUse('challengesNav'));
     if (!show && _currentPage === 'challenges') switchPage('finder');
   }
+
+  // 新手導覽（漢堡選單）
+  const resetOnboardBtn = document.getElementById('resetOnboardBtn');
+  if (resetOnboardBtn) resetOnboardBtn.style.display = canView('onboardingTour') ? '' : 'none';
 }
 
 // ── Rankings Modal ─────────────────────────────────────────────────────────
@@ -4989,7 +4995,7 @@ auth.onAuthStateChanged(async user => {
       applyFeatureFlags();
       render();
       checkUnreadBadge();
-      _onDataLoaded(() => _onBdAnimDone(() => { if (!localStorage.getItem('onboarding_done')) openOnboardingModal(); }));
+      _onDataLoaded(() => _onBdAnimDone(() => { if (!localStorage.getItem('onboarding_done_' + user.uid)) openOnboardingModal(); }));
     } else {
       loginBtn.style.display   = 'flex';
       userAvatar.style.display = 'none';
@@ -5149,8 +5155,17 @@ document.getElementById('onboardingNextArrow').addEventListener('click', () => {
 })();
 
 document.getElementById('onboardingConfirmBtn').addEventListener('click', () => {
-  // localStorage.setItem('onboarding_done', '1');  // TODO: 測試完成後恢復
+  const uid = auth.currentUser?.uid;
+  if (uid) localStorage.setItem('onboarding_done_' + uid, '1');
   closeOnboardingModal();
+});
+
+document.getElementById('resetOnboardBtn').addEventListener('click', () => {
+  const uid = auth.currentUser?.uid;
+  if (uid) localStorage.removeItem('onboarding_done_' + uid);
+  document.getElementById('drawer').style.display = 'none';
+  document.getElementById('drawerBackdrop').style.display = 'none';
+  openOnboardingModal();
 });
 
 // ── Login ──────────────────────────────────────────────────────────────────
