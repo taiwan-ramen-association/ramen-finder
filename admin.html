@@ -72,12 +72,76 @@
   .btn-google:hover { background: var(--hover-bg); }
   .btn-google svg { width: 18px; height: 18px; }
 
-  #app { display: none; max-width: 1440px; margin: 0 auto; padding: 24px 16px; }
-
-  /* cards outside #app also follow the same width */
-  .settings-card, .ff-card, .reports-card, #devicesCard {
-    max-width: 1440px; margin-left: auto; margin-right: auto;
+  /* ── 3-COLUMN WORKSPACE ── */
+  #adm-workspace {
+    display: none;
+    grid-template-columns: 20% 60% 20%;
+    min-height: calc(100vh - 52px);
+    align-items: start;
   }
+  #adm-workspace.active { display: grid; }
+
+  #adm-sidebar {
+    position: sticky; top: 0;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    padding: 8px 0 24px;
+    background: var(--card-bg);
+  }
+  #adm-main {
+    padding: 24px 20px;
+    min-height: calc(100vh - 52px);
+  }
+  #adm-detail {
+    position: sticky; top: 0;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    padding: 16px;
+    background: var(--card-bg);
+  }
+
+  .adm-nav-section {
+    font-size: 10px; font-weight: 700; color: var(--stone);
+    letter-spacing: 1px; padding: 14px 18px 4px;
+    text-transform: uppercase;
+  }
+  .adm-nav-item {
+    display: block; width: 100%;
+    padding: 9px 18px;
+    text-align: left;
+    background: none; border: none;
+    cursor: pointer;
+    color: var(--ink); font-size: 13px;
+    font-family: inherit;
+    border-left: 3px solid transparent;
+    transition: background 0.12s, color 0.12s;
+  }
+  .adm-nav-item:hover { background: var(--hover-bg); }
+  .adm-nav-item.active {
+    background: var(--hover-bg);
+    color: var(--red); font-weight: 700;
+    border-left-color: var(--red);
+  }
+
+  .adm-panel { display: none; }
+  .adm-panel.active { display: block; }
+
+  /* 右欄空白提示 */
+  .adm-detail-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: calc(100vh - 120px);
+    color: var(--stone); font-size: 13px;
+    text-align: center; gap: 8px; line-height: 1.6;
+  }
+
+  /* 面板內卡片取消 margin-top（由 panel padding 處理） */
+  .adm-panel .settings-card { margin-top: 0; }
+  .adm-panel .settings-card + .settings-card { margin-top: 20px; }
+  .adm-panel .ff-card { margin-top: 0; }
+  .adm-panel .reports-card { margin-top: 0; }
 
   .toolbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -311,365 +375,427 @@
 </div>
 
 <!-- 管理員主畫面 -->
-<div id="app">
-  <div class="toolbar">
-    <h2>會員清單 <button class="expand-btn" id="usersExpandBtn">全部展開</button></h2>
-    <button id="migrateProfilesBtn" style="font-size:12px;padding:4px 10px;background:#4a7c59;color:#fff;border:none;border-radius:6px;cursor:pointer">🔄 同步 userProfiles</button>
-    <span id="migrateStatus" style="font-size:12px;color:#666"></span>
-    <select id="roleFilter">
-      <option value="">全部身份</option>
-      <option value="viewer">viewer</option>
-      <option value="store">store</option>
-      <option value="member_individual">個人會員</option>
-      <option value="member_group">團體會員</option>
-      <option value="member_sponsor">贊助會員</option>
-      <option value="member_honorary">榮譽會員</option>
-      <option value="director">協會幹部</option>
-      <option value="admin">admin</option>
-    </select>
-  </div>
-  <div id="loading">載入中…</div>
-  <div class="table-wrap">
-  <table id="userTable" style="display:none">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Google 帳號</th>
-        <th>顯示身份</th>
-        <th>Email</th>
-        <th>目前身份</th>
-        <th>等級</th>
-        <th>收藏</th>
-        <th>踩點</th>
-        <th>最後登入</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="userTbody"></tbody>
-  </table>
-  <div class="admin-pagination" id="usersPagination"></div>
-  </div>
-</div>
+<div id="adm-workspace">
 
-<div class="settings-card" id="sortSettingsCard" style="display:none">
-  <h3>📊 預設排序</h3>
-  <table class="sort-settings-table">
-    <thead>
-      <tr><th>區塊</th><th>排序欄位</th><th>方向</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>會員管理</td>
-        <td>
-          <select id="usersSortField">
-            <option value="memberNo">編號</option>
-            <option value="displayName">Google 帳號</option>
-            <option value="email">Email</option>
-            <option value="lastLogin">最後登入</option>
-            <option value="level">等級</option>
-          </select>
-        </td>
-        <td>
-          <select id="usersSortDir">
-            <option value="asc">升序 ↑</option>
-            <option value="desc">降序 ↓</option>
-          </select>
-        </td>
-      </tr>
-      <tr>
-        <td>評論管理</td>
-        <td>
-          <select id="reviewsSortField">
-            <option value="createdAt">上傳時間</option>
-            <option value="rating">評分</option>
-            <option value="shopName">店家名稱</option>
-          </select>
-        </td>
-        <td>
-          <select id="reviewsSortDir">
-            <option value="desc">降序 ↓</option>
-            <option value="asc">升序 ↑</option>
-          </select>
-        </td>
-      </tr>
-      <tr>
-        <td>菜單管理</td>
-        <td>
-          <select id="menusSortField">
-            <option value="createdAt">上傳時間</option>
-            <option value="shopName">店家名稱</option>
-            <option value="photoDate">拍攝日期</option>
-          </select>
-        </td>
-        <td>
-          <select id="menusSortDir">
-            <option value="desc">降序 ↓</option>
-            <option value="asc">升序 ↑</option>
-          </select>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="settings-footer">
-    <button class="settings-save" id="sortSettingsSaveBtn">儲存排序設定</button>
-    <span class="settings-status" id="sortSettingsStatus"></span>
-  </div>
-</div>
+  <!-- ── 左欄：功能導覽 ── -->
+  <aside id="adm-sidebar">
+    <div class="adm-nav-section">用戶</div>
+    <button class="adm-nav-item" data-panel="users">👥 會員管理</button>
+    <div class="adm-nav-section">設定</div>
+    <button class="adm-nav-item" data-panel="ff">🔐 功能權限</button>
+    <button class="adm-nav-item" data-panel="settings">⚙️ 系統設定</button>
+    <div class="adm-nav-section">紀錄</div>
+    <button class="adm-nav-item" data-panel="queue-logs">🚶 排隊紀錄</button>
+    <button class="adm-nav-item" data-panel="reports">📨 問題回報</button>
+    <button class="adm-nav-item" data-panel="reviews">💬 評論管理</button>
+    <button class="adm-nav-item" data-panel="menus">🍜 菜單管理</button>
+    <div class="adm-nav-section">系統</div>
+    <button class="adm-nav-item" data-panel="devices">📱 推播裝置</button>
+    <button class="adm-nav-item" data-panel="orphans">🧹 孤兒照片</button>
+  </aside>
 
-<div class="settings-card" id="settingsCard" style="display:none">
-  <h3>⚙️ 排隊回報設定</h3>
-  <div class="settings-grid">
-    <div class="settings-field">
-      <label>開店前幾小時內可回報</label>
-      <input type="number" id="settingPreOpenHours" min="1" step="0.5" value="4">
-      <div class="settings-hint">例：4 = 開店前 4 小時內才能回報；超過此時間提交視為無效並扣信任分</div>
+  <!-- ── 中欄：主內容 ── -->
+  <main id="adm-main">
+
+    <!-- ① 會員管理 -->
+    <div class="adm-panel" data-panel="users">
+      <div class="toolbar">
+        <h2>會員清單 <button class="expand-btn" id="usersExpandBtn">全部展開</button></h2>
+        <button id="migrateProfilesBtn" style="font-size:12px;padding:4px 10px;background:#4a7c59;color:#fff;border:none;border-radius:6px;cursor:pointer">🔄 同步 userProfiles</button>
+        <span id="migrateStatus" style="font-size:12px;color:#666"></span>
+        <select id="roleFilter">
+          <option value="">全部身份</option>
+          <option value="viewer">viewer</option>
+          <option value="store">store</option>
+          <option value="member_individual">個人會員</option>
+          <option value="member_group">團體會員</option>
+          <option value="member_sponsor">贊助會員</option>
+          <option value="member_honorary">榮譽會員</option>
+          <option value="director">協會幹部</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div id="loading">載入中…</div>
+      <div class="table-wrap">
+        <table id="userTable" style="display:none">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Google 帳號</th>
+              <th>顯示身份</th>
+              <th>Email</th>
+              <th>目前身份</th>
+              <th>等級</th>
+              <th>收藏</th>
+              <th>踩點</th>
+              <th>最後登入</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="userTbody"></tbody>
+        </table>
+        <div class="admin-pagination" id="usersPagination"></div>
+      </div>
+    </div><!-- /panel:users -->
+
+    <!-- ② 功能權限 -->
+    <div class="adm-panel" data-panel="ff">
+      <div class="ff-card" id="ffCard">
+        <h3>🔐 功能權限設定</h3>
+        <p class="ff-desc">設定每個功能對不同身份的「顯示」與「使用」權限。階層：all &lt; viewer &lt; member &lt; director &lt; admin</p>
+        <table class="ff-table">
+          <thead>
+            <tr>
+              <th>功能</th>
+              <th class="center">👁 顯示門檻（vis）</th>
+              <th class="center">✋ 使用門檻（perm）</th>
+            </tr>
+          </thead>
+          <tbody id="ffTbody">
+            <tr data-feat="siteAccess">
+              <td><span class="ff-feat-icon">🌐</span><span class="ff-feat-name">正式版存取（緊急關站）</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="nonActiveShops">
+              <td><span class="ff-feat-icon">👻</span><span class="ff-feat-name">非現存店家瀏覽</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="betaAccess">
+              <td><span class="ff-feat-icon">🧪</span><span class="ff-feat-name">Beta 測試版存取</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="database">
+              <td><span class="ff-feat-icon">📊</span><span class="ff-feat-name">資料庫（全筆顯示）</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="favorites">
+              <td><span class="ff-feat-icon">♡</span><span class="ff-feat-name">收藏</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="stamps">
+              <td><span class="ff-feat-icon">👣</span><span class="ff-feat-name">踩點</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="queueReport">
+              <td><span class="ff-feat-icon">🕐</span><span class="ff-feat-name">排隊回報</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="issueReport">
+              <td><span class="ff-feat-icon">⚑</span><span class="ff-feat-name">問題回報</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="rankings">
+              <td><span class="ff-feat-icon">🏆</span><span class="ff-feat-name">排行榜</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="domination">
+              <td><span class="ff-feat-icon">🗾</span><span class="ff-feat-name">制霸地圖</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="reviews">
+              <td><span class="ff-feat-icon">💬</span><span class="ff-feat-name">評論 tab</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="menuTab">
+              <td><span class="ff-feat-icon">🍜</span><span class="ff-feat-name">菜單 tab</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="photosTab">
+              <td><span class="ff-feat-icon">📷</span><span class="ff-feat-name">照片 tab</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="postsNav">
+              <td><span class="ff-feat-icon">📝</span><span class="ff-feat-name">貼文（底部 nav）</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+            <tr data-feat="challengesNav">
+              <td><span class="ff-feat-icon">🚩</span><span class="ff-feat-name">挑戰任務（底部 nav）</span></td>
+              <td class="center"><select class="ff-select" data-col="vis"></select></td>
+              <td class="center"><select class="ff-select" data-col="perm"></select></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="ff-footer">
+          <button class="ff-save" id="ffSaveBtn">儲存權限設定</button>
+          <span class="ff-status" id="ffStatus"></span>
+        </div>
+      </div>
+    </div><!-- /panel:ff -->
+
+    <!-- ③ 系統設定：預設排序 + 排隊回報 -->
+    <div class="adm-panel" data-panel="settings">
+      <div class="settings-card" id="sortSettingsCard">
+        <h3>📊 預設排序</h3>
+        <table class="sort-settings-table">
+          <thead>
+            <tr><th>區塊</th><th>排序欄位</th><th>方向</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>會員管理</td>
+              <td>
+                <select id="usersSortField">
+                  <option value="memberNo">編號</option>
+                  <option value="displayName">Google 帳號</option>
+                  <option value="email">Email</option>
+                  <option value="lastLogin">最後登入</option>
+                  <option value="level">等級</option>
+                </select>
+              </td>
+              <td>
+                <select id="usersSortDir">
+                  <option value="asc">升序 ↑</option>
+                  <option value="desc">降序 ↓</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>評論管理</td>
+              <td>
+                <select id="reviewsSortField">
+                  <option value="createdAt">上傳時間</option>
+                  <option value="rating">評分</option>
+                  <option value="shopName">店家名稱</option>
+                </select>
+              </td>
+              <td>
+                <select id="reviewsSortDir">
+                  <option value="desc">降序 ↓</option>
+                  <option value="asc">升序 ↑</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>菜單管理</td>
+              <td>
+                <select id="menusSortField">
+                  <option value="createdAt">上傳時間</option>
+                  <option value="shopName">店家名稱</option>
+                  <option value="photoDate">拍攝日期</option>
+                </select>
+              </td>
+              <td>
+                <select id="menusSortDir">
+                  <option value="desc">降序 ↓</option>
+                  <option value="asc">升序 ↑</option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="settings-footer">
+          <button class="settings-save" id="sortSettingsSaveBtn">儲存排序設定</button>
+          <span class="settings-status" id="sortSettingsStatus"></span>
+        </div>
+      </div>
+      <div class="settings-card" id="settingsCard">
+        <h3>⚙️ 排隊回報設定</h3>
+        <div class="settings-grid">
+          <div class="settings-field">
+            <label>開店前幾小時內可回報</label>
+            <input type="number" id="settingPreOpenHours" min="1" step="0.5" value="4">
+            <div class="settings-hint">例：4 = 開店前 4 小時內才能回報；超過此時間提交視為無效並扣信任分</div>
+          </div>
+          <div class="settings-field">
+            <label>GPS 距離限制（公尺）</label>
+            <input type="number" id="settingGpsRadius" min="100" step="50" value="500">
+            <div class="settings-hint">例：500 = 距離店家 500 公尺內才能回報</div>
+          </div>
+          <div class="settings-field">
+            <label>同店冷卻時間（分鐘）</label>
+            <input type="number" id="settingCooldownMinutes" min="5" step="5" value="30">
+            <div class="settings-hint">例：30 = 同一用戶對同一店家 30 分鐘內只能回報一次</div>
+          </div>
+        </div>
+        <div class="settings-footer">
+          <button class="settings-save" id="settingsSaveBtn">儲存設定</button>
+          <span class="settings-status" id="settingsStatus"></span>
+        </div>
+      </div>
+    </div><!-- /panel:settings -->
+
+    <!-- ④ 排隊紀錄 -->
+    <div class="adm-panel" data-panel="queue-logs">
+      <div class="reports-card" id="queueLogsCard">
+        <h3>🚶 排隊回報紀錄</h3>
+        <p class="reports-desc">所有排隊回報紀錄（最新 200 筆）。刪除後同步移除即時排隊資料中的對應條目，但不回溯用戶信任分。</p>
+        <div class="reports-toolbar">
+          <span class="reports-count" id="queueLogsCount">載入中…</span>
+          <input type="text" id="queueLogsShopFilter" placeholder="依店家 ID 篩選…"
+            style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:180px">
+          <button class="reports-reload-btn" id="queueLogsReloadBtn">🔄 重新載入</button>
+        </div>
+        <table class="reports-table" id="queueLogsTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:130px">時間</th>
+              <th style="width:120px">店家 ID</th>
+              <th style="width:110px">回報人 UID</th>
+              <th style="width:60px;text-align:center">人數</th>
+              <th style="width:50px;text-align:center">GPS</th>
+              <th style="width:50px;text-align:center">餐期</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody id="queueLogsTbody"></tbody>
+        </table>
+        <div class="reports-empty" id="queueLogsEmpty" style="display:none">目前沒有回報紀錄</div>
+      </div>
+    </div><!-- /panel:queue-logs -->
+
+    <!-- ⑤ 問題回報 -->
+    <div class="adm-panel" data-panel="reports">
+      <div class="reports-card" id="reportsCard">
+        <h3>📨 問題回報</h3>
+        <p class="reports-desc">來自前台用戶的問題回報。確認處理後可單筆刪除，或清除全部資料。</p>
+        <div class="reports-toolbar">
+          <span class="reports-count" id="reportsCount">載入中…</span>
+          <button class="reports-reload-btn" id="reportsReloadBtn">🔄 重新載入</button>
+          <button class="reports-clear-btn" id="reportsClearBtn">🗑 清除全部</button>
+        </div>
+        <table class="reports-table" id="reportsTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:130px">時間</th>
+              <th>店家</th>
+              <th style="width:130px">問題分類</th>
+              <th>說明內容</th>
+              <th style="width:90px">回報者</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody id="reportsTbody"></tbody>
+        </table>
+        <div class="reports-empty" id="reportsEmpty" style="display:none">目前沒有問題回報 🎉</div>
+      </div>
+    </div><!-- /panel:reports -->
+
+    <!-- ⑥ 評論管理 -->
+    <div class="adm-panel" data-panel="reviews">
+      <div class="reports-card" id="reviewsCard">
+        <h3>💬 用戶評論管理 <button class="expand-btn" id="reviewsExpandBtn">全部展開</button></h3>
+        <p class="reports-desc">所有店家的評論，可依店家篩選。管理員可直接刪除違規或不當內容。</p>
+        <div class="reports-toolbar">
+          <span class="reports-count" id="reviewsCount">載入中…</span>
+          <input type="text" id="reviewsShopFilter" placeholder="依店名篩選…"
+            style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:200px">
+          <button class="reports-reload-btn" id="reviewsReloadBtn">🔄 重新載入</button>
+        </div>
+        <table class="reports-table" id="reviewsTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:120px">時間</th>
+              <th style="width:120px">店家</th>
+              <th style="width:60px">評分</th>
+              <th>內容</th>
+              <th style="width:80px">照片</th>
+              <th style="width:90px">評論者</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody id="reviewsTbody"></tbody>
+        </table>
+        <div class="admin-pagination" id="reviewsPagination"></div>
+        <div class="reports-empty" id="reviewsEmpty" style="display:none">目前沒有評論</div>
+      </div>
+    </div><!-- /panel:reviews -->
+
+    <!-- ⑦ 菜單管理 -->
+    <div class="adm-panel" data-panel="menus">
+      <div class="reports-card" id="menusCard">
+        <h3>🍜 菜單管理 <button class="expand-btn" id="menusExpandBtn">全部展開</button></h3>
+        <p class="reports-desc">所有店家的菜單照片。管理員可刪除不當或過期內容（同步清除 Firestore 及 Storage）。</p>
+        <div class="reports-toolbar">
+          <span class="reports-count" id="menusCount">載入中…</span>
+          <input type="text" id="menusShopFilter" placeholder="依店名篩選…"
+            style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:200px">
+          <button class="reports-reload-btn" id="menusReloadBtn">🔄 重新載入</button>
+        </div>
+        <table class="reports-table" id="menusTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:120px">上傳時間</th>
+              <th style="width:130px">店家</th>
+              <th style="width:80px">拍攝日期</th>
+              <th style="width:72px">縮圖</th>
+              <th style="width:90px">上傳者</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody id="menusTbody"></tbody>
+        </table>
+        <div class="admin-pagination" id="menusPagination"></div>
+        <div class="reports-empty" id="menusEmpty" style="display:none">目前沒有菜單照片</div>
+      </div>
+    </div><!-- /panel:menus -->
+
+    <!-- ⑧ 推播裝置 -->
+    <div class="adm-panel" data-panel="devices">
+      <div class="reports-card" id="devicesCard">
+        <h3>📱 已訂閱推播的裝置</h3>
+        <p class="reports-desc">每台裝置的 FCM token 獨立儲存，不會互相覆蓋。可單獨移除特定裝置。</p>
+        <div id="devicesList" style="font-size:13px;color:var(--stone)">載入中…</div>
+        <div style="margin-top:10px">
+          <button id="clearTokensBtn" style="padding:5px 12px;background:var(--paper);border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--stone)">🗑 清除全部 token，重新訂閱本裝置</button>
+        </div>
+      </div>
+    </div><!-- /panel:devices -->
+
+    <!-- ⑨ 孤兒照片 -->
+    <div class="adm-panel" data-panel="orphans">
+      <div class="reports-card" id="orphansCard">
+        <h3>🧹 孤兒照片清理</h3>
+        <p class="reports-desc">掃描 Storage 中沒有對應 Firestore 記錄的照片（評論或菜單刪除後遺留）。查詢可能需要數十秒，請稍候。</p>
+        <div class="reports-toolbar">
+          <button class="reports-reload-btn" id="orphanScanBtn">🔍 開始查詢</button>
+          <span class="reports-count" id="orphanStatus">尚未查詢</span>
+          <button class="reports-clear-btn" id="orphanDeleteAllBtn" disabled style="opacity:0.45;cursor:not-allowed">🗑 全部刪除</button>
+        </div>
+        <table class="reports-table" id="orphanTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:70px">類型</th>
+              <th>Storage 路徑</th>
+              <th style="width:58px;text-align:center">檔案數</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody id="orphanTbody"></tbody>
+        </table>
+        <div class="reports-empty" id="orphanEmpty" style="display:none">✅ 未發現孤兒照片</div>
+      </div>
+    </div><!-- /panel:orphans -->
+
+  </main><!-- /adm-main -->
+
+  <!-- ── 右欄：詳情 ── -->
+  <aside id="adm-detail">
+    <div class="adm-detail-panel active" data-detail="empty">
+      <div class="adm-detail-empty">
+        <span style="font-size:28px;opacity:0.35">◀</span>
+        <p>點選左側項目<br>在此展開詳情</p>
+      </div>
     </div>
-    <div class="settings-field">
-      <label>GPS 距離限制（公尺）</label>
-      <input type="number" id="settingGpsRadius" min="100" step="50" value="500">
-      <div class="settings-hint">例：500 = 距離店家 500 公尺內才能回報</div>
+    <div class="adm-detail-panel" data-detail="user" style="display:none">
+      <!-- 用戶詳情（待實作） -->
     </div>
-    <div class="settings-field">
-      <label>同店冷卻時間（分鐘）</label>
-      <input type="number" id="settingCooldownMinutes" min="5" step="5" value="30">
-      <div class="settings-hint">例：30 = 同一用戶對同一店家 30 分鐘內只能回報一次</div>
-    </div>
-  </div>
-  <div class="settings-footer">
-    <button class="settings-save" id="settingsSaveBtn">儲存設定</button>
-    <span class="settings-status" id="settingsStatus"></span>
-  </div>
-</div>
+  </aside>
 
-<div class="reports-card" id="queueLogsCard" style="display:none">
-  <h3>🚶 排隊回報紀錄</h3>
-  <p class="reports-desc">所有排隊回報紀錄（最新 200 筆）。刪除後同步移除即時排隊資料中的對應條目，但不回溯用戶信任分。</p>
-  <div class="reports-toolbar">
-    <span class="reports-count" id="queueLogsCount">載入中…</span>
-    <input type="text" id="queueLogsShopFilter" placeholder="依店家 ID 篩選…"
-      style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:180px">
-    <button class="reports-reload-btn" id="queueLogsReloadBtn">🔄 重新載入</button>
-  </div>
-  <table class="reports-table" id="queueLogsTable" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:130px">時間</th>
-        <th style="width:120px">店家 ID</th>
-        <th style="width:110px">回報人 UID</th>
-        <th style="width:60px;text-align:center">人數</th>
-        <th style="width:50px;text-align:center">GPS</th>
-        <th style="width:50px;text-align:center">餐期</th>
-        <th style="width:52px"></th>
-      </tr>
-    </thead>
-    <tbody id="queueLogsTbody"></tbody>
-  </table>
-  <div class="reports-empty" id="queueLogsEmpty" style="display:none">目前沒有回報紀錄</div>
-</div>
-
-<div class="ff-card" id="ffCard" style="display:none">
-  <h3>🔐 功能權限設定</h3>
-  <p class="ff-desc">設定每個功能對不同身份的「顯示」與「使用」權限。階層：all &lt; viewer &lt; member &lt; director &lt; admin</p>
-  <table class="ff-table">
-    <thead>
-      <tr>
-        <th>功能</th>
-        <th class="center">👁 顯示門檻（vis）</th>
-        <th class="center">✋ 使用門檻（perm）</th>
-      </tr>
-    </thead>
-    <tbody id="ffTbody">
-      <tr data-feat="siteAccess">
-        <td><span class="ff-feat-icon">🌐</span><span class="ff-feat-name">正式版存取（緊急關站）</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="nonActiveShops">
-        <td><span class="ff-feat-icon">👻</span><span class="ff-feat-name">非現存店家瀏覽</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="betaAccess">
-        <td><span class="ff-feat-icon">🧪</span><span class="ff-feat-name">Beta 測試版存取</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="database">
-        <td><span class="ff-feat-icon">📊</span><span class="ff-feat-name">資料庫（全筆顯示）</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="favorites">
-        <td><span class="ff-feat-icon">♡</span><span class="ff-feat-name">收藏</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="stamps">
-        <td><span class="ff-feat-icon">👣</span><span class="ff-feat-name">踩點</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="queueReport">
-        <td><span class="ff-feat-icon">🕐</span><span class="ff-feat-name">排隊回報</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="issueReport">
-        <td><span class="ff-feat-icon">⚑</span><span class="ff-feat-name">問題回報</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="rankings">
-
-        <td><span class="ff-feat-icon">🏆</span><span class="ff-feat-name">排行榜</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="domination">
-        <td><span class="ff-feat-icon">🗾</span><span class="ff-feat-name">制霸地圖</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="reviews">
-        <td><span class="ff-feat-icon">💬</span><span class="ff-feat-name">評論 tab</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="menuTab">
-        <td><span class="ff-feat-icon">🍜</span><span class="ff-feat-name">菜單 tab</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="photosTab">
-        <td><span class="ff-feat-icon">📷</span><span class="ff-feat-name">照片 tab</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="postsNav">
-        <td><span class="ff-feat-icon">📝</span><span class="ff-feat-name">貼文（底部 nav）</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-      <tr data-feat="challengesNav">
-        <td><span class="ff-feat-icon">🚩</span><span class="ff-feat-name">挑戰任務（底部 nav）</span></td>
-        <td class="center"><select class="ff-select" data-col="vis"></select></td>
-        <td class="center"><select class="ff-select" data-col="perm"></select></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="ff-footer">
-    <button class="ff-save" id="ffSaveBtn">儲存權限設定</button>
-    <span class="ff-status" id="ffStatus"></span>
-  </div>
-</div>
-
-<div class="reports-card" id="devicesCard" style="display:none">
-  <h3>📱 已訂閱推播的裝置</h3>
-  <p class="reports-desc">每台裝置的 FCM token 獨立儲存，不會互相覆蓋。可單獨移除特定裝置。</p>
-  <div id="devicesList" style="font-size:13px;color:var(--stone)">載入中…</div>
-  <div style="margin-top:10px">
-    <button id="clearTokensBtn" style="padding:5px 12px;background:var(--paper);border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--stone)">🗑 清除全部 token，重新訂閱本裝置</button>
-  </div>
-</div>
-
-<div class="reports-card" id="reportsCard" style="display:none">
-  <h3>📨 問題回報</h3>
-  <p class="reports-desc">來自前台用戶的問題回報。確認處理後可單筆刪除，或清除全部資料。</p>
-  <div class="reports-toolbar">
-    <span class="reports-count" id="reportsCount">載入中…</span>
-    <button class="reports-reload-btn" id="reportsReloadBtn">🔄 重新載入</button>
-    <button class="reports-clear-btn" id="reportsClearBtn">🗑 清除全部</button>
-  </div>
-  <table class="reports-table" id="reportsTable" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:130px">時間</th>
-        <th>店家</th>
-        <th style="width:130px">問題分類</th>
-        <th>說明內容</th>
-        <th style="width:90px">回報者</th>
-        <th style="width:52px"></th>
-      </tr>
-    </thead>
-    <tbody id="reportsTbody"></tbody>
-  </table>
-  <div class="reports-empty" id="reportsEmpty" style="display:none">目前沒有問題回報 🎉</div>
-</div>
-
-<div class="reports-card" id="reviewsCard" style="display:none">
-  <h3>💬 用戶評論管理 <button class="expand-btn" id="reviewsExpandBtn">全部展開</button></h3>
-  <p class="reports-desc">所有店家的評論，可依店家篩選。管理員可直接刪除違規或不當內容。</p>
-  <div class="reports-toolbar">
-    <span class="reports-count" id="reviewsCount">載入中…</span>
-    <input type="text" id="reviewsShopFilter" placeholder="依店名篩選…"
-      style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:200px">
-    <button class="reports-reload-btn" id="reviewsReloadBtn">🔄 重新載入</button>
-  </div>
-  <table class="reports-table" id="reviewsTable" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:120px">時間</th>
-        <th style="width:120px">店家</th>
-        <th style="width:60px">評分</th>
-        <th>內容</th>
-        <th style="width:80px">照片</th>
-        <th style="width:90px">評論者</th>
-        <th style="width:52px"></th>
-      </tr>
-    </thead>
-    <tbody id="reviewsTbody"></tbody>
-  </table>
-  <div class="admin-pagination" id="reviewsPagination"></div>
-  <div class="reports-empty" id="reviewsEmpty" style="display:none">目前沒有評論</div>
-</div>
-
-<div class="reports-card" id="menusCard" style="display:none">
-  <h3>🍜 菜單管理 <button class="expand-btn" id="menusExpandBtn">全部展開</button></h3>
-  <p class="reports-desc">所有店家的菜單照片。管理員可刪除不當或過期內容（同步清除 Firestore 及 Storage）。</p>
-  <div class="reports-toolbar">
-    <span class="reports-count" id="menusCount">載入中…</span>
-    <input type="text" id="menusShopFilter" placeholder="依店名篩選…"
-      style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:var(--input-bg);color:var(--ink);flex:1;max-width:200px">
-    <button class="reports-reload-btn" id="menusReloadBtn">🔄 重新載入</button>
-  </div>
-  <table class="reports-table" id="menusTable" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:120px">上傳時間</th>
-        <th style="width:130px">店家</th>
-        <th style="width:80px">拍攝日期</th>
-        <th style="width:72px">縮圖</th>
-        <th style="width:90px">上傳者</th>
-        <th style="width:52px"></th>
-      </tr>
-    </thead>
-    <tbody id="menusTbody"></tbody>
-  </table>
-  <div class="admin-pagination" id="menusPagination"></div>
-  <div class="reports-empty" id="menusEmpty" style="display:none">目前沒有菜單照片</div>
-</div>
-
-<div class="reports-card" id="orphansCard" style="display:none">
-  <h3>🧹 孤兒照片清理</h3>
-  <p class="reports-desc">掃描 Storage 中沒有對應 Firestore 記錄的照片（評論或菜單刪除後遺留）。查詢可能需要數十秒，請稍候。</p>
-  <div class="reports-toolbar">
-    <button class="reports-reload-btn" id="orphanScanBtn">🔍 開始查詢</button>
-    <span class="reports-count" id="orphanStatus">尚未查詢</span>
-    <button class="reports-clear-btn" id="orphanDeleteAllBtn" disabled style="opacity:0.45;cursor:not-allowed">🗑 全部刪除</button>
-  </div>
-  <table class="reports-table" id="orphanTable" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:70px">類型</th>
-        <th>Storage 路徑</th>
-        <th style="width:58px;text-align:center">檔案數</th>
-        <th style="width:52px"></th>
-      </tr>
-    </thead>
-    <tbody id="orphanTbody"></tbody>
-  </table>
-  <div class="reports-empty" id="orphanEmpty" style="display:none">✅ 未發現孤兒照片</div>
-</div>
+</div><!-- /adm-workspace -->
 
 <div class="toast" id="toast"></div>
 
@@ -718,16 +844,16 @@ document.getElementById('loginBtn').addEventListener('click', () => {
 });
 
 auth.onAuthStateChanged(async user => {
-  const gate   = document.getElementById('gate');
-  const app    = document.getElementById('app');
-  const gateMsg= document.getElementById('gateMsg');
-  const loginBtn = document.getElementById('loginBtn');
+  const gate      = document.getElementById('gate');
+  const workspace = document.getElementById('adm-workspace');
+  const gateMsg   = document.getElementById('gateMsg');
+  const loginBtn  = document.getElementById('loginBtn');
 
   if (!user) {
     gateMsg.textContent = '請以管理員 Google 帳號登入';
     loginBtn.style.display = 'flex';
     gate.style.display = 'flex';
-    app.style.display  = 'none';
+    workspace.classList.remove('active');
     return;
   }
 
@@ -739,24 +865,58 @@ auth.onAuthStateChanged(async user => {
     gateMsg.textContent = `⛔ 權限不足（${user.email}）`;
     loginBtn.style.display = 'none';
     gate.style.display = 'flex';
-    app.style.display  = 'none';
+    workspace.classList.remove('active');
     return;
   }
 
   gate.style.display = 'none';
-  app.style.display  = 'block';
-  await loadSortSettings();   // 先讀排序設定，再載入各區塊
-  loadUsers();
-  loadQueueSettings();
-  loadFeatureFlags();
-  loadQueueLogs();
-  loadIssueReports();
-  loadAdminReviews();
-  loadAdminMenus();
-  document.getElementById('orphansCard').style.display = '';
-  registerFcmToken(user.uid);
-  renderFcmDevices(user.uid);
+  workspace.classList.add('active');
+  await loadSortSettings();      // 排序設定影響各面板查詢，先讀
+  registerFcmToken(user.uid);    // FCM 登記（寫入操作，不 lazy）
+  switchPanel('users');          // 預設開啟會員管理
 });
+
+// ── 三欄導覽：面板切換 + Lazy Loading ────────────────────────────────────────
+const _panelLoaded = {};
+
+function switchPanel(name) {
+  // 左欄 active 標記
+  document.querySelectorAll('.adm-nav-item').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.panel === name)
+  );
+  // 中欄 panel 顯示
+  document.querySelectorAll('#adm-main .adm-panel').forEach(panel =>
+    panel.classList.toggle('active', panel.dataset.panel === name)
+  );
+  // 右欄清空
+  document.querySelectorAll('#adm-detail .adm-detail-panel').forEach(p => {
+    p.style.display = p.dataset.detail === 'empty' ? '' : 'none';
+  });
+  // Lazy load：首次進入才抓資料
+  if (!_panelLoaded[name]) {
+    _panelLoaded[name] = true;
+    _loadPanelData(name);
+  }
+}
+
+function _loadPanelData(name) {
+  switch (name) {
+    case 'users':      loadUsers();           break;
+    case 'ff':         loadFeatureFlags();    break;
+    case 'settings':   loadQueueSettings();   break;
+    case 'queue-logs': loadQueueLogs();       break;
+    case 'reports':    loadIssueReports();    break;
+    case 'reviews':    loadAdminReviews();    break;
+    case 'menus':      loadAdminMenus();      break;
+    case 'devices':    renderFcmDevices(_fcmUid); break;
+    case 'orphans':    /* 手動點「開始查詢」才觸發 */ break;
+  }
+}
+
+// 左欄點擊事件
+document.querySelectorAll('.adm-nav-item').forEach(btn =>
+  btn.addEventListener('click', () => switchPanel(btn.dataset.panel))
+);
 
 // ── 排序設定 ──────────────────────────────────────────────────────────────────
 let _sortSettings = {
@@ -798,10 +958,10 @@ document.getElementById('sortSettingsSaveBtn').addEventListener('click', async (
   try {
     await db.collection('meta').doc('adminSettings').set({ sortSettings: _sortSettings }, { merge: true });
     status.textContent = `✅ 已儲存（${new Date().toLocaleTimeString('zh-TW')}）`;
-    // 重新載入三個區塊
-    loadUsers(true);
-    loadAdminReviews(true);
-    loadAdminMenus(true);
+    // 僅重載已開啟過的面板
+    if (_panelLoaded.users)   loadUsers(true);
+    if (_panelLoaded.reviews) loadAdminReviews(true);
+    if (_panelLoaded.menus)   loadAdminMenus(true);
   } catch(e) {
     status.textContent = '❌ 失敗：' + e.message;
   }
@@ -1138,8 +1298,8 @@ async function loadFeatureFlags() {
       sel.value = flag[sel.dataset.col] || 'viewer';
     });
   });
-  document.getElementById('ffCard').style.display = '';
 }
+
 
 document.getElementById('ffSaveBtn').addEventListener('click', async () => {
   const payload = {};
@@ -1176,8 +1336,6 @@ async function loadQueueSettings() {
       if (d.cooldownMinutes  != null) document.getElementById('settingCooldownMinutes').value  = d.cooldownMinutes;
     }
   } catch(e) { console.warn('載入排隊設定失敗', e); }
-  document.getElementById('settingsCard').style.display     = '';
-  document.getElementById('sortSettingsCard').style.display = '';
 }
 
 document.getElementById('settingsSaveBtn').addEventListener('click', async () => {
@@ -1230,7 +1388,6 @@ async function loadQueueLogs() {
   const table = document.getElementById('queueLogsTable');
   const empty = document.getElementById('queueLogsEmpty');
   const count = document.getElementById('queueLogsCount');
-  card.style.display = '';
   count.textContent = '載入中…';
   tbody.innerHTML = '';
   table.style.display = 'none';
@@ -1325,8 +1482,6 @@ async function loadIssueReports() {
   const table = document.getElementById('reportsTable');
   const empty = document.getElementById('reportsEmpty');
   const count = document.getElementById('reportsCount');
-  card.style.display = '';
-
   count.textContent = '載入中…';
   tbody.innerHTML   = '';
   table.style.display = 'none';
@@ -1507,9 +1662,7 @@ document.getElementById('clearTokensBtn').addEventListener('click', async () => 
 });
 
 async function renderFcmDevices(uid) {
-  const card = document.getElementById('devicesCard');
   const list = document.getElementById('devicesList');
-  card.style.display = '';
 
   try {
     const snap = await db.collection('users').doc(uid).get();
@@ -1565,11 +1718,9 @@ let _reviewsPage     = 0;
 let _reviewsExpanded = false;
 
 async function loadAdminReviews(reset = true) {
-  const card  = document.getElementById('reviewsCard');
   const table = document.getElementById('reviewsTable');
   const empty = document.getElementById('reviewsEmpty');
   const count = document.getElementById('reviewsCount');
-  card.style.display = '';
   if (reset) {
     _loadedReviews = []; _reviewsCursor = null; _reviewsHasMore = true; _reviewsPage = 0;
     table.style.display = 'none'; empty.style.display = 'none'; count.textContent = '載入中…';
@@ -1715,11 +1866,9 @@ let _menusPage     = 0;
 let _menusExpanded = false;
 
 async function loadAdminMenus(reset = true) {
-  const card  = document.getElementById('menusCard');
   const table = document.getElementById('menusTable');
   const empty = document.getElementById('menusEmpty');
   const count = document.getElementById('menusCount');
-  card.style.display = '';
   if (reset) {
     _loadedMenus = []; _menusCursor = null; _menusHasMore = true; _menusPage = 0;
     table.style.display = 'none'; empty.style.display = 'none'; count.textContent = '載入中…';
