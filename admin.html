@@ -1845,7 +1845,7 @@ function renderAdminReviews() {
           await Promise.all(tasks);
         }
         await db.collection('reviews').doc(docId).delete();
-        await db.collection('meta').doc('reviewDeleteRecords').set({ [docId]: true }, { merge: true }).catch(() => {});
+        await db.collection('meta').doc('reviewDeleteRecords').set({ [docId]: shopId || '' }, { merge: true }).catch(() => {});
         _loadedReviews = _loadedReviews.filter(d => d.id !== docId);
         document.getElementById('reviewsCount').textContent = `共 ${_loadedReviews.length}${_reviewsHasMore ? '+' : ''} 則`;
         renderAdminReviews();
@@ -2058,97 +2058,63 @@ async function scanOrphanPhotos() {
   const tbody     = document.getElementById('orphanTbody');
   const delAllBtn = document.getElementById('orphanDeleteAllBtn');
 
-  scanBtn.disabled = true;
-  scanBtn.textContent = '查詢中…';
-  status.textContent  = '初始化…';
-  table.style.display = 'none';
-  empty.style.display = 'none';
-  tbody.innerHTML     = '';
-  delAllBtn.disabled  = true;
-  delAllBtn.style.opacity = '0.45';
-  delAllBtn.style.cursor  = 'not-allowed';
-  delAllBtn.textContent   = '🗑 全部刪除';
+  scanBtn.disabled = true; scanBtn.textContent = '查詢中…';
+  status.textContent = '讀取刪除紀錄…';
+  table.style.display = 'none'; empty.style.display = 'none';
+  tbody.innerHTML = '';
+  delAllBtn.disabled = true; delAllBtn.style.opacity = '0.45';
+  delAllBtn.style.cursor = 'not-allowed'; delAllBtn.textContent = '🗑 全部刪除';
   _orphanItems = [];
 
-  const orphans = [];
-
   try {
-    // ── 掃描 menus/ ──────────────────────────────────────────────────────
-    status.textContent = '掃描菜單照片（menus/）…';
-    try {
-      const shopDirs = (await storage.ref('menus').listAll()).prefixes;
-      const menuFiles = [];
-      for (const shopRef of shopDirs) {
-        const items = (await shopRef.listAll()).items;
-        for (const fileRef of items) {
-          const docId = fileRef.name.replace(/\.[^.]+$/, '');
-          menuFiles.push({ ref: fileRef, docId });
-        }
-      }
-      const existingIds = await batchCheckExistence('menus', menuFiles.map(f => f.docId));
-      for (const f of menuFiles) {
-        if (!existingIds.has(f.docId)) {
-          orphans.push({ type: 'menu', label: f.ref.fullPath, refs: [f.ref], id: f.docId });
-        }
-      }
-    } catch(e) {
-      console.warn('掃描 menus 失敗', e);
-      status.textContent = `⚠️ 掃描 menus 失敗：${e.message}`;
+    const metaSnap = await db.collection('meta').doc('reviewDeleteRecords').get();
+    const records  = metaSnap.exists ? metaSnap.data() : {};
+    const entries  = Object.entries(records); // [[reviewId, shopId], ...]
+
+    if (!entries.length) {
+      status.textContent = '✅ 無刪除紀錄';
+      empty.style.display = '';
+      scanBtn.disabled = false; scanBtn.textContent = '🔍 重新查詢';
+      return;
     }
 
-    // ── 掃描 reviews/ ────────────────────────────────────────────────────
-    status.textContent = '掃描評論照片（reviews/）…';
-    try {
-      const shopDirs = (await storage.ref('reviews').listAll()).prefixes;
-      const reviewFolders = [];
-      for (const shopRef of shopDirs) {
-        const reviewDirs = (await shopRef.listAll()).prefixes;
-        for (const reviewRef of reviewDirs) {
-          reviewFolders.push({ ref: reviewRef, shopId: shopRef.name, reviewId: reviewRef.name });
+    const orphans = [];
+    for (let i = 0; i < entries.length; i++) {
+      const [reviewId, shopId] = entries[i];
+      status.textContent = `查詢中 ${i + 1} / ${entries.length}…`;
+      if (!shopId || shopId === true) continue; // 舊格式或空值，略過
+      try {
+        const result = await storage.ref(`reviews/${shopId}/${reviewId}`).listAll();
+        if (result.items.length > 0) {
+          orphans.push({ type: 'review', label: `reviews/${shopId}/${reviewId}/`, refs: result.items, id: reviewId, shopId });
+        } else {
+          // 無孤兒照片 → 清 delete-record
+          await db.collection('meta').doc('reviewDeleteRecords')
+            .update({ [reviewId]: firebase.firestore.FieldValue.delete() }).catch(() => {});
         }
+      } catch(e) {
+        // Storage 路徑不存在視為無孤兒 → 清 delete-record
+        await db.collection('meta').doc('reviewDeleteRecords')
+          .update({ [reviewId]: firebase.firestore.FieldValue.delete() }).catch(() => {});
       }
-      const existingIds = await batchCheckExistence('reviews', reviewFolders.map(f => f.reviewId));
-      for (const folder of reviewFolders) {
-        if (!existingIds.has(folder.reviewId)) {
-          const files = (await folder.ref.listAll()).items;
-          if (files.length > 0) {
-            orphans.push({
-              type:  'review',
-              label: folder.ref.fullPath + '/',
-              refs:  files,
-              id:    folder.reviewId,
-            });
-          }
-        }
-      }
-    } catch(e) {
-      console.warn('掃描 reviews 失敗', e);
-      status.textContent = `⚠️ 掃描 reviews 失敗：${e.message}`;
     }
 
-    // ── 結果 ──────────────────────────────────────────────────────────────
     _orphanItems = orphans;
-
     if (!orphans.length) {
       status.textContent = '✅ 未發現孤兒照片';
       empty.style.display = '';
     } else {
-      status.textContent = `發現 ${orphans.length} 筆孤兒`;
-      delAllBtn.disabled = false;
-      delAllBtn.style.opacity = '';
-      delAllBtn.style.cursor  = '';
+      status.textContent = `發現 ${orphans.length} 筆`;
+      delAllBtn.disabled = false; delAllBtn.style.opacity = ''; delAllBtn.style.cursor = '';
       delAllBtn.textContent = `🗑 全部刪除 (${orphans.length})`;
       table.style.display = 'table';
       renderOrphanRows();
     }
-
   } catch(e) {
     status.textContent = '❌ 查詢失敗：' + e.message;
-    showToast('❌ 孤兒查詢失敗：' + e.message);
+    showToast('❌ 孤兒照片查詢失敗：' + e.message);
   }
-
-  scanBtn.disabled = false;
-  scanBtn.textContent = '🔍 重新查詢';
+  scanBtn.disabled = false; scanBtn.textContent = '🔍 重新查詢';
 }
 
 function renderOrphanRows() {
@@ -2173,6 +2139,8 @@ function renderOrphanRows() {
       btn.disabled = true;
       try {
         await Promise.all(item.refs.map(r => r.delete().catch(() => {})));
+        await db.collection('meta').doc('reviewDeleteRecords')
+          .update({ [item.id]: firebase.firestore.FieldValue.delete() }).catch(() => {});
         _orphanItems[idx] = null;
         btn.closest('tr').remove();
         const remaining = _orphanItems.filter(Boolean).length;
@@ -2343,6 +2311,8 @@ document.getElementById('orphanDeleteAllBtn').addEventListener('click', async ()
   for (const item of active) {
     try {
       await Promise.all(item.refs.map(r => r.delete().catch(() => {})));
+      await db.collection('meta').doc('reviewDeleteRecords')
+        .update({ [item.id]: firebase.firestore.FieldValue.delete() }).catch(() => {});
       deleted++;
     } catch(e) {}
   }

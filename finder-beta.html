@@ -5395,7 +5395,7 @@ async function loadReviews(shopId, panel, append = false) {
         try {
           const docId = btn.dataset.docid;
           await db.collection('reviews').doc(docId).delete();
-          await db.collection('meta').doc('reviewDeleteRecords').set({ [docId]: true }, { merge: true }).catch(() => {});
+          await db.collection('meta').doc('reviewDeleteRecords').set({ [docId]: btn.dataset.shopid || '' }, { merge: true }).catch(() => {});
           btn.closest('.review-item').remove();
           showStampToast('✅ 已刪除評論');
         } catch(e) { showStampToast('❌ 刪除失敗'); btn.disabled = false; }
