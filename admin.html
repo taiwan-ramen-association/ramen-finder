@@ -92,6 +92,8 @@
   #adm-main {
     padding: 24px 20px;
     min-height: calc(100vh - 52px);
+    min-width: 0;          /* 防止 grid item 撐破 60% 欄寬 */
+    overflow-x: hidden;
   }
   #adm-detail {
     position: sticky; top: 0;
@@ -248,6 +250,7 @@
     background: var(--card-bg); border-radius: 12px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     padding: 20px 24px; margin-top: 20px;
+    overflow-x: auto;
   }
   .ff-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .ff-desc { font-size: 11px; color: var(--stone); margin-bottom: 16px; }
@@ -282,6 +285,7 @@
     background: var(--card-bg); border-radius: 12px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     padding: 20px 24px; margin-top: 20px;
+    overflow-x: auto;
   }
   .reports-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .reports-desc { font-size: 11px; color: var(--stone); margin-bottom: 14px; }
