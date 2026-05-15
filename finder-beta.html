@@ -156,8 +156,8 @@
   body.dark .rf-page-btn:hover:not(:disabled):not(.active) { background: #2a1c1c; }
 
   /* ── REVIEW MODAL ── */
-  .rv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 500; display: none; }
-  .rv-modal { position: fixed; inset: 0; z-index: 501; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .rv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1010; display: none; }
+  .rv-modal { position: fixed; inset: 0; z-index: 1011; display: none; align-items: center; justify-content: center; padding: 16px; }
   .rv-modal.open, .rv-backdrop.open { display: flex; }
   .rv-box { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.22); display: flex; flex-direction: column; }
   .rv-header { padding: 16px 18px 0; display: flex; align-items: center; justify-content: space-between; }
@@ -306,16 +306,16 @@
   /* ── SF MODAL ── */
   .sf-backdrop {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45); z-index: 600;
+    background: rgba(0,0,0,0.45); z-index: 1010;
   }
   .sf-modal {
     position: fixed; left: 0; right: 0;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
-    z-index: 601;
+    bottom: 0;
+    z-index: 1011;
     background: var(--white); border-radius: 20px;
     display: flex; flex-direction: column;
-    max-height: calc(92vh - env(safe-area-inset-bottom, 0px) - 76px);
-    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 76px));
+    max-height: 92vh;
+    transform: translateY(110%);
     transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
     pointer-events: none;
   }
@@ -658,10 +658,10 @@
   /* Queue Modal */
   .queue-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    z-index: 600; display: none;
+    z-index: 1010; display: none;
   }
   .queue-modal {
-    position: fixed; z-index: 601;
+    position: fixed; z-index: 1011;
     left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: min(380px, calc(100vw - 20px));
     background: var(--white); border-radius: 18px;
@@ -706,9 +706,9 @@
   body.dark .qm-opt.selected { background: #3a2810; }
 
   /* IR MODAL */
-  .ir-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; display: none; }
+  .ir-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1010; display: none; }
   .ir-modal {
-    position: fixed; z-index: 601;
+    position: fixed; z-index: 1011;
     left: 50%; top: 50%; transform: translate(-50%,-50%);
     width: min(380px, calc(100vw - 20px));
     background: var(--white); border-radius: 18px;
@@ -744,10 +744,10 @@
 
   /* RANKINGS MODAL */
   .rk-backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 700; display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1010; display: none;
   }
   .rk-modal {
-    position: fixed; z-index: 701;
+    position: fixed; z-index: 1011;
     left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: min(480px, calc(100vw - 16px));
     max-height: 88vh; overflow-y: auto;
@@ -920,22 +920,7 @@
   #pageChallenges.page-active { z-index: 650; }
   #pageReviews    { padding: 14px 12px 90px; box-sizing: border-box; }
   #pageChallenges { padding: 14px 12px 90px; box-sizing: border-box; }
-  /* 切到貼文頁時，finder modals 完全隱藏（保留 open 狀態與表單內容） */
-  body.finder-hidden .stamp-backdrop,
-  body.finder-hidden .stamp-modal,
-  body.finder-hidden .queue-backdrop,
-  body.finder-hidden .queue-modal,
-  body.finder-hidden .ir-backdrop,
-  body.finder-hidden .ir-modal,
-  body.finder-hidden .rv-backdrop,
-  body.finder-hidden .rv-modal,
-  body.finder-hidden #mnuBackdrop,
-  body.finder-hidden #mnuModal,
-  body.finder-hidden .sf-backdrop,
-  body.finder-hidden .sf-modal,
-  /* reviews-page modals */
-  body.reviews-hidden .rk-backdrop,
-  body.reviews-hidden .rk-modal { display: none !important; }
+  /* modals 全屏蓋過 nav bar（z-index 1010+），切頁時不需隱藏 */
   /* challenges-page modals（目前無，預留） */
   /* body.challenges-hidden .xxx { display: none !important; } */
   /* Departing page: shrinks & fades to the left */
@@ -1288,10 +1273,10 @@
   /* ── STAMP MODAL ── */
   .stamp-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    z-index: 600; display: none;
+    z-index: 1010; display: none;
   }
   .stamp-modal {
-    position: fixed; z-index: 601;
+    position: fixed; z-index: 1011;
     left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: min(420px, calc(100vw - 20px));
     background: var(--white); border-radius: 18px;
@@ -1620,7 +1605,7 @@
     transform: translateX(100%); pointer-events: none;
   }
   .fmod-slide.active { pointer-events: auto; }
-  .fmod-slide-img { display: none; width: 100%; height: auto; border-radius: 12px; margin-top: 4px; }
+  .fmod-slide-img { display: none; width: 80%; height: auto; border-radius: 12px; margin-top: 4px; }
   .fmod-slide-img[src]:not([src=""]) { display: block; }
   .fmod-slide-icon { font-size: 48px; line-height: 1; }
   .fmod-slide-title { font-size: 18px; font-weight: 800; color: var(--ink); }
@@ -2209,13 +2194,13 @@
         <div class="fmod-slide-icon">📝</div>
         <p class="fmod-slide-title">評論與照片</p>
         <p class="fmod-slide-desc">展開店家卡片，切換至評論 tab 可留下評分、文字與照片。</p>
-        <img class="fmod-slide-img" src="" alt="">
+        <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2Fs04.png?alt=media" alt="分享你的用餐體驗">
       </div>
       <div class="fmod-slide" data-slide="4">
         <div class="fmod-slide-icon">🗺️</div>
         <p class="fmod-slide-title">制霸地圖</p>
         <p class="fmod-slide-desc">踩點後可到制霸地圖，看你走過了全台幾個鄉鎮，挑戰制霸全台！</p>
-        <img class="fmod-slide-img" src="" alt="">
+        <img class="fmod-slide-img" src="https://firebasestorage.googleapis.com/v0/b/taiwan-ramen-association.firebasestorage.app/o/image%2Fs05.png?alt=media" alt="瀏覽制霸地圖">
       </div>
       <div class="fmod-slide" data-slide="5">
         <div class="fmod-slide-icon">👤</div>
@@ -3096,15 +3081,9 @@ function syncSfModal() {
     btn.classList.toggle('active', selectedDays.has(btn.dataset.day));
     btn.disabled = isNowOpen;
   });
-  // Meal time — 若尚未設定且非「現在營業中」模式，開啟時自動帶入當下時間
+  // Meal time
   const mt = document.getElementById('sfMealTime');
   if (mt) {
-    if (!mealTime && !isNowOpen) {
-      const now = serverNow();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      mealTime = `${hh}:${mm}`;
-    }
     mt.value = mealTime;
     mt.disabled = isNowOpen;
   }
@@ -3281,13 +3260,6 @@ document.getElementById('sfMealTimeClear').addEventListener('click', () => {
   mealTime = '';
   document.getElementById('sfMealTime').value = '';
   document.getElementById('sfMealTimeClear').style.display = 'none';
-});
-document.getElementById('sfMealTime').addEventListener('focus', e => {
-  if (!e.target.value) {
-    const now = serverNow();
-    e.target.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-    document.getElementById('sfMealTimeClear').style.display = '';
-  }
 });
 document.getElementById('sfMealTime').addEventListener('change', e => {
   mealTime = e.target.value;
