@@ -89,14 +89,10 @@ _auth.onAuthStateChanged(async user => {
 
   gateMsg.textContent = '載入管理介面…';
   try {
-    const url  = await _storage.ref('admin/bundle.js').getDownloadURL();
-    const code = await fetch(url).then(r => r.text());
+    const url    = await _storage.ref('admin/bundle.js').getDownloadURL();
     gate.style.display = 'none';
-    const blob    = new Blob([code], { type: 'application/javascript' });
-    const blobUrl = URL.createObjectURL(blob);
-    const script  = document.createElement('script');
-    script.src    = blobUrl;
-    script.onload = () => URL.revokeObjectURL(blobUrl);
+    const script = document.createElement('script');
+    script.src   = url;
     script.onerror = () => {
       gate.style.display = 'flex';
       gateMsg.textContent = '❌ 介面載入失敗，請重新整理';
