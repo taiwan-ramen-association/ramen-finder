@@ -375,6 +375,12 @@
     outline: none; transition: border-color 0.2s; box-sizing: border-box;
   }
   .sf-search-input:focus { border-color: var(--red); }
+  .sf-autocomplete { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--paper); border: 1.5px solid var(--line); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 200; max-height: 260px; overflow-y: auto; display: none; }
+  .sf-autocomplete-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .sf-autocomplete-item:last-child { border-bottom: none; }
+  .sf-autocomplete-item:hover, .sf-autocomplete-item.ac-active { background: var(--hover-bg); }
+  .sf-autocomplete-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .sf-autocomplete-sub { font-size: 11px; color: var(--stone); margin-top: 2px; }
 
   /* quick row: 現在營業中 | 附近 | 距離 */
   .sf-quick-row {
@@ -2116,6 +2122,7 @@
     <div class="sf-search-wrap">
       <span class="sf-search-icon">🔍</span>
       <input type="text" id="searchInput" class="sf-search-input" placeholder="搜尋店名、地址、派系、新開幕、會員、本月壽星…" autocomplete="off">
+      <div id="searchAutocomplete" class="sf-autocomplete"></div>
     </div>
 
     <div class="sf-quick-row">
@@ -3301,6 +3308,82 @@ document.getElementById('searchInput').addEventListener('input', () => {
   updateSfTrigger();
   render();
 });
+
+// ── Search Autocomplete ──────────────────────────────────────────────────────
+(function() {
+  const inp = document.getElementById('searchInput');
+  const ac  = document.getElementById('searchAutocomplete');
+  let acActive = -1;
+
+  function getItems() { return ac.querySelectorAll('.sf-autocomplete-item'); }
+
+  function setActive(idx) {
+    getItems().forEach((el, i) => el.classList.toggle('ac-active', i === idx));
+    acActive = idx;
+  }
+
+  function updateAc() {
+    const q = inp.value.trim().toLowerCase();
+    acActive = -1;
+    if (q.length < 1) { ac.style.display = 'none'; return; }
+    const matches = ALL_DATA.filter(s =>
+      (s['店名'] || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+    if (!matches.length) { ac.style.display = 'none'; return; }
+    ac.innerHTML = matches.map(s => `
+      <div class="sf-autocomplete-item" data-id="${s['ID'] || ''}">
+        <div class="sf-autocomplete-name">${s['店名'] || ''}</div>
+        <div class="sf-autocomplete-sub">${[s['縣市'], s['地址'] ? s['地址'].slice(0, 20) : ''].filter(Boolean).join('・')}</div>
+      </div>
+    `).join('');
+    ac.style.display = 'block';
+  }
+
+  function selectItem(item) {
+    const shop = ALL_DATA.find(s => s['ID'] === item.dataset.id);
+    if (!shop) return;
+    inp.value = shop['店名'];
+    ac.style.display = 'none';
+    acActive = -1;
+    updateSfTrigger();
+    render();
+  }
+
+  inp.addEventListener('input', updateAc);
+
+  inp.addEventListener('keydown', e => {
+    const items = getItems();
+    if (ac.style.display === 'none' || !items.length) {
+      if (e.key === 'Escape') inp.blur();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(Math.min(acActive + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(Math.max(acActive - 1, -1));
+    } else if (e.key === 'Enter' && acActive >= 0) {
+      e.preventDefault();
+      selectItem(items[acActive]);
+    } else if (e.key === 'Escape') {
+      ac.style.display = 'none';
+      acActive = -1;
+    }
+  });
+
+  ac.addEventListener('click', e => {
+    const item = e.target.closest('.sf-autocomplete-item');
+    if (item) selectItem(item);
+  });
+
+  document.addEventListener('click', e => {
+    if (!inp.contains(e.target) && !ac.contains(e.target)) {
+      ac.style.display = 'none';
+      acActive = -1;
+    }
+  });
+})();
 
 // Now open
 document.getElementById('sfNowOpen').addEventListener('click', toggleNowOpen);
