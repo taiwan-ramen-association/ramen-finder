@@ -533,6 +533,30 @@ def step_excel_to_json():
             obj[h] = val
         if obj.get('店名', '').strip():
             rows.append(obj)
+
+    # ── ID 安全保護：用舊 data.json 補回被 Excel 清空的 ID ──────────────
+    # 比對 key：(店名, 地址)，兩者都空才視為無法對應
+    existing_rows = load_data()
+    old_id_map = {}
+    for r in existing_rows:
+        key = (str(r.get('店名', '')).strip(), str(r.get('地址', '')).strip())
+        eid = str(r.get('ID', '')).strip()
+        if ID_RE.match(eid):
+            old_id_map[key] = eid
+
+    restored = 0
+    for r in rows:
+        if ID_RE.match(str(r.get('ID', '')).strip()):
+            continue  # Excel 已有合法 ID，保留不動
+        key = (str(r.get('店名', '')).strip(), str(r.get('地址', '')).strip())
+        if key in old_id_map:
+            r['ID'] = old_id_map[key]
+            restored += 1
+
+    if restored:
+        print(f'  🔒 ID 保護：從舊資料補回 {restored} 筆 ID（Excel 中為空）')
+    # ────────────────────────────────────────────────────────────────────
+
     save_data(rows)
     print(f'  ✅ 完成：data.json 已更新（共 {len(rows)} 筆）')
     return True
