@@ -1659,6 +1659,34 @@
   .fmod-confirm-btn:active { opacity: 0.82; }
   body.dark .fmod-card { background: #1e1c18; }
   body.dark .fmod-arrow-btn { color: rgba(255,255,255,0.8); }
+  /* TOS 同意橫幅 */
+  #tosBanner {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+    left: 50%; transform: translateX(-50%);
+    width: calc(100% - 24px); max-width: 480px;
+    background: rgba(26,18,9,0.93);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    color: #fff; padding: 12px 14px;
+    border-radius: 14px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 999;
+    font-size: 12px; line-height: 1.6;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    animation: tosUp 0.35s ease;
+  }
+  @keyframes tosUp {
+    from { transform: translateX(-50%) translateY(16px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);   opacity: 1; }
+  }
+  #tosBanner a { color: #ffb3b3; text-underline-offset: 2px; }
+  #tosBannerBtn {
+    flex-shrink: 0;
+    background: var(--red); color: #fff; border: none;
+    padding: 7px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif; white-space: nowrap;
+  }
 </style>
 </head>
 <body class="reviews-hidden challenges-hidden">
@@ -2031,6 +2059,10 @@
 </div>
 
 <!-- Bottom Navigation Bar -->
+<div id="tosBanner" style="display:none">
+  <span>繼續使用本服務，即表示您同意本協會的 <a href="terms.html" target="_blank">使用者條款</a>。</span>
+  <button id="tosBannerBtn">我知道了</button>
+</div>
 <nav class="bottom-nav" id="bottomNav">
   <!-- 搜尋器 -->
   <button class="bnav-item active" id="bnavFinder">
@@ -5204,6 +5236,19 @@ auth.getRedirectResult().catch(err => {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 loadData();
+
+// ── TOS 同意橫幅 ───────────────────────────────────────────────────────────
+(function () {
+  if (localStorage.getItem('tos_agreed')) return;
+  const banner = document.getElementById('tosBanner');
+  banner.style.display = 'flex';
+  document.getElementById('tosBannerBtn').addEventListener('click', () => {
+    localStorage.setItem('tos_agreed', '1');
+    banner.style.transition = 'opacity 0.3s ease';
+    banner.style.opacity = '0';
+    setTimeout(() => banner.remove(), 350);
+  });
+})();
 
 // ── PWA Service Worker ─────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
