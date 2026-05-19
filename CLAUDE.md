@@ -1,46 +1,25 @@
 # 台灣拉麵協會 — 開發上下文
 
-## 專案概覽
-台灣拉麵協會網站。前台 `finder.html`（正式版）、`finder-beta.html`（測試版），後台 `admin.html`。
-部署：GitHub Pages（public repo）。
+## 專案
+台灣拉麵協會網站，部署於 GitHub Pages。
+**完整說明見 `ramen-finder-notes/MANUAL.md`**（private repo，含架構、流程、Firestore 結構、部署方式）。
 
 ## 技術棧
-- Firebase（Firestore、Auth、Storage、FCM、Cloud Functions）
-- Leaflet.js 地圖
-- Vanilla JS（無前端框架）
+Firebase（Firestore、Auth、Storage、FCM）、Leaflet.js、Vanilla JS
 
-## 關鍵路徑
-- 正式前台：`finder.html`
-- 測試前台：`finder-beta.html`
-- 後台：`admin.html`
-- Firebase rules（private git，gitignored）：`ramen-finder-notes/`
-  - Firestore：`ramen-finder-notes/firestore.rules`（deploy 用）、`ramen-finder-notes/firestore.txt`（快照備份）
-  - Storage：`ramen-finder-notes/storage.txt`（快照備份）
-- 開發筆記（private repo）：`ramen-finder-notes/`
-
-## 功能狀態（2026-05）
-| 功能 | 狀態 |
-|------|------|
-| 收藏、踩點、評論（含照片、留言、Feed） | ✅ 完整 |
-| 照片 tab（Google Places API） | ✅ 完整 |
-| 菜單 tab | ✅ 完整 |
-| 排行榜 | ⏸ 暫緩，勿動 |
-| 挑戰任務 | ⏸ 暫緩，勿動 |
-| 排隊回報 | ⏸ 暫緩，勿動 |
+## 關鍵檔案
+- 前台正式版：`finder.html`
+- 前台測試版：`finder-beta.html`
+- 後台（一般）：`admin.html`（bundle 從 Firebase Storage 載入）
+- 後台（備援）：`console.html`（bundle 從 GitHub private repo 載入）
+- Firebase Rules：`ramen-finder-notes/firestore.rules`
 
 ## 協作規則
 - **任何程式碼修改前，先說明計畫，等確認後才動工**
 - 不自行開 PR 或 git push
 - 不要跑 PR
 
-## Firebase 規則管理
-- 規則存放於 `ramen-finder-notes/firestore.rules`（private git，gitignored）
-- 透過 `firebase deploy --only firestore:rules --project taiwan-ramen-association` 部署
-- `firebase.json` 已指向 `ramen-finder-notes/firestore.rules`
-
-## 角色體系
-`all → viewer → member → director → admin`
-
-## 待處理事項（詳見 `ramen-finder-notes/deferred.md`）
-- [ ] Admin Storage 孤兒照片清理工具
-- [ ] 排隊回報伺服器端 Rate Limiting（待功能開放時補）
+## 暫緩功能（勿動）
+- 排行榜
+- 挑戰任務
+- 排隊回報
