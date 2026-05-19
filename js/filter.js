@@ -296,7 +296,7 @@ function toggleNowOpen() {
   function updateAc() {
     const q = inp.value.trim().toLowerCase();
     acActive = -1;
-    if (q.length < 1 || !window.ALL_DATA) { ac.style.display = 'none'; return; }
+    if (q.length < 1 || typeof ALL_DATA === 'undefined' || !ALL_DATA.length) { ac.style.display = 'none'; return; }
     const matches = ALL_DATA.filter(s =>
       (s['店名'] || '').toLowerCase().includes(q)
     ).slice(0, 8);
