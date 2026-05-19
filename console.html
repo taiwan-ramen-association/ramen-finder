@@ -54,7 +54,7 @@
 </div>
 
 <script>
-const BUNDLE_URL = 'https://raw.githubusercontent.com/taiwan-ramen-association/ramen-finder-notes/main/admin-bundle.js';
+const BUNDLE_URL = 'https://api.github.com/repos/taiwan-ramen-association/ramen-finder-notes/contents/admin-bundle.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
@@ -96,9 +96,12 @@ async function loadBundle() {
     }
     const pat = cfgSnap.data().pat;
 
-    // 從 GitHub private repo 拉取 bundle
+    // 從 GitHub Contents API 拉取 bundle（支援 CORS，raw endpoint 不支援）
     const res = await fetch(BUNDLE_URL, {
-      headers: { 'Authorization': `token ${pat}` },
+      headers: {
+        'Authorization': `token ${pat}`,
+        'Accept': 'application/vnd.github.v3.raw'
+      },
       cache: 'no-cache'
     });
     if (!res.ok) throw new Error(`GitHub 回應 ${res.status}，請確認 PAT 是否有效`);
