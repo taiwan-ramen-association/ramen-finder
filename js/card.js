@@ -74,8 +74,8 @@ function renderCard(shop) {
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
         <span class="queue-badge-header" data-id="${escapeAttr(shop['ID'] || '')}" hidden></span>
-        ${canView('favorites') ? `<button class="fav-btn${!auth.currentUser || isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
-        ${canView('stamps') ? `<button class="stamp-btn${!auth.currentUser || isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
+        ${canView('favorites') ? `<button class="fav-btn${isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
+        ${canView('stamps') ? `<button class="stamp-btn${isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
       </div>
     </div>
     <div class="card-meta">

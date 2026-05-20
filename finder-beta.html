@@ -2456,6 +2456,8 @@ async function loadData() {
       typeChipsEl.appendChild(btn);
     });
 
+    // featureFlags 必須先載入，卡片才能正確決定 vis（menuTab/photosTab 等）
+    if (_ffReady) await _ffReady;
     document.getElementById('loadingScreen').style.display = 'none';
     const mc = document.getElementById('mainContent');
     mc.classList.add('mc-show');
