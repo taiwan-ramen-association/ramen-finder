@@ -149,10 +149,28 @@ function syncSfModal() {
   if (mt) { mt.value = mealTime; mt.disabled = isNowOpen; }
   const nowOpenBtn = document.getElementById('sfNowOpen');
   if (nowOpenBtn) nowOpenBtn.classList.toggle('active', isNowOpen);
-  const locBtn = document.getElementById('sfLocateBtn');
-  if (locBtn) {
-    locBtn.classList.toggle('located', locEnabled && userLat !== null);
-    locBtn.classList.toggle('active',  locEnabled && userLat !== null);
+  const locSel = document.getElementById('sfLocModeSelect');
+  if (locSel) { locSel.value = locMode; locSel.classList.toggle('located', locMode !== 'none'); }
+  const customRow = document.getElementById('sfCustomLocRow');
+  if (customRow) {
+    customRow.classList.toggle('visible', locMode === 'custom');
+    if (locMode === 'custom') {
+      const ci = document.getElementById('sfCustomLocInput');
+      const cb = document.getElementById('sfCustomLocConfirm');
+      const cl = document.getElementById('sfCustomLocLabel');
+      const cr = document.getElementById('sfCustomLocReset');
+      if (customLocLabel) {
+        if (ci) ci.style.display = 'none';
+        if (cb) cb.style.display = 'none';
+        if (cl) { cl.textContent = '📍 ' + customLocLabel; cl.style.display = ''; }
+        if (cr) cr.style.display = '';
+      } else {
+        if (ci) { ci.style.display = ''; ci.classList.remove('error'); }
+        if (cb) { cb.textContent = '定位'; cb.disabled = false; cb.style.display = ''; }
+        if (cl) cl.style.display = 'none';
+        if (cr) cr.style.display = 'none';
+      }
+    }
   }
   const distSel = document.getElementById('sfDistSelect');
   if (distSel) {
@@ -219,6 +237,20 @@ function clearSfFilters() {
   if (sfNonActive) sfNonActive.checked = false;
   const inp = document.getElementById('searchInput');
   if (inp) inp.value = '';
+  // 清除定位
+  deactivateLocate();
+  const customRow = document.getElementById('sfCustomLocRow');
+  if (customRow) {
+    customRow.classList.remove('visible');
+    const ci = document.getElementById('sfCustomLocInput');
+    const cb = document.getElementById('sfCustomLocConfirm');
+    const cl = document.getElementById('sfCustomLocLabel');
+    const cr = document.getElementById('sfCustomLocReset');
+    if (ci) { ci.value = ''; ci.style.display = ''; ci.classList.remove('error'); }
+    if (cb) { cb.textContent = '定位'; cb.disabled = false; cb.style.display = ''; }
+    if (cl) cl.style.display = 'none';
+    if (cr) cr.style.display = 'none';
+  }
   updateSfTrigger();
 }
 
@@ -237,7 +269,12 @@ function updateSfTrigger() {
     tags.push('週' + sorted.join(''));
   }
   if (mealTime && !isNowOpen)           tags.push(mealTime);
-  if (locEnabled && userLat !== null)   tags.push('📍' + (locRadius >= 1000 ? locRadius/1000+'km' : locRadius+'m'));
+  if (locEnabled && userLat !== null) {
+    const locTag = locMode === 'custom'
+      ? ('🗺️ ' + (customLocLabel || '指定位置'))
+      : '📍 附近';
+    tags.push(locTag + (locRadius >= 1000 ? ' ' + locRadius/1000 + 'km' : locRadius ? ' ' + locRadius + 'm' : ''));
+  }
   if (showNonActive)                    tags.push('含非現存');
 
   let count = 0;
@@ -368,6 +405,51 @@ function toggleNowOpen() {
   });
 })();
 
+// ── 指定位置 Geocoding ────────────────────────────────────────────────────────
+
+async function geocodeQuery(q) {
+  const gps = q.match(/^(-?\d+\.?\d*)\s*[,，]\s*(-?\d+\.?\d*)$/);
+  if (gps) {
+    const lat = parseFloat(gps[1]), lng = parseFloat(gps[2]);
+    return { lat, lng, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
+  }
+  const url = 'https://nominatim.openstreetmap.org/search' +
+              '?q=' + encodeURIComponent(q) + '&countrycodes=tw&format=json&limit=1';
+  const res = await fetch(url, { headers: { 'Accept-Language': 'zh-TW,zh;q=0.9' } });
+  if (!res.ok) throw new Error('查詢失敗');
+  const data = await res.json();
+  if (!data.length) throw new Error('找不到此地點');
+  const label = data[0].display_name.split(',')[0].trim();
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label };
+}
+
+async function handleCustomLocConfirm() {
+  const inp = document.getElementById('sfCustomLocInput');
+  const btn = document.getElementById('sfCustomLocConfirm');
+  const lbl = document.getElementById('sfCustomLocLabel');
+  const rst = document.getElementById('sfCustomLocReset');
+  const q   = inp.value.trim();
+  if (!q) return;
+  inp.classList.remove('error');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    const { lat, lng, label } = await geocodeQuery(q);
+    inp.style.display = 'none';
+    btn.style.display = 'none';
+    lbl.textContent   = '📍 ' + label;
+    lbl.style.display = '';
+    rst.style.display = '';
+    activateCustomLocate(lat, lng, label);
+    updateSfTrigger();
+  } catch (err) {
+    inp.classList.add('error');
+    btn.textContent = '定位';
+    btn.disabled = false;
+    showToast(err.message || '找不到地點');
+  }
+}
+
 // ── Event Listeners ──────────────────────────────────────────────────────────
 
 // sf-day chips
@@ -400,8 +482,50 @@ document.getElementById('searchInput').addEventListener('input', () => {
 // Now open
 document.getElementById('sfNowOpen').addEventListener('click', toggleNowOpen);
 
-// Locate
-document.getElementById('sfLocateBtn').addEventListener('click', () => locateUser());
+// 定位模式切換
+document.getElementById('sfLocModeSelect').addEventListener('change', e => {
+  const mode = e.target.value;
+  locMode = mode;
+  const row = document.getElementById('sfCustomLocRow');
+  if (mode === 'none') {
+    deactivateLocate();
+    if (row) row.classList.remove('visible');
+  } else if (mode === 'device') {
+    if (row) row.classList.remove('visible');
+    startDeviceLocate();
+  } else { // custom
+    deactivateLocate();
+    if (row) {
+      row.classList.add('visible');
+      if (!customLocLabel) {
+        const ci = document.getElementById('sfCustomLocInput');
+        if (ci) setTimeout(() => ci.focus(), 50);
+      }
+    }
+  }
+});
+
+// 指定位置：確認 / Enter / ✕
+document.getElementById('sfCustomLocConfirm').addEventListener('click', handleCustomLocConfirm);
+document.getElementById('sfCustomLocInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); handleCustomLocConfirm(); }
+});
+document.getElementById('sfCustomLocReset').addEventListener('click', () => {
+  customLocLabel = '';
+  deactivateLocate();
+  const sel = document.getElementById('sfLocModeSelect');
+  if (sel) { sel.value = 'custom'; sel.classList.remove('located'); }
+  locMode = 'custom';
+  const ci = document.getElementById('sfCustomLocInput');
+  const cb = document.getElementById('sfCustomLocConfirm');
+  const cl = document.getElementById('sfCustomLocLabel');
+  const rst = document.getElementById('sfCustomLocReset');
+  if (ci) { ci.value = ''; ci.style.display = ''; ci.classList.remove('error'); setTimeout(() => ci.focus(), 50); }
+  if (cb) { cb.textContent = '定位'; cb.disabled = false; cb.style.display = ''; }
+  if (cl) cl.style.display = 'none';
+  if (rst) rst.style.display = 'none';
+});
+
 document.getElementById('sfDistSelect').addEventListener('change', e => {
   locRadius = e.target.value ? parseInt(e.target.value) : 0;
   if (locEnabled && userLat !== null) render();
