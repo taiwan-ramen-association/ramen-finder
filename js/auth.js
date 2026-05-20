@@ -380,6 +380,11 @@ auth.onAuthStateChanged(async user => {
       currentDisplayName = userData.nickname || user.displayName || '匿名';
       currentAvatarUrl   = avatar;
 
+      // GA4: 綁定 user_id（跨裝置識別）
+      if (typeof gtag === 'function') {
+        gtag('config', 'G-D5PB53XF7P', { user_id: user.uid });
+      }
+
       // 載入收藏清單 + 踩點記錄
       const favIds = userData.favorites || [];
       favSet = new Set(favIds);
