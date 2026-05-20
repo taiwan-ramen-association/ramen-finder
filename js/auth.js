@@ -60,6 +60,7 @@ let _localAvatarUid = null;
 
 // ── 3. Role / Feature Flag State ─────────────────────────────────────────────
 var currentUserRole    = ''; // 登入後由 onAuthStateChanged 填入
+var _ffReady           = null; // loadFeatureFlags() 的 Promise，供 onAuthStateChanged await
 var currentDisplayName = '';
 var currentAvatarUrl   = '';
 var isWarned           = false;
@@ -115,7 +116,6 @@ async function loadFeatureFlags() {
     const snap = await db.collection('meta').doc('featureFlags').get();
     if (snap.exists) featureFlags = { ...featureFlags, ...snap.data() };
   } catch(e) {}
-  applyFeatureFlags(); // Firestore 資料載入完成後立即套用 UI
 }
 
 function hasPermission(userRole, requiredRole) {
@@ -395,6 +395,7 @@ auth.onAuthStateChanged(async user => {
       const favIds = userData.favorites || [];
       favSet = new Set(favIds);
       await loadStamps(user.uid);
+      await _ffReady;
       applyFeatureFlags();
       render();
       checkUnreadBadge();
@@ -413,6 +414,7 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('mainContent').classList.remove('fav-mode');
       if (_currentPage === 'favorites') switchPage('finder');
       closeProfileDropdown();
+      await _ffReady;
       applyFeatureFlags();
 
       // 未登入時也要檢查本頁 gate flag，若為 'all' 則開放瀏覽
@@ -476,3 +478,7 @@ auth.getRedirectResult().catch(err => {
     auth.signOut();
   }
 });
+
+// featureFlags 立即開始從 Firestore 載入，onAuthStateChanged 的兩個分支都會 await 此 Promise
+// 確保 applyFeatureFlags() 永遠用 Firestore 值，不用 code 預設值，杜絕 UI 閃爍
+_ffReady = loadFeatureFlags();

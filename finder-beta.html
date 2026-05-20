@@ -2398,7 +2398,7 @@ async function loadData() {
   document.getElementById('mainContent').classList.remove('mc-show');
 
   loadQueueSettings();  // 非同步背景載入，不阻塞主流程
-  loadFeatureFlags();   // 同上
+  // loadFeatureFlags() 已在 auth.js 底部於頁面解析時立即觸發（_ffReady）
 
   try {
     const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取

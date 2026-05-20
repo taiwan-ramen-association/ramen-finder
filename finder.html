@@ -1796,7 +1796,7 @@
 
   <div class="pd-actions">
     <button class="pd-action" id="darkModeBtn">🌙 深色模式<span class="dark-toggle" id="darkToggle"></span></button>
-    <a class="pd-action" href="domination.html">🗺️ 制霸地圖</a>
+    <a class="pd-action" id="dominationLink" href="domination.html" style="display:none">🗺️ 制霸地圖</a>
     <a class="pd-action" id="adminLink" href="admin.html" style="display:none">⚙️ 後台管理</a>
     <button class="pd-action" id="clearDataBtn" style="color:#c00">🗑 清除我的所有記憶</button>
     <button class="pd-action danger" id="logoutBtn">🚪 登出</button>
@@ -2133,7 +2133,7 @@
     <span class="bnav-label">收藏</span>
   </button>
   <!-- 貼文 -->
-  <button class="bnav-item" id="bnavPosts">
+  <button class="bnav-item" id="bnavPosts" style="display:none">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
@@ -2141,7 +2141,7 @@
     <span class="bnav-badge" id="bnavPostsBadge"></span>
   </button>
   <!-- 挑戰任務 -->
-  <button class="bnav-item" id="bnavChallenges">
+  <button class="bnav-item" id="bnavChallenges" style="display:none">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
       <line x1="4" y1="22" x2="4" y2="15"/>
@@ -2233,7 +2233,7 @@
         <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
       </div>
       <div class="sf-other-body" id="sfOtherBody">
-        <label class="sf-toggle-row">
+        <label class="sf-toggle-row" id="sfNonActiveRow" style="display:none">
           <span>顯示非現存店家</span>
           <span class="ios-sw"><input type="checkbox" id="sfShowNonActive"><span class="ios-knob"></span></span>
         </label>
@@ -2398,7 +2398,7 @@ async function loadData() {
   document.getElementById('mainContent').classList.remove('mc-show');
 
   loadQueueSettings();  // 非同步背景載入，不阻塞主流程
-  loadFeatureFlags();   // 同上
+  // loadFeatureFlags() 已在 auth.js 底部於頁面解析時立即觸發（_ffReady）
 
   try {
     const res  = await fetch(DATA_URL + '?t=' + Date.now()); // 避免快取
