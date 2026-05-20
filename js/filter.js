@@ -414,18 +414,25 @@ async function geocodeQuery(q) {
     const lat = parseFloat(gps[1]), lng = parseFloat(gps[2]);
     return { lat, lng, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
   }
-  // Google Geocoding API（與 Places API 共用同一把 key）
-  const url = 'https://maps.googleapis.com/maps/api/geocode/json' +
-              '?address=' + encodeURIComponent(q) +
-              '&region=tw&language=zh-TW&key=' + PLACES_KEY;
-  const res  = await fetch(url);
+  // Places API (New) Text Search — 與照片功能共用同一把 key，支援 referrer 限制
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': PLACES_KEY,
+      'X-Goog-FieldMask': 'places.displayName,places.location'
+    },
+    body: JSON.stringify({ textQuery: q, languageCode: 'zh-TW', regionCode: 'TW', maxResultCount: 1 })
+  });
   if (!res.ok) throw new Error('查詢失敗');
   const data = await res.json();
-  if (data.status === 'REQUEST_DENIED') throw new Error('API 尚未啟用，請至 GCP Console 開啟 Geocoding API');
-  if (!data.results?.length) throw new Error('找不到此地點');
-  const r = data.results[0];
-  const label = r.address_components?.[0]?.long_name || r.formatted_address.split(',')[0];
-  return { lat: r.geometry.location.lat, lng: r.geometry.location.lng, label };
+  if (!data.places?.length) throw new Error('找不到此地點');
+  const place = data.places[0];
+  return {
+    lat:   place.location.latitude,
+    lng:   place.location.longitude,
+    label: place.displayName?.text || q
+  };
 }
 
 async function handleCustomLocConfirm() {
