@@ -408,6 +408,51 @@
   .sf-dist-select:disabled { opacity: 0.4; cursor: default; }
   .sf-dist-select:not(:disabled) { border-color: #1a73e8; color: #1a73e8; }
 
+  /* 定位模式 select */
+  .sf-loc-select {
+    flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 7px 6px; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--paper); color: var(--stone);
+    cursor: pointer; outline: none;
+    text-align: center; text-align-last: center;
+    transition: all 0.15s;
+  }
+  .sf-loc-select.located { border-color: #1a73e8; color: #1a73e8; background: #edf3ff; }
+  .sf-loc-select:disabled { opacity: 0.4; cursor: default; }
+
+  /* 指定位置輸入列 */
+  .sf-custom-loc-row {
+    display: none; align-items: center; gap: 8px;
+    padding: 8px 16px 12px; border-bottom: 1px solid var(--line);
+  }
+  .sf-custom-loc-row.visible { display: flex; }
+  .sf-custom-loc-input {
+    flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--ink); background: var(--paper);
+    outline: none; transition: border-color 0.2s; min-width: 0;
+  }
+  .sf-custom-loc-input:focus  { border-color: var(--red); }
+  .sf-custom-loc-input.error  { border-color: #e53935; }
+  .sf-custom-loc-confirm {
+    padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px;
+    background: var(--paper); color: var(--stone); font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+  }
+  .sf-custom-loc-confirm:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+  .sf-custom-loc-confirm:disabled { opacity: 0.5; cursor: default; }
+  .sf-custom-loc-label {
+    font-size: 11px; color: #1a73e8; flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sf-custom-loc-reset {
+    border: none; background: none; color: var(--stone);
+    font-size: 14px; cursor: pointer; padding: 2px 4px; flex-shrink: 0;
+  }
+
   /* label | chips-scroll rows */
   .sf-row {
     display: flex; align-items: center; gap: 0;
@@ -436,22 +481,16 @@
   }
 
   /* 用餐時間 */
-  .sf-time-wrap {
-    display: flex; align-items: center; gap: 6px;
-    padding: 0 16px 0 8px;
-  }
-  .sf-time-input {
+  .sf-time-select {
     border: 1.5px solid var(--line); border-radius: 8px;
     padding: 6px 10px; font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif;
     color: var(--ink); background: var(--paper);
     outline: none; transition: border-color 0.2s;
+    cursor: pointer; margin-left: 8px;
   }
-  .sf-time-input:focus { border-color: var(--red); }
-  .sf-time-clear {
-    border: none; background: none; color: var(--stone);
-    font-size: 14px; cursor: pointer; padding: 4px;
-  }
+  .sf-time-select:focus { border-color: var(--red); }
+  .sf-time-select:disabled { opacity: 0.45; }
 
   /* 其他設定 (collapsible) */
   .sf-other-wrap { padding: 0; }
@@ -2126,7 +2165,11 @@
 
     <div class="sf-quick-row">
       <button class="sf-quick-btn" id="sfNowOpen">🟢 現在營業中</button>
-      <button class="sf-quick-btn" id="sfLocateBtn">📍 附近</button>
+      <select class="sf-loc-select" id="sfLocModeSelect">
+        <option value="none">📍 定位</option>
+        <option value="device">📍 我的附近</option>
+        <option value="custom">🗺️ 指定位置</option>
+      </select>
       <select class="sf-dist-select" id="sfDistSelect" disabled>
         <option value="">不限</option>
         <option value="200">200m</option>
@@ -2138,6 +2181,14 @@
         <option value="20000">20km</option>
         <option value="50000">50km</option>
       </select>
+    </div>
+
+    <div class="sf-custom-loc-row" id="sfCustomLocRow">
+      <input type="text" id="sfCustomLocInput" class="sf-custom-loc-input"
+             placeholder="地址、地點名稱，或 GPS（25.03, 121.53）">
+      <button class="sf-custom-loc-confirm" id="sfCustomLocConfirm">定位</button>
+      <span  class="sf-custom-loc-label"   id="sfCustomLocLabel"   style="display:none"></span>
+      <button class="sf-custom-loc-reset"  id="sfCustomLocReset"   style="display:none" title="重新輸入">✕</button>
     </div>
 
     <div class="sf-row">
@@ -2165,14 +2216,11 @@
 
     <div class="sf-row">
       <div class="sf-row-label">用餐時間</div>
-      <div class="sf-time-wrap">
-        <input type="time" id="sfMealTime" class="sf-time-input">
-        <button class="sf-time-clear" id="sfMealTimeClear" style="display:none">✕</button>
-      </div>
+      <select id="sfMealTime" class="sf-time-select"></select>
     </div>
 
     <div class="sf-other-wrap">
-      <div class="sf-other-header">
+      <div class="sf-other-header" id="sfOtherHeader">
         <span>其他設定</span>
         <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
       </div>
@@ -2308,6 +2356,8 @@ let mealTime         = '';          // HH:MM string
 let isNowOpen        = false;
 let locEnabled       = false;       // GPS locate enabled
 let locRadius        = 0;           // meters, 0 = 不限
+let locMode          = 'none';      // 'none' | 'device' | 'custom'
+let customLocLabel   = '';          // 指定位置的地名
 let showFavOnly      = false;
 let showNonActive    = false;
 let _filtered        = [];
@@ -2555,44 +2605,58 @@ function fitLocate() {
   ]);
 }
 
-function locateUser() {
-  const btn     = document.getElementById('sfLocateBtn');
+function deactivateLocate() {
+  locEnabled = false;
+  userLat = userLng = null;
+  locMode = 'none';
+  customLocLabel = '';
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; followMode = false; }
+  if (userMarker    && leafletMap) { leafletMap.removeLayer(userMarker);    userMarker    = null; }
+  if (userAccCircle && leafletMap) { leafletMap.removeLayer(userAccCircle); userAccCircle = null; }
   const distSel = document.getElementById('sfDistSelect');
-  if (!btn) return;
+  if (distSel) distSel.disabled = true;
+  const sel = document.getElementById('sfLocModeSelect');
+  if (sel) { sel.value = 'none'; sel.classList.remove('located'); sel.disabled = false; }
+  render();
+}
 
-  if (locEnabled && userLat !== null) {
-    // Toggle off
-    locEnabled = false;
-    userLat = userLng = null;
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; followMode = false; }
-    if (userMarker    && leafletMap) { leafletMap.removeLayer(userMarker);    userMarker    = null; }
-    if (userAccCircle && leafletMap) { leafletMap.removeLayer(userAccCircle); userAccCircle = null; }
-    btn.textContent = '📍 附近';
-    btn.classList.remove('active', 'located');
-    if (distSel) distSel.disabled = true;
-    render();
+function activateCustomLocate(lat, lng, label) {
+  locEnabled = true;
+  locMode = 'custom';
+  userLat = lat;
+  userLng = lng;
+  customLocLabel = label;
+  const distSel = document.getElementById('sfDistSelect');
+  if (distSel) { distSel.disabled = false; if (!distSel.value) distSel.value = '2000'; }
+  locRadius = distSel && distSel.value ? parseInt(distSel.value) : 2000;
+  const sel = document.getElementById('sfLocModeSelect');
+  if (sel) sel.classList.add('located');
+  render();
+}
+
+function startDeviceLocate() {
+  const sel     = document.getElementById('sfLocModeSelect');
+  const distSel = document.getElementById('sfDistSelect');
+  if (!navigator.geolocation) {
+    showToast('此瀏覽器不支援 GPS 定位');
+    if (sel) { sel.value = 'none'; sel.classList.remove('located'); }
+    locMode = 'none';
     return;
   }
-  if (!navigator.geolocation) { showToast('此瀏覽器不支援 GPS 定位'); return; }
-  btn.textContent = '⏳ 定位中…';
-  btn.disabled = true;
+  if (sel) { sel.disabled = true; sel.classList.remove('located'); }
   navigator.geolocation.getCurrentPosition(pos => {
     locEnabled = true;
+    locMode = 'device';
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
     locRadius = distSel && distSel.value ? parseInt(distSel.value) : 2000;
-    btn.textContent = '📍 附近';
-    btn.classList.add('located');
-    btn.disabled = false;
-    if (distSel) {
-      distSel.disabled = false;
-      if (!distSel.value) distSel.value = '2000';
-    }
+    if (sel) { sel.disabled = false; sel.classList.add('located'); }
+    if (distSel) { distSel.disabled = false; if (!distSel.value) distSel.value = '2000'; }
     if (leafletMap) { showUserMarker(pos.coords.accuracy); fitLocate(); }
     render();
   }, () => {
-    btn.textContent = '📍 附近';
-    btn.disabled = false;
+    if (sel) { sel.disabled = false; sel.value = 'none'; sel.classList.remove('located'); }
+    locMode = 'none';
     showToast('無法取得位置，請確認已允許定位權限');
   });
 }
@@ -2650,8 +2714,9 @@ function toggleFollow() {
     watchId = navigator.geolocation.watchPosition(pos => {
       userLat = pos.coords.latitude;
       userLng = pos.coords.longitude;
-      const sfLb = document.getElementById('sfLocateBtn');
-      if (sfLb) { sfLb.textContent = '📍 附近'; sfLb.classList.add('located'); }
+      const sfLb = document.getElementById('sfLocModeSelect');
+      if (sfLb) { sfLb.value = 'device'; sfLb.classList.add('located'); }
+      locMode = 'device';
       showUserMarker(pos.coords.accuracy);
       if (followMode && leafletMap) {
         if (firstFix) { fitLocate(); firstFix = false; }
@@ -2707,9 +2772,10 @@ function initMap() {
           btn.disabled = false;
           showUserMarker(pos.coords.accuracy);
           fitLocate();
-          const sfLb = document.getElementById('sfLocateBtn');
-          if (sfLb) { sfLb.textContent = '📍 附近'; sfLb.classList.add('located'); }
+          const sfLb = document.getElementById('sfLocModeSelect');
+          if (sfLb) { sfLb.value = 'device'; sfLb.classList.add('located'); }
           locEnabled = true;
+          locMode = 'device';
           render();
         }, () => {
           btn.style.opacity = '';
@@ -4707,15 +4773,15 @@ auth.onAuthStateChanged(async user => {
       } catch(e) { console.warn('userProfiles sync failed', e); }
 
       // 從 Firestore 讀取 featureFlags，決定網站存取門檻
-      let sitePermRole = 'all'; // 預設值
+      let betaPermRole = 'all'; // 預設值
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
-          sitePermRole = ffSnap.data().siteAccess.perm;
+        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
+          betaPermRole = ffSnap.data().betaAccess.perm;
         }
       } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }
 
-      if (!hasPermission(userData.role, sitePermRole)) {
+      if (!hasPermission(userData.role, betaPermRole)) {
         showBetaGate('此頁面暫時關閉，請稍後再試');
         userAvatar.style.display = 'block';
         return;
@@ -4765,16 +4831,16 @@ auth.onAuthStateChanged(async user => {
       closeProfileDropdown();
       applyFeatureFlags();
 
-      // 未登入時檢查 siteAccess.perm，若為 'all' 則開放瀏覽
-      let sitePermRole = 'all';
+      // 未登入時檢查 betaAccess.perm，若為 'all' 則開放瀏覽
+      let betaPermRole = 'all';
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
-          sitePermRole = ffSnap.data().siteAccess.perm;
+        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
+          betaPermRole = ffSnap.data().betaAccess.perm;
         }
       } catch(e) {}
 
-      if (sitePermRole === 'all') {
+      if (betaPermRole === 'all') {
         document.getElementById('betaGate').style.display  = 'none';
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContent').classList.add('mc-show');
@@ -5481,6 +5547,21 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
   setHH();
   window.addEventListener('resize', setHH);
 })();
+
+// ── 鍵盤捲動（Home / End / PageUp / PageDown）────────────────────────────────
+window.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+  if (document.querySelector('.sf-modal.open, .rv-modal.open, .fmod.open')) return;
+  const el = document.getElementById('mainContent');
+  if (!el) return;
+  const h = el.clientHeight;
+  switch (e.key) {
+    case 'Home':     e.preventDefault(); el.scrollTop = 0; break;
+    case 'End':      e.preventDefault(); el.scrollTop = el.scrollHeight; break;
+    case 'PageUp':   e.preventDefault(); el.scrollTop -= h * 0.85; break;
+    case 'PageDown': e.preventDefault(); el.scrollTop += h * 0.85; break;
+  }
+});
 
 // ── Reviews Feed ──────────────────────────────────────────────────────────────
 const RF_SEEN_KEY  = 'rvFeedSeen';
