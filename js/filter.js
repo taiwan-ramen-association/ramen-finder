@@ -408,19 +408,24 @@ function toggleNowOpen() {
 // ── 指定位置 Geocoding ────────────────────────────────────────────────────────
 
 async function geocodeQuery(q) {
+  // GPS 格式直接解析，不打 API
   const gps = q.match(/^(-?\d+\.?\d*)\s*[,，]\s*(-?\d+\.?\d*)$/);
   if (gps) {
     const lat = parseFloat(gps[1]), lng = parseFloat(gps[2]);
     return { lat, lng, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
   }
-  const url = 'https://nominatim.openstreetmap.org/search' +
-              '?q=' + encodeURIComponent(q) + '&countrycodes=tw&format=json&limit=1';
-  const res = await fetch(url, { headers: { 'Accept-Language': 'zh-TW,zh;q=0.9' } });
+  // Google Geocoding API（與 Places API 共用同一把 key）
+  const url = 'https://maps.googleapis.com/maps/api/geocode/json' +
+              '?address=' + encodeURIComponent(q) +
+              '&region=tw&language=zh-TW&key=' + PLACES_KEY;
+  const res  = await fetch(url);
   if (!res.ok) throw new Error('查詢失敗');
   const data = await res.json();
-  if (!data.length) throw new Error('找不到此地點');
-  const label = data[0].display_name.split(',')[0].trim();
-  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label };
+  if (data.status === 'REQUEST_DENIED') throw new Error('API 尚未啟用，請至 GCP Console 開啟 Geocoding API');
+  if (!data.results?.length) throw new Error('找不到此地點');
+  const r = data.results[0];
+  const label = r.address_components?.[0]?.long_name || r.formatted_address.split(',')[0];
+  return { lat: r.geometry.location.lat, lng: r.geometry.location.lng, label };
 }
 
 async function handleCustomLocConfirm() {
