@@ -4772,16 +4772,16 @@ auth.onAuthStateChanged(async user => {
         }, { merge: true });
       } catch(e) { console.warn('userProfiles sync failed', e); }
 
-      // 從 Firestore 讀取 featureFlags，決定網站存取門檻
-      let betaPermRole = 'all'; // 預設值
+      // 從 Firestore 讀取 featureFlags，決定網站存取門檻（正式版用 siteAccess）
+      let sitePermRole = 'all'; // 預設值
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
-          betaPermRole = ffSnap.data().betaAccess.perm;
+        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
+          sitePermRole = ffSnap.data().siteAccess.perm;
         }
       } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }
 
-      if (!hasPermission(userData.role, betaPermRole)) {
+      if (!hasPermission(userData.role, sitePermRole)) {
         showBetaGate('此頁面暫時關閉，請稍後再試');
         userAvatar.style.display = 'block';
         return;
@@ -4831,16 +4831,16 @@ auth.onAuthStateChanged(async user => {
       closeProfileDropdown();
       applyFeatureFlags();
 
-      // 未登入時檢查 betaAccess.perm，若為 'all' 則開放瀏覽
-      let betaPermRole = 'all';
+      // 未登入時檢查 siteAccess.perm，若為 'all' 則開放瀏覽
+      let sitePermRole = 'all';
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
-          betaPermRole = ffSnap.data().betaAccess.perm;
+        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {
+          sitePermRole = ffSnap.data().siteAccess.perm;
         }
       } catch(e) {}
 
-      if (betaPermRole === 'all') {
+      if (sitePermRole === 'all') {
         document.getElementById('betaGate').style.display  = 'none';
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContent').classList.add('mc-show');
