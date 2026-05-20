@@ -5549,10 +5549,14 @@ document.getElementById('rvSubmitBtn').addEventListener('click', async () => {
 })();
 
 // ── 鍵盤捲動（Home / End / PageUp / PageDown）────────────────────────────────
+// 桌面（≥900px）: #mainContent 為 overflow:hidden，實際捲動容器是 #cardList
+// 行動版: #mainContent 本身可捲動
 window.addEventListener('keydown', e => {
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
   if (document.querySelector('.sf-modal.open, .rv-modal.open, .fmod.open')) return;
-  const el = document.getElementById('mainContent');
+  const el = window.innerWidth >= 900
+    ? document.getElementById('cardList')
+    : document.getElementById('mainContent');
   if (!el) return;
   const h = el.clientHeight;
   switch (e.key) {
