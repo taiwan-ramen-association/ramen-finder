@@ -5,42 +5,45 @@ Beta → 正式版 推送腳本
   python tools/promote.py finder      # finder-beta.html → finder.html
   python tools/promote.py domination  # domination-beta.html → domination.html
   python tools/promote.py all         # 兩個都做
+
+設計說明：
+  finder.html 與 finder-beta.html 共用同一份 js/auth.js（含其他 JS 模組）。
+  auth.js 透過 location.pathname 自動辨識頁面，套用不同的 gate 設定：
+    - finder-beta.html → betaAccess（預設 director）
+    - finder.html      → siteAccess（預設 all）
+  因此 promote.py 只需處理 HTML 上的視覺差異（BETA badge 等），不必動 JS。
 """
 import sys, re
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 
+
 def promote_finder():
     src = ROOT / 'finder-beta.html'
     dst = ROOT / 'finder.html'
     text = src.read_text(encoding='utf-8')
 
-    # 1. 移除 h1 BETA badge
+    # 1. 移除 h1 旁的 BETA badge
     text = text.replace(
         ' <span style="font-size:11px;background:rgba(255,255,255,0.25);padding:2px 7px;border-radius:10px;font-weight:400;letter-spacing:0;">BETA</span>',
         ''
     )
 
-    # 2. 登入成功：betaAccess → siteAccess，預設 director → all，訊息
-    text = text.replace(
-        "// 從 Firestore 讀取 featureFlags，決定 beta 存取門檻\n      let betaPermRole = 'director'; // 預設值\n      try {\n        const ffSnap = await db.collection('meta').doc('featureFlags').get();\n        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {\n          betaPermRole = ffSnap.data().betaAccess.perm;\n        }\n      } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }\n\n      if (!hasPermission(userData.role, betaPermRole)) {\n        showBetaGate('此頁面僅開放特定身份瀏覽');\n        userAvatar.style.display = 'block';\n        return;\n      }",
-        "// 從 Firestore 讀取 featureFlags，決定網站存取門檻\n      let sitePermRole = 'all'; // 預設值\n      try {\n        const ffSnap = await db.collection('meta').doc('featureFlags').get();\n        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {\n          sitePermRole = ffSnap.data().siteAccess.perm;\n        }\n      } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }\n\n      if (!hasPermission(userData.role, sitePermRole)) {\n        showBetaGate('此頁面暫時關閉，請稍後再試');\n        userAvatar.style.display = 'block';\n        return;\n      }"
-    )
-
-    # 3. 未登入：betaAccess → siteAccess，預設 director → all，訊息
-    text = text.replace(
-        "// 未登入時也要檢查 betaAccess.perm，若為 'all' 則開放瀏覽\n      let betaPermRole = 'director';\n      try {\n        const ffSnap = await db.collection('meta').doc('featureFlags').get();\n        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {\n          betaPermRole = ffSnap.data().betaAccess.perm;\n        }\n      } catch(e) {}\n\n      if (betaPermRole === 'all') {\n        document.getElementById('betaGate').style.display  = 'none';\n        document.getElementById('loadingScreen').style.display = 'none';\n        document.getElementById('mainContent').classList.add('mc-show');\n        render();\n      } else {\n        showBetaGate('此頁面需要登入後才能瀏覽', true);\n      }",
-        "// 未登入時檢查 siteAccess.perm，若為 'all' 則開放瀏覽\n      let sitePermRole = 'all';\n      try {\n        const ffSnap = await db.collection('meta').doc('featureFlags').get();\n        if (ffSnap.exists && ffSnap.data().siteAccess?.perm) {\n          sitePermRole = ffSnap.data().siteAccess.perm;\n        }\n      } catch(e) {}\n\n      if (sitePermRole === 'all') {\n        document.getElementById('betaGate').style.display  = 'none';\n        document.getElementById('loadingScreen').style.display = 'none';\n        document.getElementById('mainContent').classList.add('mc-show');\n        render();\n      } else {\n        showBetaGate('此頁面暫時關閉，請稍後再試');\n      }"
-    )
+    # 2. 移除 <title> 內的 BETA 字樣（若有）
+    text = re.sub(r'(<title>[^<]*?)\s*BETA(\s*[─\-]\s*[^<]*</title>)', r'\1\2', text)
+    text = re.sub(r'(<title>[^<]*?)\s*BETA(</title>)', r'\1\2', text)
 
     dst.write_text(text, encoding='utf-8')
-    print(f'finder.html 已更新')
+    print('finder.html 已更新（auth gate 透過 js/auth.js 的頁面偵測自動套用 siteAccess）')
 
 
 def promote_domination():
     src = ROOT / 'domination-beta.html'
     dst = ROOT / 'domination.html'
+    if not src.exists():
+        print(f'⚠️  {src} 不存在（已移入 private repo），略過 domination 推送')
+        return
     text = src.read_text(encoding='utf-8')
 
     # 1. title 移除 BETA
@@ -59,10 +62,10 @@ def promote_domination():
     )
     if count:
         text = new_text
-        print(f'  GEO_CACHE_NAME 已遞增')
+        print('  GEO_CACHE_NAME 已遞增')
 
     dst.write_text(text, encoding='utf-8')
-    print(f'domination.html 已更新')
+    print('domination.html 已更新')
 
 
 if __name__ == '__main__':

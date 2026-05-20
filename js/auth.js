@@ -16,6 +16,17 @@
 //   getAvatarUrl, applyAvatarUrl
 //   showBetaGate, openPrivacyModal, closePrivacyModal, doGoogleSignIn
 
+// ── 0. Page Detection: 自動辨識當前是 finder.html 還是 finder-beta.html ─────
+// 兩個頁面共用此 auth.js，但 gate 參數不同：
+//   finder-beta.html → 使用 betaAccess，預設 director，beta 專屬訊息
+//   finder.html      → 使用 siteAccess，預設 all，緊急關站訊息
+const IS_BETA = location.pathname.endsWith('finder-beta.html');
+const GATE_FLAG              = IS_BETA ? 'betaAccess' : 'siteAccess';
+const GATE_DEFAULT_ROLE      = IS_BETA ? 'director'    : 'all';
+const GATE_MSG_NO_PERM       = IS_BETA ? '此頁面僅開放特定身份瀏覽' : '此頁面暫時關閉，請稍後再試';
+const GATE_MSG_NOT_LOGGED_IN = IS_BETA ? '此頁面需要登入後才能瀏覽' : '此頁面暫時關閉，請稍後再試';
+const GATE_SHOW_LOGIN_BTN    = IS_BETA;  // 未登入時是否顯示登入按鈕
+
 // ── 1. Firebase Init ─────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
@@ -334,17 +345,17 @@ auth.onAuthStateChanged(async user => {
         }, { merge: true });
       } catch(e) { console.warn('userProfiles sync failed', e); }
 
-      // 從 Firestore 讀取 featureFlags，決定網站存取門檻
-      let betaPermRole = 'all'; // 預設值
+      // 從 Firestore 讀取 featureFlags，決定本頁存取門檻（GATE_FLAG 由頁面偵測決定）
+      let permRole = GATE_DEFAULT_ROLE;
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
-          betaPermRole = ffSnap.data().betaAccess.perm;
+        if (ffSnap.exists && ffSnap.data()[GATE_FLAG]?.perm) {
+          permRole = ffSnap.data()[GATE_FLAG].perm;
         }
       } catch(e) { /* Firestore rules 未允許時沿用預設值 */ }
 
-      if (!hasPermission(userData.role, betaPermRole)) {
-        showBetaGate('此頁面暫時關閉，請稍後再試');
+      if (!hasPermission(userData.role, permRole)) {
+        showBetaGate(GATE_MSG_NO_PERM);
         userAvatar.style.display = 'block';
         return;
       }
@@ -393,22 +404,22 @@ auth.onAuthStateChanged(async user => {
       closeProfileDropdown();
       applyFeatureFlags();
 
-      // 未登入時檢查 betaAccess.perm，若為 'all' 則開放瀏覽
-      let betaPermRole = 'all';
+      // 未登入時也要檢查本頁 gate flag，若為 'all' 則開放瀏覽
+      let permRole = GATE_DEFAULT_ROLE;
       try {
         const ffSnap = await db.collection('meta').doc('featureFlags').get();
-        if (ffSnap.exists && ffSnap.data().betaAccess?.perm) {
-          betaPermRole = ffSnap.data().betaAccess.perm;
+        if (ffSnap.exists && ffSnap.data()[GATE_FLAG]?.perm) {
+          permRole = ffSnap.data()[GATE_FLAG].perm;
         }
       } catch(e) {}
 
-      if (betaPermRole === 'all') {
+      if (permRole === 'all') {
         document.getElementById('betaGate').style.display  = 'none';
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContent').classList.add('mc-show');
         render();
       } else {
-        showBetaGate('此頁面暫時關閉，請稍後再試');
+        showBetaGate(GATE_MSG_NOT_LOGGED_IN, GATE_SHOW_LOGIN_BTN);
       }
     }
   } catch (err) {
