@@ -443,6 +443,14 @@ function closePrivacyModal() {
 }
 function doGoogleSignIn() {
   closePrivacyModal();
+  // PWA standalone 模式（已加到桌面）popup 會被擋或開到外部瀏覽器，直接用 redirect
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true; // iOS Safari
+  if (isStandalone) {
+    auth.signInWithRedirect(provider).catch(e => console.error('redirect 登入失敗', e));
+    return;
+  }
   auth.signInWithPopup(provider).catch(err => {
     if (err.code === 'auth/popup-blocked') {
       auth.signInWithRedirect(provider).catch(e => console.error('redirect 登入失敗', e));
