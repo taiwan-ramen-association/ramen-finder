@@ -436,22 +436,16 @@
   }
 
   /* 用餐時間 */
-  .sf-time-wrap {
-    display: flex; align-items: center; gap: 6px;
-    padding: 0 16px 0 8px;
-  }
-  .sf-time-input {
+  .sf-time-select {
     border: 1.5px solid var(--line); border-radius: 8px;
     padding: 6px 10px; font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif;
     color: var(--ink); background: var(--paper);
     outline: none; transition: border-color 0.2s;
+    cursor: pointer; margin-left: 8px;
   }
-  .sf-time-input:focus { border-color: var(--red); }
-  .sf-time-clear {
-    border: none; background: none; color: var(--stone);
-    font-size: 14px; cursor: pointer; padding: 4px;
-  }
+  .sf-time-select:focus { border-color: var(--red); }
+  .sf-time-select:disabled { opacity: 0.45; }
 
   /* 其他設定 (collapsible) */
   .sf-other-wrap { padding: 0; }
@@ -2165,14 +2159,11 @@
 
     <div class="sf-row">
       <div class="sf-row-label">用餐時間</div>
-      <div class="sf-time-wrap">
-        <input type="time" id="sfMealTime" class="sf-time-input">
-        <button class="sf-time-clear" id="sfMealTimeClear" style="display:none">✕</button>
-      </div>
+      <select id="sfMealTime" class="sf-time-select"></select>
     </div>
 
     <div class="sf-other-wrap">
-      <div class="sf-other-header">
+      <div class="sf-other-header" id="sfOtherHeader">
         <span>其他設定</span>
         <button class="sf-expand-btn" id="sfExpandBtn">展開 ▾</button>
       </div>

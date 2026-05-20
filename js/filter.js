@@ -103,6 +103,22 @@ function getFiltered() {
   return result;
 }
 
+// ── 用餐時間 Select 初始化 ────────────────────────────────────────────────────
+
+(function () {
+  const sel = document.getElementById('sfMealTime');
+  if (!sel) return;
+  const opts = ['<option value="">不限</option>'];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const hh = String(h).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      opts.push(`<option value="${hh}:${mm}">${hh}:${mm}</option>`);
+    }
+  }
+  sel.innerHTML = opts.join('');
+})();
+
 // ── Search Filter Modal ───────────────────────────────────────────────────────
 
 function openSfModal() {
@@ -131,8 +147,6 @@ function syncSfModal() {
   });
   const mt = document.getElementById('sfMealTime');
   if (mt) { mt.value = mealTime; mt.disabled = isNowOpen; }
-  const mtClear = document.getElementById('sfMealTimeClear');
-  if (mtClear) mtClear.style.display = mealTime && !isNowOpen ? '' : 'none';
   const nowOpenBtn = document.getElementById('sfNowOpen');
   if (nowOpenBtn) nowOpenBtn.classList.toggle('active', isNowOpen);
   const locBtn = document.getElementById('sfLocateBtn');
@@ -199,8 +213,6 @@ function clearSfFilters() {
   document.querySelectorAll('#sfDayChips .sf-chip').forEach(c => { c.disabled = false; });
   const mt = document.getElementById('sfMealTime');
   if (mt) { mt.value = ''; mt.disabled = false; }
-  const mtClear = document.getElementById('sfMealTimeClear');
-  if (mtClear) mtClear.style.display = 'none';
   const nowOpenBtn = document.getElementById('sfNowOpen');
   if (nowOpenBtn) nowOpenBtn.classList.remove('active');
   const sfNonActive = document.getElementById('sfShowNonActive');
@@ -389,28 +401,21 @@ document.getElementById('searchInput').addEventListener('input', () => {
 document.getElementById('sfNowOpen').addEventListener('click', toggleNowOpen);
 
 // Locate
-document.getElementById('sfLocateBtn').addEventListener('click', locateUser);
+document.getElementById('sfLocateBtn').addEventListener('click', () => locateUser());
 document.getElementById('sfDistSelect').addEventListener('change', e => {
   locRadius = e.target.value ? parseInt(e.target.value) : 0;
   if (locEnabled && userLat !== null) render();
 });
 
-// Meal time
-document.getElementById('sfMealTimeClear').addEventListener('click', () => {
-  mealTime = '';
-  document.getElementById('sfMealTime').value = '';
-  document.getElementById('sfMealTimeClear').style.display = 'none';
-});
+// Meal time (select — value read on Apply)
 document.getElementById('sfMealTime').addEventListener('change', e => {
   mealTime = e.target.value;
-  document.getElementById('sfMealTimeClear').style.display = mealTime ? '' : 'none';
 });
 
-// 其他設定 expand/collapse
-document.getElementById('sfExpandBtn').addEventListener('click', () => {
+// 其他設定 expand/collapse（整列可點）
+document.getElementById('sfOtherHeader').addEventListener('click', () => {
   const body = document.getElementById('sfOtherBody');
   const btn  = document.getElementById('sfExpandBtn');
   const open = body.classList.toggle('open');
   btn.textContent = open ? '收起 ▴' : '展開 ▾';
 });
-document.getElementById('sfOtherBody').addEventListener('click', e => e.stopPropagation());
