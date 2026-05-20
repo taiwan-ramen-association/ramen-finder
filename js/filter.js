@@ -520,6 +520,7 @@ document.getElementById('sfLocModeSelect').addEventListener('change', e => {
 // 指定位置：確認 / Enter / ✕
 document.getElementById('sfCustomLocConfirm').addEventListener('click', handleCustomLocConfirm);
 document.getElementById('sfCustomLocInput').addEventListener('keydown', e => {
+  if (e.isComposing || e.keyCode === 229) return; // 忽略 IME 輸入法組字中（macOS 注音/倉頡）
   if (e.key === 'Enter') { e.preventDefault(); handleCustomLocConfirm(); }
 });
 document.getElementById('sfCustomLocReset').addEventListener('click', () => {

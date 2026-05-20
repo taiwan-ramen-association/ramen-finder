@@ -115,6 +115,7 @@ async function loadFeatureFlags() {
     const snap = await db.collection('meta').doc('featureFlags').get();
     if (snap.exists) featureFlags = { ...featureFlags, ...snap.data() };
   } catch(e) {}
+  applyFeatureFlags(); // Firestore 資料載入完成後立即套用 UI
 }
 
 function hasPermission(userRole, requiredRole) {
@@ -235,29 +236,12 @@ logoutBtn.addEventListener('click', () => {
 
 // ── 6. applyFeatureFlags ─────────────────────────────────────────────────────
 function applyFeatureFlags() {
-  // 非現存店家設定（sf-modal 內）
-  const sfNonActiveRow = document.querySelector('.sf-toggle-row:has(#sfShowNonActive)');
-  if (sfNonActiveRow) sfNonActiveRow.style.display = canView('nonActiveShops') ? '' : 'none';
-
-  // 收藏按鈕（bottom nav）
+  // ── Bottom Nav ────────────────────────────────────────────────────────────
+  // 收藏（初始 display:none，有權限才顯示）
   const bnavFavorites = document.getElementById('bnavFavorites');
   if (bnavFavorites) bnavFavorites.style.display = canView('favorites') ? '' : 'none';
 
-  // 排行榜按鈕（profile dropdown）
-  const rkPdBtn = document.getElementById('rankingsPdBtn');
-  if (rkPdBtn) {
-    rkPdBtn.style.display = canView('rankings') ? '' : 'none';
-    rkPdBtn.classList.toggle('ff-locked', canView('rankings') && !canUse('rankings'));
-  }
-
-  // 制霸地圖連結
-  const domLink = document.querySelector('.pd-action[href="domination.html"]');
-  if (domLink) {
-    domLink.style.display = canView('domination') ? '' : 'none';
-    domLink.classList.toggle('ff-locked', canView('domination') && !canUse('domination'));
-  }
-
-  // 貼文 nav bar
+  // 社群貼文（初始 display:none）
   const bnavPosts = document.getElementById('bnavPosts');
   if (bnavPosts) {
     const show = canView('postsNav');
@@ -266,6 +250,7 @@ function applyFeatureFlags() {
     if (!show && _currentPage === 'reviews') switchPage('finder');
   }
 
+  // 挑戰任務（初始 display:none）
   const bnavChallenges = document.getElementById('bnavChallenges');
   if (bnavChallenges) {
     const show = canView('challengesNav');
@@ -274,7 +259,28 @@ function applyFeatureFlags() {
     if (!show && _currentPage === 'challenges') switchPage('finder');
   }
 
-  // 新手導覽（漢堡選單）
+  // ── Profile Dropdown ──────────────────────────────────────────────────────
+  // 制霸地圖（初始 display:none）
+  const domLink = document.getElementById('dominationLink');
+  if (domLink) {
+    domLink.style.display = canView('domination') ? '' : 'none';
+    domLink.classList.toggle('ff-locked', canView('domination') && !canUse('domination'));
+  }
+
+  // 排行榜（初始 display:none）
+  const rkPdBtn = document.getElementById('rankingsPdBtn');
+  if (rkPdBtn) {
+    rkPdBtn.style.display = canView('rankings') ? '' : 'none';
+    rkPdBtn.classList.toggle('ff-locked', canView('rankings') && !canUse('rankings'));
+  }
+
+  // ── 搜尋過濾 Modal ────────────────────────────────────────────────────────
+  // 非現存店家 toggle（初始 display:none）
+  const sfNonActiveRow = document.getElementById('sfNonActiveRow');
+  if (sfNonActiveRow) sfNonActiveRow.style.display = canView('nonActiveShops') ? '' : 'none';
+
+  // ── 漢堡選單 ──────────────────────────────────────────────────────────────
+  // 新手導覽（初始 display:none）
   const resetOnboardBtn = document.getElementById('resetOnboardBtn');
   if (resetOnboardBtn) resetOnboardBtn.style.display = canView('onboardingTour') ? '' : 'none';
 }
