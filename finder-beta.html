@@ -656,7 +656,7 @@
   .bnav-item.ff-locked { opacity: 0.45; cursor: not-allowed; }
   /* ── PHOTO TAB ── */
   .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px 0 4px; }
-  .photo-grid a { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); }
+  .photo-grid-item { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); cursor: pointer; }
   .photo-grid img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s; }
   .photo-grid img.loading { opacity: 0; }
   .photo-grid img.loaded  { opacity: 1; }
@@ -2338,6 +2338,9 @@
   </div>
 </div>
 
+<script src="js/stamps.js"></script>
+<script src="js/photos.js"></script>
+<script src="js/menus.js"></script>
 <script src="js/filter.js"></script>
 <script src="js/map.js"></script>
 <script src="js/reviews.js"></script>
@@ -2365,26 +2368,10 @@ let showNonActive    = false;
 let _filtered        = [];
 let _displayedCount  = 0;
 let _scrollObserver  = null;
-let favSet           = new Set();   // 儲存 shop ID，由 Firestore 載入
 const BD_SKIP_KEY    = 'tw-ramen-bd-skip';
 
 function serverNow() { return new Date(Date.now() + serverTimeOffset); }
 function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
-
-async function toggleFav(shopId) {
-  const user = typeof auth !== 'undefined' && auth.currentUser;
-  if (!user) { showStampToast('請先登入以使用此功能'); return; }
-  if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
-  if (!shopId) return;
-  const ref = db.collection('users').doc(user.uid);
-  if (favSet.has(shopId)) {
-    favSet.delete(shopId);
-    await ref.update({ favorites: firebase.firestore.FieldValue.arrayRemove(shopId) });
-  } else {
-    favSet.add(shopId);
-    await ref.update({ favorites: firebase.firestore.FieldValue.arrayUnion(shopId) });
-  }
-}
 
 let expandedCard = null;
 let currentView  = 'list';
@@ -2734,7 +2721,7 @@ function _appendCards() {
 function _bindCardEvents(scope) {
   scope.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', e => {
-      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.write-review-btn') || e.target.closest('.review-del-btn') || e.target.closest('.review-photo-thumb') || e.target.closest('.review-load-more') || e.target.closest('.review-comment-form') || e.target.closest('.review-comments-more') || e.target.closest('.card-tab') || e.target.closest('.mnu-thumb') || e.target.closest('.mnu-del-btn')) return;
+      if (e.target.closest('a') || e.target.closest('.fav-btn') || e.target.closest('.stamp-btn') || e.target.closest('.queue-report-btn') || e.target.closest('.write-review-btn') || e.target.closest('.review-del-btn') || e.target.closest('.review-photo-thumb') || e.target.closest('.review-load-more') || e.target.closest('.review-comment-form') || e.target.closest('.review-comments-more') || e.target.closest('.card-tab') || e.target.closest('.mnu-thumb') || e.target.closest('.mnu-del-btn') || e.target.closest('.photo-grid-item')) return;
       // 已展開時點 card-detail 內部不縮起
       if (card.classList.contains('expanded') && e.target.closest('.card-detail')) return;
       if (expandedCard && expandedCard !== card) expandedCard.classList.remove('expanded');
@@ -3317,9 +3304,6 @@ logoutBtn.addEventListener('click', () => {
 })();
 
 // ── Stamp (踩點) ───────────────────────────────────────────────────────────
-// Encoding: 0=沒去過, 0.2=路過, 1=吃過1次, 2-10=吃過N次, 20=從業過
-let stampMap  = {};  // shopId → numeric score value
-let reviewMap = {};  // shopId → string
 const queueCache = {};  // shopId → { entries, updatedAt }
 let _queueShopId   = null;
 let _queueShopName = null;
@@ -3387,246 +3371,6 @@ async function loadFeatureFlags() {
   } catch(e) {}
 }
 let isWarned  = false;
-let _stampShopId   = null;
-let _stampShopName = '';
-let _stampStatus   = 'once'; // 'none'|'pass'|'once'|'many'|'work'
-let _stampCount    = 2;
-
-const STATUS_TO_VAL = { none: 0, pass: 0.2, once: 1, work: 20 };
-const STATUS_LABELS = { none:'沒去過', pass:'路過', once:'吃過1次', work:'從業過' };
-const COUNT_SUBS = ['','','好評常客！','熱愛此店！','忠實顧客！','拉麵信徒！','絕對常客！','高度上癮！','難以自拔！','快要從業了！','傳說中的常客！'];
-
-function valToStatus(val) {
-  if (val == null) return null;
-  if (val === 0)             return 'none';
-  if (val === 0.2)           return 'pass';
-  if (val === 1)             return 'once';
-  if (val >= 2 && val <= 10) return 'many';
-  if (val === 20)            return 'work';
-  return null;
-}
-function getStampVal() {
-  return _stampStatus === 'many' ? _stampCount : (STATUS_TO_VAL[_stampStatus] ?? 1);
-}
-
-function showStampToast(msg) {
-  const t = document.getElementById('stampToast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ── Menu Tab ────────────────────────────────────────────────────────────────
-const menuCache = {}; // shopId → { docs: [], lastDoc, hasMore }
-
-async function loadShopMenu(shop, panel, append = false) {
-  const shopId = shop['ID'];
-  if (!append) {
-    panel.innerHTML = '';
-    if (canUse('menuTab')) {
-      const headerRow = document.createElement('div');
-      headerRow.className = 'review-header-row';
-      const uploadBtn = document.createElement('button');
-      uploadBtn.className = 'mnu-upload-btn';
-      uploadBtn.innerHTML = '📷 上傳菜單照片';
-      uploadBtn.addEventListener('click', () => openMenuModal(shopId, shop['店名'] || ''));
-      headerRow.appendChild(uploadBtn);
-      panel.appendChild(headerRow);
-    }
-  }
-
-  const loading = document.createElement('p');
-  loading.className = 'tab-placeholder';
-  loading.style.padding = '10px 0';
-  loading.textContent = '載入中…';
-  panel.appendChild(loading);
-
-  try {
-    const cache = menuCache[shopId] || { lastDoc: null };
-    let q = db.collection('menus')
-      .where('shopId', '==', shopId)
-      .orderBy('photoDate', 'desc')
-      .limit(3);
-    if (append && cache.lastDoc) q = q.startAfter(cache.lastDoc);
-
-    const snap = await q.get();
-    loading.remove();
-    const docs = snap.docs;
-    const hasMore = docs.length >= 3;
-    menuCache[shopId] = { lastDoc: docs.length ? docs[docs.length - 1] : cache.lastDoc, hasMore };
-
-    if (!docs.length && !append) {
-      panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
-      return;
-    }
-
-    const grid = document.createElement('div');
-    grid.className = 'mnu-grid';
-    const allMnuUrls = docs.map(doc => {
-      const d = doc.data();
-      return d.photo?.original || d.photo?.thumb || '';
-    });
-    docs.forEach((doc, idx) => {
-      const d = doc.data();
-      const thumb = document.createElement('div');
-      thumb.className = 'mnu-thumb';
-      thumb.innerHTML = `<img src="${d.photo?.thumb || d.photo?.original}" alt="菜單" loading="lazy">
-        ${d.photoDate ? `<span class="mnu-date-badge">${d.photoDate}</span>` : ''}`;
-      thumb.addEventListener('click', () =>
-        openPhotoViewer(allMnuUrls, idx, { date: d.photoDate || '', uid: d.uid || '', authorName: d.displayName || '匿名' })
-      );
-      const canDel = auth.currentUser && (auth.currentUser.uid === d.uid || currentUserRole === 'admin');
-      if (canDel) {
-        const delBtn = document.createElement('button');
-        delBtn.className = 'mnu-del-btn';
-        delBtn.title = '刪除';
-        delBtn.textContent = '✕';
-        delBtn.addEventListener('click', async e => {
-          e.stopPropagation();
-          if (!confirm('確定刪除這張菜單照片？')) return;
-          delBtn.disabled = true;
-          try {
-            await db.collection('menus').doc(doc.id).delete();
-            delete menuCache[shopId];
-            thumb.remove();
-            showStampToast('✅ 已刪除菜單照片');
-          } catch(err) {
-            showStampToast('❌ 刪除失敗');
-            delBtn.disabled = false;
-          }
-        });
-        thumb.appendChild(delBtn);
-      }
-      grid.appendChild(thumb);
-    });
-    panel.appendChild(grid);
-
-    if (hasMore) {
-      const moreBtn = document.createElement('button');
-      moreBtn.className = 'mnu-load-more';
-      moreBtn.textContent = '顯示更多…';
-      moreBtn.addEventListener('click', () => { moreBtn.remove(); loadShopMenu(shop, panel, true); });
-      panel.appendChild(moreBtn);
-    }
-  } catch(e) {
-    loading.remove();
-    panel.insertAdjacentHTML('beforeend', '<p class="tab-placeholder" style="padding:8px 0">目前還沒有人上傳菜單，成為第一個吧！</p>');
-  }
-}
-
-// ── Menu Modal ───────────────────────────────────────────────────────────────
-let _mnuShopId = '', _mnuShopName = '', _mnuFile = null;
-
-function openMenuModal(shopId, shopName) {
-  _mnuShopId = shopId; _mnuShopName = shopName;
-  _mnuFile = null;
-  document.getElementById('mnuTitle').textContent = `📷 上傳菜單 — ${shopName}`;
-  document.getElementById('mnuPhotoDate').value = '';
-  document.getElementById('mnuPhotoDate').max = new Date().toISOString().split('T')[0];
-  document.getElementById('mnuProgress').textContent = '';
-  document.getElementById('mnuSubmitBtn').disabled = true;
-  document.getElementById('mnuPreviewGrid').innerHTML = '';
-  // 重置上傳區
-  const area = document.getElementById('mnuUploadArea');
-  area.innerHTML = `<input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">📷 點擊上傳照片`;
-  area.querySelector('#mnuFileInput').addEventListener('change', onMnuFileChange);
-  document.getElementById('mnuBackdrop').classList.add('open');
-  document.getElementById('mnuModal').classList.add('open');
-}
-
-function onMnuFileChange(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  _mnuFile = file;
-  const preview = document.getElementById('mnuPreviewGrid');
-  const url = URL.createObjectURL(file);
-  preview.innerHTML = `
-    <div class="rv-preview-item">
-      <img src="${url}" alt="">
-      <button class="rv-preview-remove" id="mnuPreviewRemove">✕</button>
-    </div>`;
-  preview.querySelector('#mnuPreviewRemove').addEventListener('click', () => {
-    _mnuFile = null;
-    preview.innerHTML = '';
-    // 重置 input 讓使用者可再次選擇
-    const area = document.getElementById('mnuUploadArea');
-    area.innerHTML = `<input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">📷 點擊上傳照片`;
-    area.querySelector('#mnuFileInput').addEventListener('change', onMnuFileChange);
-    checkMnuReady();
-  });
-  checkMnuReady();
-}
-
-function checkMnuReady() {
-  const hasDate  = isValidPhotoDate(document.getElementById('mnuPhotoDate')?.value);
-  const hasPhoto = !!_mnuFile;
-  document.getElementById('mnuSubmitBtn').disabled = !(hasDate && hasPhoto);
-}
-
-document.getElementById('mnuPhotoDate').addEventListener('input', checkMnuReady);
-document.getElementById('mnuUploadArea').addEventListener('click', () =>
-  document.getElementById('mnuFileInput')?.click()
-);
-
-function closeMenuModal() {
-  document.getElementById('mnuBackdrop').classList.remove('open');
-  document.getElementById('mnuModal').classList.remove('open');
-}
-document.getElementById('mnuCancelBtn').addEventListener('click', closeMenuModal);
-document.getElementById('mnuClose').addEventListener('click', closeMenuModal);
-document.getElementById('mnuBackdrop').addEventListener('click', e => {
-  if (e.target === document.getElementById('mnuBackdrop')) closeMenuModal();
-});
-
-document.getElementById('mnuSubmitBtn').addEventListener('click', async () => {
-  if (!_mnuFile || !_mnuShopId || !auth.currentUser) return;
-  const photoDate = document.getElementById('mnuPhotoDate').value;
-  if (!isValidPhotoDate(photoDate)) {
-    document.getElementById('mnuProgress').textContent = '❌ 日期格式錯誤或不可為未來日期';
-    return;
-  }
-
-  const btn      = document.getElementById('mnuSubmitBtn');
-  const progress = document.getElementById('mnuProgress');
-  btn.disabled = true;
-  progress.textContent = '壓縮中…';
-
-  try {
-    const user       = auth.currentUser;
-    const compressed = await compressImage(_mnuFile, { maxPx: 1200, maxKB: 280 });
-    progress.textContent = '上傳中…';
-    const docRef  = db.collection('menus').doc();
-    const path    = `menus/${_mnuShopId}/${docRef.id}.webp`;
-    const ref     = storage.ref(path);
-    await ref.put(compressed, { contentType: compressed.type });
-    const url = await ref.getDownloadURL();
-
-    await docRef.set({
-      shopId:      _mnuShopId,
-      shopName:    _mnuShopName,
-      uid:         user.uid,
-      displayName: user.displayName || '匿名',
-      photoDate,
-      photo:       { thumb: url, original: url },
-      createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    delete menuCache[_mnuShopId];
-    showStampToast('✅ 菜單照片已上傳');
-    closeMenuModal();
-
-    // 重新載入該 shop 的菜單 panel（同 review 做法）
-    const menuPanel = document.querySelector(`.card[data-shop-id="${_mnuShopId}"] [data-tab-panel="menu"] .menu-tab-inner`);
-    if (menuPanel) {
-      const shop = findShopById(_mnuShopId);
-      if (shop) loadShopMenu(shop, menuPanel);
-    }
-  } catch(e) {
-    progress.textContent = '❌ 上傳失敗：' + e.message;
-    btn.disabled = false;
-  }
-});
 
 // ── Queue helpers ──────────────────────────────────────────────────────────
 function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -3676,117 +3420,6 @@ async function penalizeTrustScore(delta) {
       trustScore: firebase.firestore.FieldValue.increment(delta)
     });
   } catch(e) {}
-}
-
-// ── Places API（照片）──────────────────────────────────────────────────────
-const PLACES_KEY       = 'AIzaSyBek6fDRbXZhxenlSgwR1DLaVRJjrxYUOU';
-const photoCache       = {}; // 記憶體快取：shopId → data | 'loading' | null
-const PHOTO_LS_PREFIX  = 'ramen_photo_';
-
-function lsGetPhoto(shopId) {
-  try { const v = localStorage.getItem(PHOTO_LS_PREFIX + shopId); return v ? JSON.parse(v) : null; } catch { return null; }
-}
-function lsSetPhoto(shopId, data) {
-  try { localStorage.setItem(PHOTO_LS_PREFIX + shopId, JSON.stringify(data)); } catch {}
-}
-function lsRemovePhoto(shopId) {
-  try { localStorage.removeItem(PHOTO_LS_PREFIX + shopId); } catch {}
-}
-
-// isRetry=true 時不再觸發二次重抓，避免無限循環
-async function loadShopPhotos(shop, panel, isRetry = false) {
-  const shopId = shop['ID'];
-
-  // 1. 記憶體快取
-  if (photoCache[shopId] && photoCache[shopId] !== 'loading') {
-    renderPhotoPanel(photoCache[shopId], panel, isRetry ? null : shop);
-    return;
-  }
-  if (photoCache[shopId] === 'loading') return;
-
-  // 2. localStorage 快取（跨重整、跨 App 存活）
-  if (!isRetry) {
-    const cached = lsGetPhoto(shopId);
-    if (cached) {
-      photoCache[shopId] = cached;
-      renderPhotoPanel(cached, panel, shop); // 仍需驗證圖片是否有效
-      return;
-    }
-  }
-
-  photoCache[shopId] = 'loading';
-  panel.innerHTML = '<p class="tab-placeholder" style="padding:20px 0">載入中…</p>';
-
-  try {
-    const query = [shop['店名'], shop['地址']].filter(Boolean).join(' ');
-    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': PLACES_KEY,
-        'X-Goog-FieldMask': 'places.photos',
-      },
-      body: JSON.stringify({ textQuery: query, languageCode: 'zh-TW' }),
-    });
-    const json = await res.json();
-    const photos = json.places?.[0]?.photos?.slice(0, 3) ?? [];
-
-    const urls = photos.map(p =>
-      `https://places.googleapis.com/v1/${p.name}/media?maxWidthPx=800&key=${PLACES_KEY}`
-    );
-    const attribution = photos[0]?.authorAttributions?.[0]?.displayName ?? '';
-    const data = { urls, attribution };
-    photoCache[shopId] = data;
-    lsSetPhoto(shopId, data);
-    renderPhotoPanel(data, panel, isRetry ? null : shop);
-  } catch(e) {
-    photoCache[shopId] = null;
-    panel.innerHTML = '<p class="tab-placeholder">照片載入失敗，請稍後再試</p>';
-  }
-}
-
-// shop 傳入時才啟用「≤1 張成功 → 清快取重抓」邏輯
-function renderPhotoPanel({ urls, attribution }, panel, shop = null) {
-  if (!urls.length) {
-    panel.innerHTML = '<p class="tab-placeholder">Google Maps 尚無此店照片</p>';
-    return;
-  }
-  panel.innerHTML = `
-    <div class="photo-grid">
-      ${urls.map(u => `
-        <a href="${u}" target="_blank" rel="noopener">
-          <img class="loading" src="${u}" alt="店家照片">
-        </a>`).join('')}
-    </div>
-    <p class="photo-attribution">圖片來源：Google Maps${attribution ? '・' + attribution : ''}</p>`;
-
-  // JS 附掛 onload / onerror，計算成功張數，判斷是否需重抓
-  const imgs  = [...panel.querySelectorAll('img')];
-  const total = imgs.length;
-  let settled = 0, loaded = 0;
-
-  imgs.forEach(img => {
-    img.onload = () => {
-      img.classList.replace('loading', 'loaded');
-      loaded++; settled++;
-      checkDone();
-    };
-    img.onerror = () => {
-      img.closest('a')?.remove();
-      settled++;
-      checkDone();
-    };
-  });
-
-  function checkDone() {
-    if (settled < total) return;
-    if (loaded <= 1 && shop) {
-      // 快取的 URL 已失效，清除後重新向 API 取得最新照片
-      lsRemovePhoto(shop['ID']);
-      delete photoCache[shop['ID']];
-      loadShopPhotos(shop, panel, true); // isRetry=true，不再二次重抓
-    }
-  }
 }
 
 // ── Queue ──────────────────────────────────────────────────────────────────
@@ -3976,63 +3609,6 @@ async function submitQueueReport() {
   }
 }
 
-async function loadStamps(uid) {
-  const snap = await db.collection('userVisits').doc(uid).get();
-  if (snap.exists) {
-    stampMap  = snap.data().visits  || {};
-    reviewMap = snap.data().reviews || {};
-  } else {
-    stampMap = {}; reviewMap = {};
-  }
-}
-
-function openStampModal(shopId, shopName) {
-  if (!auth.currentUser) { showStampToast('請先登入以使用此功能'); return; }
-  if (isWarned) { showStampToast('您的帳號目前受到限制'); return; }
-  _stampShopId   = shopId;
-  _stampShopName = shopName;
-  const stored = stampMap[shopId];
-  _stampStatus = valToStatus(stored) || 'once';
-  _stampCount  = (_stampStatus === 'many') ? stored : 2;
-  document.getElementById('smTitle').textContent   = shopName;
-  document.getElementById('smReview').value        = reviewMap[shopId] || '';
-  document.getElementById('smReviewCount').textContent = (reviewMap[shopId] || '').length;
-  updateSmOptions();
-  updateSlider();
-  document.getElementById('stampBackdrop').style.display = 'block';
-  document.getElementById('stampModal').style.display   = 'block';
-  lockScroll();
-}
-
-function closeStampModal() {
-  document.getElementById('stampBackdrop').style.display = 'none';
-  document.getElementById('stampModal').style.display   = 'none';
-  unlockScroll();
-}
-
-function updateSmOptions() {
-  document.querySelectorAll('.sm-option').forEach(el =>
-    el.classList.toggle('selected', el.dataset.status === _stampStatus)
-  );
-}
-
-function updateSlider() {
-  const wrap = document.getElementById('smSliderWrap');
-  wrap.classList.toggle('show', _stampStatus === 'many');
-  if (_stampStatus === 'many') {
-    document.getElementById('smCountSlider').value = _stampCount;
-    updateSliderLabel(_stampCount);
-  }
-}
-
-function updateSliderLabel(n) {
-  document.getElementById('smCountLabel').textContent = n >= 10 ? '10+' : n;
-  document.getElementById('smCountSub').textContent   = n >= 10 ? '傳說！你是這裡的傳說！' : (COUNT_SUBS[n] || '');
-}
-
-document.getElementById('stampBackdrop').addEventListener('click', closeStampModal);
-document.getElementById('smCancelBtn').addEventListener('click', closeStampModal);
-
 document.getElementById('queueBackdrop').addEventListener('click', closeQueueModal);
 document.getElementById('qmCancelBtn').addEventListener('click', closeQueueModal);
 document.getElementById('qmConfirmBtn').addEventListener('click', submitQueueReport);
@@ -4107,66 +3683,6 @@ document.getElementById('cardList').addEventListener('click', e => {
   if (!btn) return;
   if (btn.classList.contains('ff-locked')) { showAccessToast(); return; }
   openIrModal(btn.dataset.id, btn.dataset.name);
-});
-
-document.querySelectorAll('.sm-option').forEach(el => {
-  el.addEventListener('click', () => {
-    _stampStatus = el.dataset.status;
-    if (_stampStatus === 'many' && _stampCount < 2) _stampCount = 2;
-    updateSmOptions();
-    updateSlider();
-  });
-});
-
-document.getElementById('smCountSlider').addEventListener('input', e => {
-  _stampCount = parseInt(e.target.value);
-  updateSliderLabel(_stampCount);
-});
-
-document.getElementById('smReview').addEventListener('input', e => {
-  document.getElementById('smReviewCount').textContent = e.target.value.length;
-});
-
-document.getElementById('smConfirmBtn').addEventListener('click', async () => {
-  const shopId = _stampShopId;
-  if (!shopId || !auth.currentUser) return;
-  const val    = getStampVal();
-  const review = document.getElementById('smReview').value.trim();
-  stampMap[shopId] = val;
-  if (review) reviewMap[shopId] = review; else delete reviewMap[shopId];
-  try {
-    const uid = auth.currentUser.uid;
-    await db.collection('userVisits').doc(uid).set({ visits: { [shopId]: val } }, { merge: true });
-    if (review) {
-      await db.collection('userVisits').doc(uid).set({ reviews: { [shopId]: review } }, { merge: true });
-    } else {
-      await db.collection('userVisits').doc(uid).update({
-        [`reviews.${shopId}`]: firebase.firestore.FieldValue.delete()
-      }).catch(() => {});
-    }
-    document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.add('stamped'));
-    closeStampModal();
-    const lbl = _stampStatus === 'many'
-      ? `吃過${_stampCount >= 10 ? '10+' : _stampCount}次`
-      : STATUS_LABELS[_stampStatus];
-    showStampToast(`✓ 踩點：${lbl}`);
-  } catch (e) { showStampToast('踩點失敗：' + e.message); }
-});
-
-document.getElementById('smResetBtn').addEventListener('click', async () => {
-  if (!confirm(`確定要清除「${_stampShopName}」的踩點記錄嗎？\n此操作無法復原。`)) return;
-  const shopId = _stampShopId;
-  if (!shopId || !auth.currentUser) return;
-  delete stampMap[shopId]; delete reviewMap[shopId];
-  try {
-    await db.collection('userVisits').doc(auth.currentUser.uid).update({
-      [`visits.${shopId}`]:  firebase.firestore.FieldValue.delete(),
-      [`reviews.${shopId}`]: firebase.firestore.FieldValue.delete(),
-    });
-    document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.remove('stamped'));
-    closeStampModal();
-    showStampToast('已清除踩點記錄');
-  } catch (e) { showStampToast('重置失敗：' + e.message); }
 });
 
 // ── applyFeatureFlags ───────────────────────────────────────────────────────

@@ -302,68 +302,6 @@ async function updateDisplayNames(container) {
 
 // ── Photo Viewer ──────────────────────────────────────────────────────────────
 
-let _pvUrls = [];
-let _pvIdx  = 0;
-let _pvMeta = {};
-
-function openPhotoViewer(urls, startIdx, meta) {
-  _pvUrls = Array.isArray(urls) ? urls : [urls];
-  _pvIdx  = Math.max(0, Math.min(startIdx || 0, _pvUrls.length - 1));
-  _pvMeta = meta || {};
-  _renderPV();
-  document.getElementById('photoViewer').classList.add('open');
-}
-function closePhotoViewer() {
-  document.getElementById('photoViewer').classList.remove('open');
-  document.getElementById('pvImg').src = '';
-}
-function _renderPV(dir) {
-  const single = _pvUrls.length <= 1;
-  const img = document.getElementById('pvImg');
-  img.classList.remove('pv-enter-right', 'pv-enter-left');
-  if (dir) {
-    void img.offsetWidth;
-    img.classList.add(dir === 1 ? 'pv-enter-right' : 'pv-enter-left');
-  }
-  img.src = _pvUrls[_pvIdx];
-  document.getElementById('pvCounter').textContent       = `${_pvIdx + 1} / ${_pvUrls.length}`;
-  document.getElementById('pvCounter').style.visibility  = single ? 'hidden' : '';
-  document.getElementById('pvPrev').style.display        = single ? 'none' : '';
-  document.getElementById('pvNext').style.display        = single ? 'none' : '';
-  const dateEl = document.getElementById('pvFooterDate');
-  dateEl.textContent = _pvMeta.date ? `拍攝日期 ${_pvMeta.date}` : '';
-  document.getElementById('pvFooterAuthor').textContent  = _pvMeta.authorName ? `by ${_pvMeta.authorName}` : '';
-  if (_pvMeta.uid) {
-    getUserDisplay(_pvMeta.uid).then(u => {
-      document.getElementById('pvFooterAuthor').textContent = `by ${u.name}`;
-    });
-  }
-}
-function _pvGo(delta) {
-  _pvIdx = (_pvIdx + delta + _pvUrls.length) % _pvUrls.length;
-  _renderPV(delta);
-}
-
-document.getElementById('pvClose').addEventListener('click', closePhotoViewer);
-document.getElementById('pvPrev').addEventListener('click', () => _pvGo(-1));
-document.getElementById('pvNext').addEventListener('click', () => _pvGo(1));
-
-let _pvTouchX = 0;
-document.getElementById('photoViewer').addEventListener('touchstart', e => {
-  _pvTouchX = e.touches[0].clientX;
-}, { passive: true });
-document.getElementById('photoViewer').addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - _pvTouchX;
-  if (Math.abs(dx) > 40) _pvGo(dx < 0 ? 1 : -1);
-}, { passive: true });
-
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('photoViewer').classList.contains('open')) return;
-  if      (e.key === 'ArrowLeft')  _pvGo(-1);
-  else if (e.key === 'ArrowRight') _pvGo(1);
-  else if (e.key === 'Escape')     closePhotoViewer();
-});
-
 // ── Review Modal ──────────────────────────────────────────────────────────────
 function openReviewModal(shopId, shopName) {
   if (!auth.currentUser)  { showStampToast('請先登入以使用此功能'); return; }
@@ -536,10 +474,6 @@ let _rfCurrentPage   = 1;
 let _rfMaxPage       = 1;
 let _rfLoaded        = false;
 let _rfTab           = 'reviews'; // 'reviews' | 'menus'
-let _mnuFeedLoaded   = false;
-let _mnuFeedPage     = 1;
-let _mnuFeedMaxPage  = 1;
-let _mnuFeedCursors  = [null];
 let _currentPage     = 'finder';
 
 function getFeedSeen() {
@@ -714,80 +648,6 @@ function renderRfPagination() {
   });
   el.querySelectorAll('.rf-page-btn[data-page]').forEach(btn =>
     btn.addEventListener('click', () => loadReviewsFeedPage(+btn.dataset.page))
-  );
-}
-
-// ── Menus Feed ────────────────────────────────────────────────────────────────
-const MNU_PAGE_SIZE = 10;
-
-async function loadMenusFeedPage(page = 1) {
-  _mnuFeedPage = page;
-  const list = document.getElementById('rfMenuList');
-  list.innerHTML = '<div class="rf-empty">載入中…</div>';
-  try {
-    let q = db.collection('menus').orderBy('createdAt', 'desc').limit(MNU_PAGE_SIZE);
-    const cursor = _mnuFeedCursors[page - 1];
-    if (cursor) q = q.startAfter(cursor);
-    const snap = await q.get();
-    const docs = snap.docs;
-    if (docs.length >= MNU_PAGE_SIZE) {
-      if (!_mnuFeedCursors[page]) _mnuFeedCursors[page] = docs[docs.length - 1];
-      _mnuFeedMaxPage = Math.max(_mnuFeedMaxPage, page + 1);
-    } else {
-      _mnuFeedMaxPage = page;
-    }
-    list.innerHTML = '';
-    if (!docs.length) {
-      list.innerHTML = '<div class="rf-empty">目前還沒有菜單照片</div>';
-      renderMnuPagination();
-      _mnuFeedLoaded = true;
-      return;
-    }
-    docs.forEach(doc => {
-      const d = doc.data();
-      const ts = d.createdAt?.toDate?.();
-      const dateStr = ts ? ts.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) : '';
-      const card = document.createElement('div');
-      card.className = 'mnu-card';
-      card.dataset.docid = doc.id;
-      card.innerHTML = `
-        <img class="mnu-photo" src="${d.photo?.thumb || d.photo?.original || ''}" data-original="${d.photo?.original || ''}" alt="" loading="lazy">
-        <div class="mnu-info">
-          <span class="mnu-shop">📍 ${escapeHtml(d.shopName || '')}</span>
-          <span class="mnu-date">${escapeHtml(d.photoDate || dateStr)}</span>
-          <span class="mnu-user" data-uid="${d.uid || ''}">${escapeHtml(d.displayName || '匿名')}</span>
-        </div>`;
-      card.querySelector('.mnu-photo').addEventListener('click', e => {
-        const original = e.target.dataset.original || e.target.src;
-        openPhotoViewer([original], 0, { date: d.photoDate || '', uid: d.uid || '', authorName: d.displayName || '匿名' });
-      });
-      list.appendChild(card);
-    });
-    updateDisplayNames(list);
-    renderMnuPagination();
-    _mnuFeedLoaded = true;
-  } catch (e) {
-    console.error('loadMenusFeedPage 失敗', e);
-    list.innerHTML = `<div class="rf-empty">載入失敗：${e.message}</div>`;
-  }
-}
-
-function renderMnuPagination() {
-  const el = document.getElementById('rfMenuPagination');
-  if (!el) return;
-  const pages = Array.from({ length: _mnuFeedMaxPage }, (_, i) => i + 1);
-  el.innerHTML =
-    `<button class="rf-page-btn rf-page-prev" ${_mnuFeedPage <= 1 ? 'disabled' : ''}>◄</button>` +
-    pages.map(p => `<button class="rf-page-btn${p === _mnuFeedPage ? ' active' : ''}" data-page="${p}">${p}</button>`).join('') +
-    `<button class="rf-page-btn rf-page-next" ${_mnuFeedPage >= _mnuFeedMaxPage ? 'disabled' : ''}>►</button>`;
-  el.querySelector('.rf-page-prev').addEventListener('click', () => {
-    if (_mnuFeedPage > 1) loadMenusFeedPage(_mnuFeedPage - 1);
-  });
-  el.querySelector('.rf-page-next').addEventListener('click', () => {
-    if (_mnuFeedPage < _mnuFeedMaxPage) loadMenusFeedPage(_mnuFeedPage + 1);
-  });
-  el.querySelectorAll('.rf-page-btn[data-page]').forEach(btn =>
-    btn.addEventListener('click', () => loadMenusFeedPage(+btn.dataset.page))
   );
 }
 
