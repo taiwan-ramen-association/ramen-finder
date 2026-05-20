@@ -7,7 +7,7 @@
 //   userLat, userLng, currentView
 // 依賴全域函式：
 //   toMins, isOpenAt, isNewOpen, isThisMonth, isBirthday,
-//   shopDist, switchView, render, showToast, serverNow, locateUser
+//   shopDist, switchView, render, showStampToast, serverNow, locateUser
 
 // ── Filter ───────────────────────────────────────────────────────────────────
 
@@ -451,7 +451,7 @@ async function handleCustomLocConfirm() {
     inp.classList.add('error');
     btn.textContent = '定位';
     btn.disabled = false;
-    showToast(err.message || '找不到地點');
+    showStampToast(err.message || '找不到地點');
   }
 }
 
