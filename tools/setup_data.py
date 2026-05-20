@@ -209,18 +209,28 @@ def step_geocode():
         res = r.json()
         return (float(res[0]['lat']), float(res[0]['lon'])) if res else (None, None)
 
+    def in_taiwan(lat, lng):
+        """台灣合理座標範圍（含金門 ~118.3E、馬祖 ~119.9E、蘭嶼、綠島）"""
+        return 21.5 <= lat <= 26.5 and 118.0 <= lng <= 122.5
+
     for i, row in enumerate(to_geocode):
         name    = row.get('店名', '')
         address = row.get('地址', '') or name
         print(f'  [{i+1}/{len(to_geocode)}] {name}')
         try:
             lat, lng = from_map_url(row.get('Map', ''))
-            if lat:
+            if lat and in_taiwan(lat, lng):
                 print(f'    ✓ (Map URL) {lat:.6f}, {lng:.6f}')
             else:
-                lat, lng = from_nominatim(address)
                 if lat:
+                    print(f'    ✗ (Map URL) 座標超出台灣範圍：{lat:.6f}, {lng:.6f}，改用 Nominatim')
+                    lat = lng = None
+                lat, lng = from_nominatim(address)
+                if lat and in_taiwan(lat, lng):
                     print(f'    ✓ (Nominatim) {lat:.6f}, {lng:.6f}')
+                elif lat:
+                    print(f'    ✗ (Nominatim) 座標超出台灣範圍：{lat:.6f}, {lng:.6f}')
+                    lat = lng = None
 
             if lat:
                 row['lat'] = lat
