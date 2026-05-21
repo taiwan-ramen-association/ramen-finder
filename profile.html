@@ -14,6 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
@@ -38,12 +39,49 @@
     }
     .profile-nickname { font-size: 20px; font-weight: 600; margin-top: 14px; color: var(--ink); }
     .profile-meta { font-size: 12px; color: var(--stone); margin-top: 4px; }
-    .settings-btn {
+    /* ── Self-actions corner (isSelf only) ── */
+    .self-actions {
       position: absolute; top: 8px; right: 0;
-      background: none; border: none; font-size: 22px; cursor: pointer;
-      color: var(--stone); padding: 6px; line-height: 1;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
     }
-    .settings-btn:hover { color: var(--red); }
+    .self-google-info {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: 8px; padding: 5px 9px;
+    }
+    .self-google-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+    .self-google-name { font-size: 11px; font-weight: 500; color: var(--ink); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .self-google-email { font-size: 10px; color: var(--stone); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .self-btns { display: flex; gap: 4px; }
+    .self-btn {
+      background: none; border: 1px solid var(--line); border-radius: 6px;
+      padding: 4px 9px; font-size: 12px; color: var(--stone); cursor: pointer;
+      font-family: inherit; line-height: 1.4;
+    }
+    .self-btn:hover { color: var(--red); border-color: var(--red); }
+    .settings-btn {
+      background: none; border: 1px solid var(--line); border-radius: 6px;
+      padding: 4px 9px; font-size: 18px; cursor: pointer;
+      color: var(--stone); line-height: 1.4;
+    }
+    .settings-btn:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── Settings: nickname + avatar rows ── */
+    .pf-nick-row { display: flex; gap: 8px; margin: 0 0 8px; }
+    .pf-nick-input {
+      flex: 1; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px;
+      font-size: 14px; font-family: inherit; background: var(--paper);
+      outline: none; box-sizing: border-box; color: var(--ink);
+    }
+    .pf-nick-input:focus { border-color: var(--red); }
+    .pf-nick-save {
+      padding: 8px 14px; background: var(--red); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; flex-shrink: 0;
+    }
+    .pf-nick-save:disabled { opacity: 0.6; cursor: default; }
+    .pf-avatar-edit { display: flex; align-items: center; gap: 8px; }
+    .pf-avatar-preview { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--line); }
+    .settings-divider { border: none; border-top: 1px solid var(--line); margin: 8px 0; }
 
     /* ── Stats row ── */
     .stats-row {
@@ -178,7 +216,20 @@
         <img id="profileAvatar" class="profile-avatar" src="" alt="">
         <h1 id="profileNickname" class="profile-nickname"></h1>
         <div id="profileMeta" class="profile-meta"></div>
-        <button id="settingsBtn" class="settings-btn" title="設定" style="display:none">⚙</button>
+        <!-- 本人專用：Google 帳號資訊 + 登出 + 設定（profile.js 控制顯示） -->
+        <div id="selfActions" class="self-actions" style="display:none">
+          <div class="self-google-info">
+            <img class="self-google-avatar" id="pfGoogleAvatar" src="">
+            <div>
+              <div class="self-google-name" id="pfGoogleName"></div>
+              <div class="self-google-email" id="pfGoogleEmail"></div>
+            </div>
+          </div>
+          <div class="self-btns">
+            <button id="logoutBtn" class="self-btn">🚪 登出</button>
+            <button id="settingsBtn" class="settings-btn" title="設定" style="display:none">⚙ 設定</button>
+          </div>
+        </div>
       </div>
 
       <div class="stats-row">
@@ -206,6 +257,31 @@
     <div id="settingsModal" class="settings-modal">
       <div class="settings-box">
         <div class="settings-title">個人頁設定</div>
+        <!-- 暱稱 -->
+        <div class="settings-row" style="padding-bottom:4px">
+          <div>
+            <div class="settings-row-label">暱稱</div>
+            <div class="settings-row-desc">顯示在評論與個人頁上</div>
+          </div>
+        </div>
+        <div class="pf-nick-row">
+          <input id="pfNicknameInput" class="pf-nick-input" type="text" maxlength="20" placeholder="輸入暱稱（最多 20 字）">
+          <button id="pfNicknameSaveBtn" class="pf-nick-save">儲存</button>
+        </div>
+        <!-- 頭像 -->
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">頭像</div>
+            <div class="settings-row-desc">更換個人頁顯示的大頭貼</div>
+          </div>
+          <div class="pf-avatar-edit">
+            <img id="pfAvatarPreview" class="pf-avatar-preview" src="">
+            <button id="pfAvatarBtn" class="self-btn">更換</button>
+            <input type="file" id="pfAvatarInput" accept="image/*" style="display:none">
+          </div>
+        </div>
+        <hr class="settings-divider">
+        <!-- 公開設定 -->
         <div class="settings-row">
           <div>
             <div class="settings-row-label">公開個人頁</div>
@@ -238,8 +314,9 @@
       appId: "1:66234065738:web:eb9fc4348a942da66ad7b3"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const auth    = firebase.auth();
+    const db      = firebase.firestore();
+    const storage = firebase.storage();
 
     // ── Target UID 解析 ──────────────────────────────────────────────────────
     const params = new URLSearchParams(location.search);
@@ -256,12 +333,17 @@
 
     // ── Auth state ──────────────────────────────────────────────────────────
     auth.onAuthStateChanged(user => {
-      if (!user) { showState('notLoggedInState'); return; }
+      if (!user) {
+        // 未登入且帶有他人 uid 參數 → 非正常入口，導回 finder
+        if (targetUid) { location.replace('finder.html'); return; }
+        showState('notLoggedInState');
+        return;
+      }
       viewerUid = user.uid;
       if (!targetUid) targetUid = viewerUid;
       isSelf = (targetUid === viewerUid);
-      // 呼叫 profile.js 入口
-      if (typeof initProfile === 'function') initProfile(viewerUid, targetUid, isSelf);
+      // 呼叫 profile.js 入口（傳入 user 供 isSelf 時顯示 Google 帳號資訊）
+      if (typeof initProfile === 'function') initProfile(viewerUid, targetUid, isSelf, user);
       else console.error('profile.js 未載入');
     });
 

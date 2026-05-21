@@ -48,12 +48,7 @@ const userAvatar       = document.getElementById('userAvatar');
 const logoutBtn        = document.getElementById('logoutBtn');
 const adminLink        = document.getElementById('adminLink');
 const profileDropdown  = document.getElementById('profileDropdown');
-const pdHeaderAvatar   = document.getElementById('pdHeaderAvatar');
-const pdDisplayName    = document.getElementById('pdDisplayName');
 const pdEmail          = document.getElementById('pdEmail');
-const nicknameInput    = document.getElementById('nicknameInput');
-const saveProfileBtn   = document.getElementById('saveProfileBtn');
-const localAvatarInput = document.getElementById('localAvatarInput');
 
 let _googlePhotoURL = '';
 let _localAvatarUid = null;
@@ -131,8 +126,7 @@ function getAvatarUrl(userData, googlePhotoURL) {
 
 function applyAvatarUrl(url) {
   if (!url) return;
-  userAvatar.src     = url;
-  pdHeaderAvatar.src = url;
+  userAvatar.src = url;
 }
 
 function applyLocalAvatarCache(uid) {
@@ -144,7 +138,6 @@ function applyLocalAvatarCache(uid) {
 // ── 5. Profile Dropdown ──────────────────────────────────────────────────────
 function closeProfileDropdown() {
   profileDropdown.style.display = 'none';
-  document.getElementById('pdNickPopup').style.display = 'none';
 }
 
 userAvatar.addEventListener('click', e => {
@@ -165,69 +158,6 @@ document.addEventListener('click', e => {
   }
 });
 
-// 📷 頭像區塊點擊 → 開啟檔案選取
-document.getElementById('pdAvatarWrap').addEventListener('click', () => localAvatarInput.click());
-
-localAvatarInput.addEventListener('change', async () => {
-  const file = localAvatarInput.files[0];
-  if (!file || !auth.currentUser) return;
-  localAvatarInput.value = '';
-  showStampToast('壓縮中…');
-  try {
-    const uid  = auth.currentUser.uid;
-    const blob = await compressImage(file, { maxPx: 400, maxKB: 100 });
-    const snap = await storage.ref(`avatars/${uid}.webp`).put(blob, { contentType: 'image/webp' });
-    const url  = await snap.ref.getDownloadURL();
-    await db.collection('users').doc(uid).update({ avatarUrl: url });
-    await db.collection('userProfiles').doc(uid).set({ avatarUrl: url }, { merge: true });
-    applyAvatarUrl(url);
-    try { localStorage.setItem(localAvatarKey(uid), url); } catch {}
-    showStampToast('✅ 頭像已更新！');
-  } catch (err) {
-    console.error('頭像上傳失敗', err);
-    showStampToast('❌ 頭像上傳失敗');
-  }
-});
-
-// 📝 顯示身份按鈕 → 開關綽號編輯 popup
-pdDisplayName.addEventListener('click', e => {
-  e.stopPropagation();
-  const popup  = document.getElementById('pdNickPopup');
-  const isOpen = popup.style.display !== 'none';
-  popup.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
-    nicknameInput.value = pdDisplayName.textContent;
-    nicknameInput.focus();
-  }
-});
-
-document.getElementById('pdNickCancelBtn').addEventListener('click', () => {
-  document.getElementById('pdNickPopup').style.display = 'none';
-});
-
-// 💾 儲存綽號
-saveProfileBtn.addEventListener('click', async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-  saveProfileBtn.disabled = true;
-  saveProfileBtn.textContent = '儲存中…';
-  try {
-    const nickname = nicknameInput.value.trim();
-    await db.collection('users').doc(user.uid).update({ nickname });
-    await db.collection('userProfiles').doc(user.uid).set(
-      { nickname, displayName: nickname || user.displayName || '' },
-      { merge: true }
-    );
-    pdDisplayName.textContent = nickname || user.displayName || '';
-    document.getElementById('pdNickPopup').style.display = 'none';
-    showStampToast('✅ 已儲存！');
-  } catch (e) {
-    console.error('儲存失敗', e);
-    showStampToast('❌ 儲存失敗');
-  }
-  saveProfileBtn.disabled = false;
-  saveProfileBtn.textContent = '儲存';
-});
 
 logoutBtn.addEventListener('click', () => {
   closeProfileDropdown();
@@ -377,9 +307,6 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('pdGoogleAvatar').src        = user.photoURL || 'assets/icons/03.png';
       document.getElementById('pdGoogleName').textContent  = user.displayName || '';
       pdEmail.value = user.email || '';
-      // 自定義顯示身份區
-      pdDisplayName.textContent                            = userData.nickname || user.displayName || '';
-      nicknameInput.value                                  = userData.nickname || '';
       adminLink.style.display   = userData.role === 'admin' ? 'flex' : 'none';
       isWarned = userData.role === 'warned';
       currentUserRole    = userData.role || 'viewer';

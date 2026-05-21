@@ -1237,62 +1237,6 @@
     box-sizing: border-box; font-family: inherit;
   }
 
-  /* ── Customize section ── */
-  .pd-customize {
-    padding: 14px 16px; background: var(--paper);
-    border-bottom: 1px solid var(--line);
-  }
-  .pd-customize-row { display: flex; align-items: center; gap: 12px; }
-  .pd-avatar-wrap {
-    position: relative; flex-shrink: 0; cursor: pointer;
-    width: 44px; height: 44px;
-  }
-  .pd-avatar-wrap .pd-header-avatar { width: 44px; height: 44px; }
-  .pd-camera-btn {
-    position: absolute; bottom: 0; right: 0;
-    width: 18px; height: 18px;
-    background: rgba(0,0,0,0.62); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; pointer-events: none; line-height: 1;
-  }
-  .pd-customize-info { flex: 1; min-width: 0; }
-  #pdDisplayName {
-    display: block; background: none; border: none;
-    font-size: 14px; font-weight: 600; color: var(--ink);
-    cursor: pointer; padding: 0; text-align: left;
-    font-family: inherit; line-height: 1.4;
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  #pdDisplayName:hover { color: var(--red); }
-  .pd-nick-field {
-    display: block; width: 100%; margin-bottom: 8px;
-    padding: 4px 0; border: none;
-    font-size: 11px; color: var(--stone); background: transparent;
-    box-sizing: border-box; font-family: inherit;
-  }
-  /* Nickname edit popup */
-  .pd-nick-popup {
-    margin-top: 10px; padding: 12px;
-    background: var(--white); border: 1px solid var(--line); border-radius: 10px;
-  }
-  .pd-nick-input {
-    width: 100%; padding: 8px 10px; margin-bottom: 8px;
-    border: 1.5px solid var(--line); border-radius: 8px;
-    font-size: 14px; font-family: inherit;
-    background: var(--paper); outline: none; box-sizing: border-box;
-  }
-  .pd-nick-input:focus { border-color: var(--red); }
-  .pd-nick-popup-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .pd-nick-popup-btns button {
-    padding: 7px 16px; border-radius: 8px; font-size: 13px;
-    cursor: pointer; font-family: inherit; border: 1.5px solid var(--line);
-    background: var(--paper); color: var(--ink);
-  }
-  .pd-nick-popup-btns #saveProfileBtn {
-    background: var(--red); color: #fff; border-color: var(--red);
-  }
-  .pd-nick-popup-btns #saveProfileBtn:disabled { opacity: 0.6; cursor: default; }
-
   .pd-action {
     display: flex; align-items: center; gap: 10px;
     width: 100%; padding: 13px 16px; border: none; background: none;
@@ -1769,28 +1713,6 @@
     <div class="pd-header-info">
       <strong id="pdGoogleName"></strong>
       <input class="pd-google-field" id="pdEmail" type="text" readonly placeholder="Google 帳號">
-    </div>
-  </div>
-
-  <!-- 自定義顯示身份 -->
-  <div class="pd-customize">
-    <div class="pd-nick-field" id="pdNickField">自定義顯示身分</div>
-    <div class="pd-customize-row">
-      <div class="pd-avatar-wrap" id="pdAvatarWrap">
-        <img class="pd-header-avatar" id="pdHeaderAvatar" src="">
-        <span class="pd-camera-btn">📷</span>
-        <input type="file" id="localAvatarInput" accept="image/*" style="display:none">
-      </div>
-      <div class="pd-customize-info">
-        <button id="pdDisplayName"></button>
-      </div>
-    </div>
-    <div class="pd-nick-popup" id="pdNickPopup" style="display:none">
-      <input id="nicknameInput" class="pd-nick-input" type="text" maxlength="20" placeholder="輸入綽號（最多 20 字）">
-      <div class="pd-nick-popup-btns">
-        <button id="pdNickCancelBtn">取消</button>
-        <button id="saveProfileBtn">儲存</button>
-      </div>
     </div>
   </div>
 

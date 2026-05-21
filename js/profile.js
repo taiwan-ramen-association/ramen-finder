@@ -28,7 +28,7 @@ async function getShopMap() {
 }
 
 // ── 入口 ────────────────────────────────────────────────────────────────────
-async function initProfile(viewerUid, targetUid, isSelf) {
+async function initProfile(viewerUid, targetUid, isSelf, currentUser) {
   // 1. 讀 userProfiles/{targetUid}
   let profileDoc = null;
   try {
@@ -41,8 +41,8 @@ async function initProfile(viewerUid, targetUid, isSelf) {
     return;
   }
 
-  // 2. 隱私檢查：profilePublic === false 且非本人 → 私人
-  if (!isSelf && profileDoc.profilePublic === false) {
+  // 2. 隱私檢查：profilePublic !== true（未設定也視為私人）且非本人 → 私人
+  if (!isSelf && profileDoc.profilePublic !== true) {
     showState('privateState');
     return;
   }
@@ -66,11 +66,45 @@ async function initProfile(viewerUid, targetUid, isSelf) {
   loadReviewsTab(targetUid);
   bindTabSwitching(targetUid);
 
-  // 6. 本人 → 顯示設定按鈕
+  // 6. 本人 → 顯示 self-actions 區塊（Google 帳號資訊、登出、設定）
   if (isSelf) {
-    document.getElementById('settingsBtn').style.display = '';
+    renderSelfActions(currentUser);
     bindSettingsModal(targetUid, profileDoc);
   }
+}
+
+// ── Self-actions（Google 帳號資訊、登出、設定）─────────────────────────────
+function renderSelfActions(user) {
+  const selfActions = document.getElementById('selfActions');
+  if (!selfActions) return;
+  selfActions.style.display = '';
+
+  // Google 帳號資訊
+  const googleAvatar = document.getElementById('pfGoogleAvatar');
+  if (googleAvatar) {
+    googleAvatar.src = user.photoURL || 'assets/icons/03.png';
+    googleAvatar.onerror = () => { googleAvatar.src = 'assets/icons/03.png'; };
+  }
+  const el = id => document.getElementById(id);
+  if (el('pfGoogleName'))  el('pfGoogleName').textContent  = user.displayName || '';
+  if (el('pfGoogleEmail')) el('pfGoogleEmail').textContent = user.email || '';
+
+  // 登出按鈕
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await firebase.auth().signOut();
+        location.href = 'finder.html';
+      } catch (e) {
+        alert('登出失敗：' + e.message);
+      }
+    });
+  }
+
+  // 設定按鈕顯示
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) settingsBtn.style.display = '';
 }
 
 // ── Header（頭像、暱稱）────────────────────────────────────────────────────
@@ -293,12 +327,107 @@ async function loadMapTab(uid) {
   }
 }
 
+// ── 圖片壓縮工具（for 頭像上傳）─────────────────────────────────────────────
+function _pfCompressImage(file, { maxPx = 400, maxKB = 100 } = {}) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      if (w > maxPx || h > maxPx) {
+        const r = Math.min(maxPx / w, maxPx / h);
+        w = Math.round(w * r); h = Math.round(h * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const tryQ = q => new Promise(res => canvas.toBlob(res, 'image/webp', q));
+      (async () => {
+        let q = 0.85;
+        let blob = await tryQ(q);
+        while (blob.size > maxKB * 1024 && q > 0.3) { q -= 0.1; blob = await tryQ(q); }
+        resolve(blob);
+      })();
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 // ── 設定 Modal（本人專用）──────────────────────────────────────────────────
 function bindSettingsModal(uid, profile) {
   const modal = document.getElementById('settingsModal');
   const toggle = document.getElementById('publicToggle');
-  // 預設行為：missing 或 true 都視為公開
-  toggle.checked = profile.profilePublic !== false;
+  // 未設定（missing）視為私人，僅 profilePublic === true 才公開
+  toggle.checked = profile.profilePublic === true;
+
+  // ── 暱稱 ──────────────────────────────────────────────────────────────────
+  const nickInput   = document.getElementById('pfNicknameInput');
+  const nickSaveBtn = document.getElementById('pfNicknameSaveBtn');
+  if (nickInput && profile.nickname) nickInput.value = profile.nickname;
+
+  if (nickSaveBtn) {
+    nickSaveBtn.addEventListener('click', async () => {
+      const nickname = (nickInput?.value || '').trim();
+      nickSaveBtn.disabled = true; nickSaveBtn.textContent = '儲存中…';
+      try {
+        await db.collection('users').doc(uid).update({ nickname });
+        await db.collection('userProfiles').doc(uid).set(
+          { nickname, displayName: nickname || '' },
+          { merge: true }
+        );
+        // 更新頁面上的暱稱顯示
+        const nicknameEl = document.getElementById('profileNickname');
+        if (nicknameEl && nickname) nicknameEl.textContent = nickname;
+        nickSaveBtn.textContent = '✅ 已儲存';
+        setTimeout(() => { nickSaveBtn.textContent = '儲存'; }, 2000);
+      } catch (e) {
+        alert('儲存失敗：' + e.message);
+        nickSaveBtn.textContent = '儲存';
+      }
+      nickSaveBtn.disabled = false;
+    });
+  }
+
+  // ── 頭像 ──────────────────────────────────────────────────────────────────
+  const avatarPreview = document.getElementById('pfAvatarPreview');
+  const avatarBtn     = document.getElementById('pfAvatarBtn');
+  const avatarInput   = document.getElementById('pfAvatarInput');
+
+  // 預覽目前頭像
+  if (avatarPreview) {
+    avatarPreview.src = profile.avatarUrl || profile.photoURL || 'assets/icons/03.png';
+    avatarPreview.onerror = () => { avatarPreview.src = 'assets/icons/03.png'; };
+  }
+
+  if (avatarBtn && avatarInput) {
+    avatarBtn.addEventListener('click', () => avatarInput.click());
+    avatarInput.addEventListener('change', async () => {
+      const file = avatarInput.files[0];
+      if (!file) return;
+      avatarInput.value = '';
+      avatarBtn.disabled = true; avatarBtn.textContent = '上傳中…';
+      try {
+        const blob = await _pfCompressImage(file, { maxPx: 400, maxKB: 100 });
+        const snap = await storage.ref(`avatars/${uid}.webp`).put(blob, { contentType: 'image/webp' });
+        const url  = await snap.ref.getDownloadURL();
+        await db.collection('users').doc(uid).update({ avatarUrl: url });
+        await db.collection('userProfiles').doc(uid).set({ avatarUrl: url }, { merge: true });
+        if (avatarPreview) avatarPreview.src = url;
+        // 同步更新頁面大頭貼
+        const profileAvatar = document.getElementById('profileAvatar');
+        if (profileAvatar) profileAvatar.src = url;
+        try { localStorage.setItem('avatarCache_' + uid, url); } catch {}
+        avatarBtn.textContent = '✅ 已更新';
+        setTimeout(() => { avatarBtn.textContent = '更換'; avatarBtn.disabled = false; }, 2000);
+      } catch (e) {
+        alert('頭像上傳失敗：' + e.message);
+        avatarBtn.textContent = '更換';
+        avatarBtn.disabled = false;
+      }
+    });
+  }
 
   document.getElementById('settingsBtn').addEventListener('click', () => {
     modal.classList.add('open');
