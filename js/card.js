@@ -73,15 +73,15 @@ function renderCard(shop) {
         ${birthday ? '<span class="birthday-badge">🎂 本日壽星</span>' : ''}
         ${shop['會員'] === 'Y' ? '<span class="member-badge">MEMBER SHOP</span>' : ''}
         ${isNewOpen(shop) ? '<span class="new-open-badge">NEW OPEN</span>' : ''}
+        ${canView('shopPage') ? `<a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" target="_blank" title="店家主頁">✈</a>` : ''}
         <span class="queue-badge-header" data-id="${escapeAttr(shop['ID'] || '')}" hidden></span>
         ${canView('favorites') ? `<button class="fav-btn${isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
         ${canView('stamps') ? `<button class="stamp-btn${isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
       </div>
     </div>
     <div class="card-meta">
-      <div class="meta-row" style="justify-content:space-between;align-items:center">
-        ${dayStr ? `<span><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></span>` : '<span></span>'}
-        ${canView('shopPage') ? `<a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" target="_blank" title="店家主頁">✈</a>` : ''}
+      <div class="meta-row">
+        ${dayStr ? `<span><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></span>` : ''}
       </div>
     </div>
     ${types.length || factions.length ? `
