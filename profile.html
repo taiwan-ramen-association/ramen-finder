@@ -42,17 +42,7 @@
     /* ── Self-actions corner (isSelf only) ── */
     .self-actions {
       position: absolute; top: 8px; right: 0;
-      display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
     }
-    .self-google-info {
-      display: flex; align-items: center; gap: 7px;
-      background: var(--paper); border: 1px solid var(--line);
-      border-radius: 8px; padding: 5px 9px;
-    }
-    .self-google-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-    .self-google-name { font-size: 11px; font-weight: 500; color: var(--ink); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .self-google-email { font-size: 10px; color: var(--stone); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .self-btns { display: flex; gap: 4px; }
     .self-btn {
       background: none; border: 1px solid var(--line); border-radius: 6px;
       padding: 4px 9px; font-size: 12px; color: var(--stone); cursor: pointer;
@@ -65,6 +55,26 @@
       color: var(--stone); line-height: 1.4;
     }
     .settings-btn:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── Settings modal: Google info header ── */
+    .self-google-info {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 0 14px; margin-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .self-google-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .self-google-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .self-google-email { font-size: 11px; color: var(--stone); margin-top: 1px; }
+
+    /* ── Settings modal: footer buttons ── */
+    .settings-footer { display: flex; gap: 8px; margin-top: 16px; }
+    .settings-logout-btn {
+      flex: 1; padding: 10px; background: none;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-family: inherit; font-size: 13px; color: var(--stone); cursor: pointer;
+    }
+    .settings-logout-btn:hover { border-color: var(--red); color: var(--red); }
+    .settings-close { flex: 1; }
 
     /* ── Settings: nickname + avatar rows ── */
     .pf-nick-row { display: flex; gap: 8px; margin: 0 0 8px; }
@@ -216,19 +226,9 @@
         <img id="profileAvatar" class="profile-avatar" src="" alt="">
         <h1 id="profileNickname" class="profile-nickname"></h1>
         <div id="profileMeta" class="profile-meta"></div>
-        <!-- 本人專用：Google 帳號資訊 + 登出 + 設定（profile.js 控制顯示） -->
+        <!-- 本人專用：設定按鈕（profile.js 控制顯示） -->
         <div id="selfActions" class="self-actions" style="display:none">
-          <div class="self-google-info">
-            <img class="self-google-avatar" id="pfGoogleAvatar" src="">
-            <div>
-              <div class="self-google-name" id="pfGoogleName"></div>
-              <div class="self-google-email" id="pfGoogleEmail"></div>
-            </div>
-          </div>
-          <div class="self-btns">
-            <button id="logoutBtn" class="self-btn">🚪 登出</button>
-            <button id="settingsBtn" class="settings-btn" title="設定" style="display:none">⚙ 設定</button>
-          </div>
+          <button id="settingsBtn" class="settings-btn" title="設定" style="display:none">⚙ 設定</button>
         </div>
       </div>
 
@@ -256,6 +256,14 @@
     <!-- Settings modal -->
     <div id="settingsModal" class="settings-modal">
       <div class="settings-box">
+        <!-- Google 帳號資訊（本人唯讀） -->
+        <div class="self-google-info" id="selfGoogleInfoBox">
+          <img class="self-google-avatar" id="pfGoogleAvatar" src="">
+          <div>
+            <div class="self-google-name" id="pfGoogleName"></div>
+            <div class="self-google-email" id="pfGoogleEmail"></div>
+          </div>
+        </div>
         <div class="settings-title">個人頁設定</div>
         <!-- 暱稱 -->
         <div class="settings-row" style="padding-bottom:4px">
@@ -272,7 +280,7 @@
         <div class="settings-row">
           <div>
             <div class="settings-row-label">頭像</div>
-            <div class="settings-row-desc">更換個人頁顯示的大頭貼</div>
+            <div class="settings-row-desc">更換公開顯示的大頭貼</div>
           </div>
           <div class="pf-avatar-edit">
             <img id="pfAvatarPreview" class="pf-avatar-preview" src="">
@@ -292,7 +300,10 @@
             <span class="switch-slider"></span>
           </label>
         </div>
-        <button class="settings-close" id="settingsCloseBtn">關閉</button>
+        <div class="settings-footer">
+          <button id="logoutBtn" class="settings-logout-btn">🚪 登出帳號</button>
+          <button class="settings-close" id="settingsCloseBtn">關閉</button>
+        </div>
       </div>
     </div>
 

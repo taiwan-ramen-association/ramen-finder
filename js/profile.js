@@ -73,13 +73,17 @@ async function initProfile(viewerUid, targetUid, isSelf, currentUser) {
   }
 }
 
-// ── Self-actions（Google 帳號資訊、登出、設定）─────────────────────────────
+// ── Self-actions（設定按鈕顯示；Google 帳號資訊 + 登出已移入 settings modal）──
 function renderSelfActions(user) {
   const selfActions = document.getElementById('selfActions');
   if (!selfActions) return;
   selfActions.style.display = '';
 
-  // Google 帳號資訊
+  // 設定按鈕顯示
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) settingsBtn.style.display = '';
+
+  // Settings modal 內的 Google 帳號資訊
   const googleAvatar = document.getElementById('pfGoogleAvatar');
   if (googleAvatar) {
     googleAvatar.src = user.photoURL || 'assets/icons/03.png';
@@ -89,7 +93,7 @@ function renderSelfActions(user) {
   if (el('pfGoogleName'))  el('pfGoogleName').textContent  = user.displayName || '';
   if (el('pfGoogleEmail')) el('pfGoogleEmail').textContent = user.email || '';
 
-  // 登出按鈕
+  // Settings modal 內的登出按鈕
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
@@ -101,10 +105,6 @@ function renderSelfActions(user) {
       }
     });
   }
-
-  // 設定按鈕顯示
-  const settingsBtn = document.getElementById('settingsBtn');
-  if (settingsBtn) settingsBtn.style.display = '';
 }
 
 // ── Header（頭像、暱稱）────────────────────────────────────────────────────
