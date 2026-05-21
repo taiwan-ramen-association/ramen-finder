@@ -151,8 +151,8 @@ async function loadReviews(shopId, panel, append = false) {
       item.innerHTML = `
         <div class="review-item-header">
           ${d.avatarUrl
-            ? `<img class="review-avatar" src="${d.avatarUrl}" alt="">`
-            : `<div class="review-avatar-placeholder">👤</div>`}
+            ? `<img class="review-avatar" src="${d.avatarUrl}" data-uid="${d.uid}" alt="">`
+            : `<div class="review-avatar-placeholder" data-uid="${d.uid}">👤</div>`}
           <div class="review-meta">
             <div class="review-name" data-uid="${d.uid}">${escapeHtml(d.displayName || '匿名')}</div>
             <div class="review-date">${dateStr}</div>
@@ -256,7 +256,7 @@ async function loadComments(reviewId, container, showAll = false) {
     if (!snap.docs.length) { container.innerHTML = ''; return; }
     container.innerHTML = snap.docs.map(d => {
       const c = d.data();
-      return `<div class="review-comment"><span class="review-comment-name">${escapeHtml(c.displayName || '匿名')}</span>：${escapeHtml(c.text)}</div>`;
+      return `<div class="review-comment"><span class="review-comment-name" data-uid="${c.uid || ''}">${escapeHtml(c.displayName || '匿名')}</span>：${escapeHtml(c.text)}</div>`;
     }).join('');
     if (!showAll && snap.docs.length >= 3) {
       const btn = document.createElement('button');
@@ -562,8 +562,8 @@ async function loadReviewsFeedPage(page = 1) {
       card.innerHTML = `
         <div class="rf-card-header">
           ${d.avatarUrl
-            ? `<img class="rf-avatar" src="${d.avatarUrl}" alt="">`
-            : `<div class="rf-avatar-ph">👤</div>`}
+            ? `<img class="rf-avatar" src="${d.avatarUrl}" data-uid="${d.uid}" alt="">`
+            : `<div class="rf-avatar-ph" data-uid="${d.uid}">👤</div>`}
           <div class="rf-user-info">
             <span class="rf-username" data-uid="${d.uid}">${escapeHtml(d.displayName || '匿名')}</span>
             <span class="rf-shopname">📍 ${escapeHtml(d.shopName || '')}</span>
@@ -663,3 +663,24 @@ document.getElementById('rfTabToggleBtn').addEventListener('click', () => {
   document.getElementById('rfMenuPagination').style.display  = isMenus ? '' : 'none';
   if (isMenus && !_mnuFeedLoaded) loadMenusFeedPage(1);
 });
+
+// ── Click to profile.html（avatars / nicknames / 留言名稱 都可點）─────────────
+(function() {
+  // 注入 cursor:pointer 樣式（不必動 HTML 的 <style>）
+  const PROFILE_LINK_SEL = '.review-name[data-uid], .review-avatar[data-uid], .review-avatar-placeholder[data-uid], .rf-username[data-uid], .rf-avatar[data-uid], .rf-avatar-ph[data-uid], .review-comment-name[data-uid], .mnu-user[data-uid]';
+  const style = document.createElement('style');
+  style.textContent = `${PROFILE_LINK_SEL.split(',').map(s => s.trim() + ':not([data-uid=""])').join(',\n')} { cursor: pointer; transition: opacity 0.15s; }
+${PROFILE_LINK_SEL.split(',').map(s => s.trim() + ':not([data-uid=""]):hover').join(',\n')} { opacity: 0.72; }`;
+  document.head.appendChild(style);
+
+  // 點擊跳轉
+  document.body.addEventListener('click', e => {
+    const t = e.target.closest(PROFILE_LINK_SEL);
+    if (!t) return;
+    const uid = t.dataset.uid;
+    if (!uid) return;
+    // 避免攔截評論刪除/留言送出等 button 點擊
+    if (e.target.closest('button')) return;
+    location.href = `profile.html?uid=${encodeURIComponent(uid)}`;
+  });
+})();
