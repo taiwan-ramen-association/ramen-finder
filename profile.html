@@ -273,10 +273,11 @@
         <!-- Google 帳號資訊（本人唯讀） -->
         <div class="self-google-info" id="selfGoogleInfoBox">
           <img class="self-google-avatar" id="pfGoogleAvatar" src="">
-          <div>
+          <div style="flex:1;min-width:0">
             <div class="self-google-name" id="pfGoogleName"></div>
             <div class="self-google-email" id="pfGoogleEmail"></div>
           </div>
+          <button id="logoutBtn" class="sf-btn outline">登出</button>
         </div>
         <div class="settings-title">個人頁設定</div>
         <!-- 暱稱（三欄）-->
@@ -323,7 +324,6 @@
           </label>
         </div>
         <div class="settings-footer">
-          <button id="logoutBtn" class="settings-logout-btn">🚪 登出</button>
           <button class="settings-close" id="settingsCloseBtn">關閉</button>
         </div>
       </div>
