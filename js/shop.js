@@ -208,6 +208,7 @@ function loadTabContent(tab, shopId, shop) {
     loadShopMenu(shop, pane);
 
   } else if (tab === 'photos') {
+    if (!canView('photosTab')) { pane.innerHTML = loginPromptHtml('登入後查看照片'); return; }
     if (_tabLoaded.photos) return;
     _tabLoaded.photos = true;
     loadShopPhotos(shop, pane);
