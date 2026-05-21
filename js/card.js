@@ -76,11 +76,11 @@ function renderCard(shop) {
         <span class="queue-badge-header" data-id="${escapeAttr(shop['ID'] || '')}" hidden></span>
         ${canView('favorites') ? `<button class="fav-btn${isWarned || !canUse('favorites') ? ' locked' : ''}" data-id="${escapeAttr(shop['ID'] || '')}">${favSet.has(shop['ID']) ? '♥' : '♡'}</button>` : ''}
         ${canView('stamps') ? `<button class="stamp-btn${isWarned || !canUse('stamps') ? ' locked' : ' can-stamp'}${stampMap[shop['ID']] != null ? ' stamped' : ''}" data-id="${escapeAttr(shop['ID'] || '')}" data-name="${escapeAttr(shop['店名'] || '')}" title="踩點">👣</button>` : ''}
-        <a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" title="店家主頁" target="_blank">✈</a>
       </div>
     </div>
     <div class="card-meta">
       ${dayStr ? `<div class="meta-row"><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></div>` : ''}
+      <div class="meta-row"><a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" target="_blank">✈ 店家主頁</a></div>
     </div>
     ${types.length || factions.length ? `
     <div class="tags">
