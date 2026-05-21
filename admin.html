@@ -45,6 +45,11 @@
 </div>
 
 <script>
+// ── L1：Firebase SDK 未載入（gstatic.com 被擋）─────────────────────────────
+if (typeof firebase === 'undefined') {
+  location.replace('console.html');
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
   authDomain: "taiwan-ramen-association.firebaseapp.com",
@@ -59,14 +64,27 @@ const _db       = firebase.firestore();
 const _storage  = firebase.storage();
 const _provider = new firebase.auth.GoogleAuthProvider();
 
+const gate     = document.getElementById('gate');
+const gateMsg  = document.getElementById('gateMsg');
+const loginBtn = document.getElementById('loginBtn');
+
+// ── 共用：切換備用入口（短暫顯示訊息後跳轉）──────────────────────────────
+function goConsole(reason) {
+  gate.style.display = 'flex';
+  loginBtn.style.display = 'none';
+  gateMsg.textContent = `無法連線，切換備用入口… (${reason})`;
+  setTimeout(() => location.replace('console.html'), 1500);
+}
+
+// ── L2：Auth 逾時保護（8 秒內 onAuthStateChanged 未觸發）─────────────────
+const _authTimeout = setTimeout(() => goConsole('L2 auth timeout'), 8000);
+
 document.getElementById('loginBtn').addEventListener('click', () => {
   _auth.signInWithPopup(_provider).catch(console.error);
 });
 
 _auth.onAuthStateChanged(async user => {
-  const gate     = document.getElementById('gate');
-  const gateMsg  = document.getElementById('gateMsg');
-  const loginBtn = document.getElementById('loginBtn');
+  clearTimeout(_authTimeout); // L2 解除
 
   if (!user) {
     gateMsg.textContent = '請以管理員 Google 帳號登入';
@@ -87,20 +105,17 @@ _auth.onAuthStateChanged(async user => {
     return;
   }
 
+  // ── L3：Storage getDownloadURL 或 bundle 注入失敗 ──────────────────────
   gateMsg.textContent = '載入管理介面…';
   try {
     const url    = await _storage.ref('admin/bundle.js').getDownloadURL();
     gate.style.display = 'none';
     const script = document.createElement('script');
     script.src   = url;
-    script.onerror = () => {
-      gate.style.display = 'flex';
-      gateMsg.textContent = '❌ 介面載入失敗，請重新整理';
-    };
+    script.onerror = () => goConsole('L3 script load');
     document.head.appendChild(script);
   } catch (e) {
-    gate.style.display = 'flex';
-    gateMsg.textContent = '❌ 載入失敗：' + e.message;
+    goConsole('L3 storage');
   }
 });
 </script>
