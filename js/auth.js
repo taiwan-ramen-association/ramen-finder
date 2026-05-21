@@ -70,6 +70,7 @@ var featureFlags = {
   challengesNav:  { vis: 'admin',    perm: 'admin'    },
   nonActiveShops: { vis: 'all',      perm: 'viewer'   },
   onboardingTour: { vis: 'viewer',   perm: 'viewer'   },
+  shopPage:       { vis: 'viewer',   perm: 'viewer'   },
 };
 
 const ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };

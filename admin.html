@@ -105,16 +105,18 @@ _auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // ── L3：Storage getDownloadURL 或 bundle 注入失敗 ──────────────────────
+  // ── L3：Storage getDownloadURL 或 bundle 注入失敗（含 5 秒逾時）─────────
   gateMsg.textContent = '載入管理介面…';
+  const _l3Timeout = setTimeout(() => goConsole('L3 timeout'), 5000);
   try {
     const url    = await _storage.ref('admin/bundle.js').getDownloadURL();
-    gate.style.display = 'none';
     const script = document.createElement('script');
     script.src   = url;
-    script.onerror = () => goConsole('L3 script load');
+    script.onload  = () => { clearTimeout(_l3Timeout); gate.style.display = 'none'; };
+    script.onerror = () => { clearTimeout(_l3Timeout); goConsole('L3 script load'); };
     document.head.appendChild(script);
   } catch (e) {
+    clearTimeout(_l3Timeout);
     goConsole('L3 storage');
   }
 });

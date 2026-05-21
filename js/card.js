@@ -81,7 +81,7 @@ function renderCard(shop) {
     <div class="card-meta">
       <div class="meta-row" style="justify-content:space-between;align-items:center">
         ${dayStr ? `<span><span class="meta-icon">📅</span><span class="meta-text">${dayStr}${hours ? '　' + hours : ''}${offDay && offDay !== '無' ? '　休：' + offDay : ''}</span></span>` : '<span></span>'}
-        <a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" target="_blank">✈ 店家主頁</a>
+        ${canView('shopPage') ? `<a class="shop-link-btn" href="shop.html?id=${escapeAttr(shop['ID'] || '')}" target="_blank">✈ 店家主頁</a>` : ''}
       </div>
     </div>
     ${types.length || factions.length ? `
