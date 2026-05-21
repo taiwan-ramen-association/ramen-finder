@@ -17,9 +17,11 @@ async function initShop() {
   const params = new URLSearchParams(location.search);
   const shopId = params.get('id');
 
-  // 返回連結
+  // 關閉按鈕（新分頁開啟，無返回意義）
   const backBtn = document.getElementById('backBtn');
-  if (backBtn) backBtn.href = shopId ? `finder.html?id=${encodeURIComponent(shopId)}` : 'finder.html';
+  if (backBtn) {
+    backBtn.addEventListener('click', e => { e.preventDefault(); window.close(); });
+  }
 
   if (!shopId) { showShopState('notFoundState'); return; }
 
@@ -44,7 +46,7 @@ async function initShop() {
   showShopState('shopContent');
 
   bindTabs(shopId, shop);
-  loadTabContent('reviews', shopId, shop); // 預載評論 tab
+  // 不預載 tab — 等 onShopAuthChange 確認登入狀態後再載入，避免重複渲染
 }
 
 // ── Auth state 改變（shop.html inline 第二次呼叫）──────────────────────────────

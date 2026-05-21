@@ -464,8 +464,8 @@
 
 <!-- Header -->
 <header class="sp-header">
-  <a href="finder.html" id="backBtn" class="sp-back-btn">
-    ‹ 返回
+  <a href="#" id="backBtn" class="sp-back-btn">
+    ✕ 關閉
   </a>
   <span class="sp-header-title" id="spHeaderTitle"></span>
 </header>
@@ -675,9 +675,9 @@ function _getRoleLevel(role) {
 
 // Feature flags (defaults mirror auth.js)
 var featureFlags = {
-  reviews:  { vis: 'all',    perm: 'viewer' },
+  reviews:  { vis: 'viewer', perm: 'viewer' },
   menuTab:  { vis: 'viewer', perm: 'viewer' },
-  photosTab:{ vis: 'all',    perm: 'all'    },
+  photosTab:{ vis: 'viewer', perm: 'viewer' },
 };
 
 function canView(feature) {
