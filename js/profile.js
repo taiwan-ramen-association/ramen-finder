@@ -362,6 +362,35 @@ function bindSettingsModal(uid, profile) {
   // 未設定（missing）視為私人，僅 profilePublic === true 才公開
   toggle.checked = profile.profilePublic === true;
 
+  // 制霸排名公開開關（預設不公開）
+  const domToggle = document.getElementById('dominationPublicToggle');
+  if (domToggle) {
+    domToggle.checked = profile.dominationPublic === true;
+    domToggle.addEventListener('change', async () => {
+      const newVal = domToggle.checked;
+      domToggle.disabled = true;
+      try {
+        await db.collection('userProfiles').doc(uid).set(
+          { dominationPublic: newVal },
+          { merge: true }
+        );
+        // 首次開啟且 conqueredCount 尚未初始化 → 從 userVisits 補算
+        if (newVal && profile.conqueredCount == null) {
+          db.collection('userVisits').doc(uid).get().then(snap => {
+            const visits = snap.exists ? (snap.data().visits || {}) : {};
+            const cnt = Object.values(visits).filter(v => v != null && (v >= 1 || v === 20)).length;
+            db.collection('userProfiles').doc(uid).set({ conqueredCount: cnt }, { merge: true }).catch(() => {});
+            profile.conqueredCount = cnt; // 更新記憶體，避免重複觸發
+          }).catch(() => {});
+        }
+      } catch (e) {
+        alert('儲存失敗：' + e.message);
+        domToggle.checked = !newVal;
+      }
+      domToggle.disabled = false;
+    });
+  }
+
   // ── 暱稱 ──────────────────────────────────────────────────────────────────
   const nickInput   = document.getElementById('pfNicknameInput');
   const nickSaveBtn = document.getElementById('pfNicknameSaveBtn');

@@ -1,0 +1,790 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║              台灣拉麵協會 著作權聲明 / Copyright Notice           ║
+  ╠══════════════════════════════════════════════════════════════════╣
+  ║                                                                  ║
+  ║  本網站所有資料，包含但不限於店家資訊、評論、評分、照片，           ║
+  ║  均為台灣拉麵協會之編輯著作，受中華民國著作權法第 7 條保護。       ║
+  ║                                                                  ║
+  ║  ⚠️  嚴禁以下行為：                                               ║
+  ║    · 以爬蟲、自動化程式或任何方式大量擷取本站資料                  ║
+  ║    · 將本站資料用於 AI 模型訓練或任何機器學習用途                  ║
+  ║    · 未經書面授權將資料轉載、販售或用於商業目的                    ║
+  ║                                                                  ║
+  ║  違者將依著作權法及相關法規追究民事損害賠償及刑事責任。            ║
+  ║  如需授權合作，請聯繫本協會。                                      ║
+  ║                                                                  ║
+  ║  All data on this site is protected under ROC Copyright Law.     ║
+  ║  Unauthorized scraping, AI training use, or redistribution       ║
+  ║  will result in legal action.                                    ║
+  ║                                                                  ║
+  ╚══════════════════════════════════════════════════════════════════╝
+-->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-D5PB53XF7P"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-D5PB53XF7P');
+</script>
+<script>if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-early');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="icon" href="assets/icons/03.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C8272D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="拉麵搜尋器">
+<link rel="apple-touch-icon" href="assets/icons/06.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<title>店家 | 台灣拉麵協會</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #C8272D;
+    --red-dark: #9b1e23;
+    --red-light: #f7eaea;
+    --ink: #1a1209;
+    --paper: #faf7f2;
+    --stone: #8a7d6e;
+    --line: #e8e0d4;
+    --white: #ffffff;
+    --bg: #f2ece3;
+    --open-bg: #eef7ee;
+    --open-txt: #2d7a2d;
+    --pause-bg: #fff8ec;
+    --pause-txt: #c07a00;
+    --prep-bg: #edf3ff;
+    --prep-txt: #3a5bbf;
+    --header-h: 52px;
+  }
+
+  /* ── DARK MODE ── */
+  body.dark {
+    --red: #e04848;
+    --red-dark: #C8272D;
+    --red-light: #2e1515;
+    --ink: #e8e2d8;
+    --paper: #141210;
+    --stone: #9a8d7e;
+    --line: #2e2820;
+    --white: #1e1c18;
+    --bg: #0e0c09;
+    --open-bg: #0f200f;
+    --open-txt: #5db85d;
+    --pause-bg: #201808;
+    --pause-txt: #d4a030;
+    --prep-bg: #0e1828;
+    --prep-txt: #6080d0;
+  }
+
+  html.dark-early { background: #141210; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .sp-header {
+    position: sticky; top: 0; z-index: 100;
+    height: var(--header-h);
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 14px;
+  }
+  .sp-back-btn {
+    display: flex; align-items: center; gap: 4px;
+    color: var(--red); text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .sp-back-btn:hover { opacity: 0.8; }
+  .sp-header-logo {
+    height: 28px; width: auto;
+  }
+  .sp-header-title {
+    flex: 1; font-size: 14px; font-weight: 600; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  #mainContent {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px 14px 60px;
+  }
+  #mainContent.scroll-locked { overflow: hidden; height: 100vh; }
+
+  /* ── LOADING / NOT FOUND ── */
+  #loadingState, #notFoundState {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 40vh; color: var(--stone); font-size: 14px; gap: 12px;
+  }
+  #notFoundState .big { font-size: 40px; }
+
+  /* ── SHOP CARD ── */
+  .sp-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .sp-card-header {
+    padding: 16px 16px 12px;
+  }
+  .sp-name-row {
+    display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .sp-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px; font-weight: 900; color: var(--ink);
+    line-height: 1.2;
+  }
+
+  /* Status badges */
+  .shop-status-badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 10px;
+    letter-spacing: 0.5px; margin-top: 4px;
+  }
+  .shop-status-badge.s-pause { background: var(--pause-bg); color: var(--pause-txt); }
+  .shop-status-badge.s-prep  { background: var(--prep-bg);  color: var(--prep-txt);  }
+  .shop-status-badge.nl-closed { background: #f0e8e8; color: #8a2a2a; }
+
+  /* Address */
+  .sp-addr-link {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--stone); text-decoration: none;
+    font-size: 13px; margin-bottom: 8px;
+  }
+  .sp-addr-link:hover { color: var(--red); }
+  .sp-addr-link .addr-icon { font-size: 15px; flex-shrink: 0; }
+
+  /* Hours */
+  .hours-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px; margin-bottom: 8px;
+  }
+  .hours-table td { padding: 4px 6px; }
+  .hours-day { color: var(--stone); width: 80px; white-space: nowrap; }
+  .hours-time { color: var(--ink); }
+  .hours-time.hours-closed { color: var(--stone); font-style: italic; }
+  .hours-today { background: var(--red-light); border-radius: 6px; }
+  .hours-today .hours-day { color: var(--red-dark); font-weight: 600; }
+  .hours-today .hours-time { color: var(--red); font-weight: 600; }
+  .today-badge {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    background: var(--red); color: #fff;
+    padding: 1px 5px; border-radius: 6px;
+    margin-left: 4px; letter-spacing: 0.3px; vertical-align: middle;
+  }
+  .hours-simple {
+    font-size: 13px; color: var(--stone);
+    margin-bottom: 8px;
+  }
+
+  /* Tags */
+  #shopTags {
+    padding: 0 0 10px;
+    display: flex; flex-wrap: wrap; gap: 5px;
+  }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    background: var(--red-light); color: var(--red-dark); font-weight: 500;
+  }
+  .tag-gray { background: #f0ece6; color: var(--stone); }
+
+  /* Detail table */
+  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .info-table tr { border-bottom: 1px solid var(--line); }
+  .info-table tr:last-child { border-bottom: none; }
+  .info-table td { padding: 8px 4px; font-size: 13px; color: var(--ink); vertical-align: top; }
+  .info-table td.info-label {
+    width: 56px; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--stone); padding-right: 10px; white-space: nowrap; padding-top: 9px;
+  }
+  body.dark .info-table tr { border-color: #333; }
+
+  /* Note box */
+  .note-box {
+    background: #fffae8; border-left: 3px solid #f0c84a;
+    border-radius: 0 6px 6px 0; padding: 7px 10px;
+    font-size: 12px; color: #6b5500; line-height: 1.5; margin-bottom: 10px;
+  }
+  body.dark .note-box { background: #1e1a08; border-left-color: #806820; color: #c8a850; }
+
+  /* Social links */
+  #shopLinksRow {
+    display: flex; gap: 7px; flex-wrap: wrap; margin-top: 2px;
+  }
+  .link-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 11px; border-radius: 8px; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    text-decoration: none; font-weight: 500; transition: opacity 0.15s;
+  }
+  .link-btn:active { opacity: 0.7; }
+  .link-ig { background: #fcedf5; color: #c2366a; }
+  .link-fb { background: #edf0fa; color: #2d4b9b; }
+  body.dark .link-ig { background: #2a1020; color: #e06090; }
+  body.dark .link-fb { background: #101830; color: #7090d8; }
+
+  /* ── TABS ── */
+  .sp-tabs {
+    display: flex; border-bottom: 1px solid var(--line);
+    background: var(--white);
+  }
+  .tab-btn {
+    flex: 1; padding: 11px 4px; border: none; background: none; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--stone);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .tab-btn.active { color: var(--red); border-bottom-color: var(--red); }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── REVIEWS (copied from finder.html) ── */
+  .review-list { padding: 2px 0 6px; }
+  .review-header-row {
+    display: flex; align-items: center; justify-content: flex-start;
+    padding: 10px 14px 6px; gap: 8px;
+  }
+  .review-count-label { font-size: 12px; color: var(--stone); margin-left: auto; }
+  .write-review-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 12px; background: var(--red); color: #fff;
+    border: none; border-radius: 20px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .write-review-btn:hover { opacity: 0.85; }
+  .write-review-btn.locked { background: var(--line); color: var(--stone); cursor: default; }
+  .review-item { padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+  .review-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .review-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .review-avatar-placeholder {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--line);
+    display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+  }
+  .review-meta { flex: 1; min-width: 0; }
+  .review-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .review-date { font-size: 11px; color: var(--stone); }
+  .review-stars { font-size: 13px; letter-spacing: 1px; color: #f5a623; }
+  .review-text { font-size: 13px; line-height: 1.6; color: var(--ink); margin: 6px 0; white-space: pre-wrap; word-break: break-word; }
+  .review-photos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .review-photo-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: opacity 0.15s; }
+  .review-photo-thumb:hover { opacity: 0.82; }
+  .review-del-btn { float: right; background: none; border: none; color: var(--stone); font-size: 11px; cursor: pointer; padding: 2px 0; font-family: inherit; }
+  .review-del-btn:hover { color: #e74c3c; }
+  .review-loading { padding: 18px; text-align: center; color: var(--stone); font-size: 13px; }
+  .review-empty { padding: 18px 14px; text-align: center; color: var(--stone); font-size: 13px; }
+  .review-load-more { display: block; width: 100%; padding: 8px; background: none; border: none; border-top: 1px solid var(--line); color: var(--red); font-size: 12px; cursor: pointer; font-family: inherit; text-align: center; }
+  .review-load-more:hover { background: #fdf5f5; }
+  /* 評論留言 */
+  .review-comments { margin: 6px 0 4px 4px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .review-comment { font-size: 12px; padding: 2px 0; line-height: 1.5; color: var(--ink); }
+  .review-comment-name { font-weight: 600; margin-right: 3px; }
+  .review-comments-more { font-size: 11px; color: var(--stone); background: none; border: none; cursor: pointer; padding: 2px 0; text-decoration: underline; font-family: inherit; display: block; margin-top: 2px; }
+  .review-comment-form { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .review-comment-input { flex: 1; font-size: 12px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; background: var(--paper); color: var(--text); outline: none; min-width: 0; }
+  .review-comment-input:focus { border-color: var(--red); }
+  .review-comment-send { font-size: 12px; padding: 5px 10px; background: var(--red); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+  .review-comment-send:disabled { opacity: 0.55; cursor: default; }
+  /* 貼文頁分頁 */
+  .rf-pagination { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 0 6px; flex-wrap: wrap; }
+  .rf-page-btn { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--text); font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-family: inherit; transition: background 0.12s; }
+  .rf-page-btn:hover:not(:disabled):not(.active) { background: #fdf5f5; }
+  .rf-page-btn.active { background: var(--red); color: #fff; border-color: var(--red); font-weight: 600; cursor: default; }
+  .rf-page-btn:disabled { opacity: 0.35; cursor: default; }
+  body.dark .review-comment-input { border-color: #3a3330; }
+  body.dark .rf-page-btn { border-color: #3a3330; background: #252220; }
+  body.dark .rf-page-btn:hover:not(:disabled):not(.active) { background: #2a1c1c; }
+
+  /* ── REVIEW MODAL ── */
+  .rv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1010; display: none; }
+  .rv-modal { position: fixed; inset: 0; z-index: 1011; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .rv-modal.open, .rv-backdrop.open { display: flex; }
+  .rv-box { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.22); display: flex; flex-direction: column; }
+  .rv-header { padding: 16px 18px 0; display: flex; align-items: center; justify-content: space-between; }
+  .rv-title { font-size: 15px; font-weight: 700; }
+  .rv-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--stone); line-height: 1; padding: 0; }
+  .rv-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .rv-label { font-size: 11px; color: var(--stone); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 5px; display: block; }
+  .star-picker { display: flex; gap: 6px; }
+  .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; color: #ddd; transition: color 0.1s, transform 0.1s; line-height: 1; padding: 0; }
+  .star-btn.active { color: #f5a623; }
+  .star-btn:hover { transform: scale(1.15); }
+  .rv-textarea { width: 100%; min-height: 100px; resize: vertical; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; background: var(--paper); color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .rv-textarea:focus { border-color: var(--red); }
+  .rv-upload-area { border: 2px dashed var(--line); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; color: var(--stone); font-size: 13px; }
+  .rv-upload-area:hover, .rv-upload-area.drag-over { border-color: var(--red); background: #fff5f5; color: var(--red); }
+  .rv-upload-area input { display: none; }
+  .rv-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rv-preview-item { position: relative; width: 80px; height: 80px; }
+  .rv-preview-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+  .rv-preview-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #e74c3c; color: #fff; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .rv-progress { font-size: 12px; color: var(--stone); }
+  .rv-footer { padding: 0 18px 18px; display: flex; gap: 10px; justify-content: flex-end; }
+  .rv-btn-cancel { padding: 9px 20px; background: var(--line); color: var(--stone); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .rv-btn-submit { padding: 9px 22px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+  .rv-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  body.dark .rv-box { background: #1e150f; }
+  body.dark .rv-upload-area:hover, body.dark .rv-upload-area.drag-over { background: #2a1a14; }
+  body.dark .rv-textarea { background: #1a100a; }
+  .rv-date-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--paper); color: var(--ink); outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .rv-date-input:focus { border-color: var(--red); }
+
+  /* ── MENU TAB ── */
+  .mnu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px 14px 4px; }
+  .mnu-grid .mnu-thumb { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); position: relative; cursor: pointer; }
+  .mnu-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mnu-date-badge { position: absolute; bottom: 3px; left: 3px; font-size: 9px; background: rgba(0,0,0,0.55); color: #fff; padding: 1px 4px; border-radius: 3px; pointer-events: none; }
+  .mnu-upload-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: var(--red); color: #fff; border: none; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity 0.15s; }
+  .mnu-upload-btn:hover { opacity: 0.85; }
+  .mnu-load-more { display: block; width: 100%; padding: 7px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); font-size: 12px; cursor: pointer; font-family: inherit; margin-top: 6px; }
+  .mnu-del-btn { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%; font-size: 10px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 2; transition: background 0.15s; }
+  .mnu-del-btn:hover { background: rgba(200,39,45,0.85); }
+  .tab-placeholder { text-align: center; padding: 22px 0 10px; font-size: 13px; color: var(--stone); line-height: 1.7; }
+
+  /* ── PHOTO TAB ── */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px 14px 4px; }
+  .photo-grid-item { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--line); cursor: pointer; }
+  .photo-grid img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s; }
+  .photo-grid img.loading { opacity: 0; }
+  .photo-grid img.loaded  { opacity: 1; }
+  .photo-attribution { font-size: 10px; color: var(--stone); text-align: right; padding: 2px 14px 6px; }
+
+  /* ── PHOTO VIEWER ── */
+  #photoViewer {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.95);
+    display: none; flex-direction: column;
+  }
+  #photoViewer.open { display: flex; }
+  .pv-header {
+    height: 56px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding: 0 56px;
+  }
+  #pvCounter { color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+  #pvClose {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.12); border: none; color: #fff;
+    font-size: 18px; width: 38px; height: 38px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; line-height: 1;
+  }
+  #pvClose:hover { background: rgba(255,255,255,0.28); }
+  .pv-body { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 68px; }
+  #pvImg { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; user-select: none; pointer-events: none; display: block; }
+  .pv-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    font-size: 32px; width: 48px; height: 48px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; padding: 0; line-height: 1;
+  }
+  .pv-arrow:hover { background: rgba(255,255,255,0.3); }
+  #pvPrev { left: 10px; }
+  #pvNext { right: 10px; }
+  .pv-footer { height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 12px; color: rgba(255,255,255,0.55); font-size: 13px; }
+  @media (max-width: 599px) {
+    .pv-arrow { display: none; }
+    .pv-body { padding: 0 12px; }
+  }
+  @keyframes pvSlideInRight { from { opacity:0; transform:translateX(36px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes pvSlideInLeft  { from { opacity:0; transform:translateX(-36px); } to { opacity:1; transform:translateX(0); } }
+  #pvImg.pv-enter-right { animation: pvSlideInRight 0.22s ease; }
+  #pvImg.pv-enter-left  { animation: pvSlideInLeft  0.22s ease; }
+
+  /* ── LOGIN PROMPT ── */
+  .login-prompt {
+    text-align: center; padding: 32px 20px;
+    color: var(--stone); font-size: 13px;
+  }
+  .login-prompt-icon { font-size: 36px; margin-bottom: 12px; }
+  .login-prompt p { margin-bottom: 16px; line-height: 1.6; }
+  .login-prompt-btn {
+    padding: 10px 24px; background: var(--red); color: #fff;
+    border: none; border-radius: 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+  }
+  .login-prompt-btn:hover { opacity: 0.85; }
+
+  /* ── TOAST ── */
+  #stampToast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(30,20,14,0.9); color: #fff;
+    padding: 9px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; z-index: 3000;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+  }
+  #stampToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Dark mode adjustments */
+  body.dark .sp-card { background: var(--white); border-color: var(--line); }
+  body.dark .sp-tabs { background: var(--white); }
+  body.dark .tag-gray { background: #28221c; }
+  body.dark .hours-today { background: #2e1010; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="sp-header">
+  <a href="finder.html" id="backBtn" class="sp-back-btn">
+    ‹ 返回
+  </a>
+  <span class="sp-header-title" id="spHeaderTitle"></span>
+</header>
+
+<!-- Main content (id=mainContent required by reviews.js lockScroll) -->
+<main id="mainContent">
+
+  <!-- Loading state -->
+  <div id="loadingState">
+    <span>載入中…</span>
+  </div>
+
+  <!-- Not found state -->
+  <div id="notFoundState" style="display:none">
+    <div class="big">🍜</div>
+    <p>找不到此店家</p>
+  </div>
+
+  <!-- Shop content -->
+  <div id="shopContent" style="display:none">
+
+    <!-- Shop info card -->
+    <div class="sp-card">
+      <div class="sp-card-header">
+
+        <!-- Name + status badge -->
+        <div class="sp-name-row">
+          <span class="sp-name" id="shopName"></span>
+          <span id="shopStatusBadge" class="shop-status-badge" style="display:none"></span>
+        </div>
+
+        <!-- Address -->
+        <a href="#" id="shopAddressLink" class="sp-addr-link" target="_blank" style="display:none">
+          <span class="addr-icon">📍</span>
+          <span id="shopAddress"></span>
+        </a>
+
+        <!-- Hours -->
+        <div id="shopHoursWrap"></div>
+
+        <!-- Tags -->
+        <div id="shopTags" style="display:none"></div>
+
+        <!-- Detail table -->
+        <table class="info-table" id="shopDetailTable" style="display:none"></table>
+
+        <!-- Note box -->
+        <div class="note-box" id="shopNoteBox" style="display:none"></div>
+
+        <!-- Social links -->
+        <div id="shopLinksRow" style="display:none"></div>
+
+      </div><!-- /.sp-card-header -->
+
+      <!-- Tabs -->
+      <div class="sp-tabs" id="shopTabs">
+        <button class="tab-btn active" data-tab="reviews">💬 評論</button>
+        <button class="tab-btn" data-tab="menus">🍜 菜單</button>
+        <button class="tab-btn" data-tab="photos">📷 照片</button>
+      </div>
+
+      <!-- Tab panes -->
+      <div class="tab-pane active" id="reviewsPane" data-pane="reviews"></div>
+      <div class="tab-pane" id="menusPane" data-pane="menus"></div>
+      <div class="tab-pane" id="photosPane" data-pane="photos"></div>
+
+    </div><!-- /.sp-card -->
+
+  </div><!-- /#shopContent -->
+
+</main>
+
+<!-- Toast (id=stampToast — shared with stamps.js) -->
+<div id="stampToast"></div>
+
+<!-- Hidden stub: reviews.js binds a click handler to #rfTabToggleBtn (finder-specific) -->
+<button id="rfTabToggleBtn" style="display:none" aria-hidden="true"></button>
+
+<!-- Review Modal -->
+<div class="rv-backdrop" id="rvBackdrop"></div>
+<div class="rv-modal" id="rvModal">
+  <div class="rv-box">
+    <div class="rv-header">
+      <span class="rv-title" id="rvTitle">✍ 寫評論</span>
+      <button class="rv-close" id="rvClose">✕</button>
+    </div>
+    <div class="rv-body">
+      <div>
+        <span class="rv-label">評分</span>
+        <div class="star-picker" id="rvStarPicker">
+          <button class="star-btn" data-v="1">★</button>
+          <button class="star-btn" data-v="2">★</button>
+          <button class="star-btn" data-v="3">★</button>
+          <button class="star-btn" data-v="4">★</button>
+          <button class="star-btn" data-v="5">★</button>
+        </div>
+      </div>
+      <div>
+        <span class="rv-label">評論內容</span>
+        <textarea class="rv-textarea" id="rvText" placeholder="分享你的用餐體驗（選填，最多 1000 字）" maxlength="1000"></textarea>
+      </div>
+      <div>
+        <span class="rv-label">拍攝日期 <span style="color:var(--red)">*</span></span>
+        <input type="date" class="rv-date-input" id="rvPhotoDate" required>
+      </div>
+      <div>
+        <span class="rv-label">照片（最多 5 張）</span>
+        <div class="rv-upload-area" id="rvUploadArea">
+          <input type="file" id="rvFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif" multiple>
+          📷 點擊或拖放圖片上傳
+        </div>
+        <div class="rv-preview-grid" id="rvPreviewGrid" style="margin-top:10px"></div>
+      </div>
+      <div class="rv-progress" id="rvProgress"></div>
+    </div>
+    <div class="rv-footer">
+      <button class="rv-btn-cancel" id="rvCancelBtn">取消</button>
+      <button class="rv-btn-submit" id="rvSubmitBtn" disabled>送出評論</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Viewer -->
+<div id="photoViewer">
+  <div class="pv-header">
+    <span id="pvCounter">1/1</span>
+    <button id="pvClose">✕</button>
+  </div>
+  <div class="pv-body">
+    <button class="pv-arrow" id="pvPrev">&#8249;</button>
+    <img id="pvImg" src="" alt="">
+    <button class="pv-arrow" id="pvNext">&#8250;</button>
+  </div>
+  <div class="pv-footer">
+    <span id="pvFooterDate"></span>
+    <span id="pvFooterAuthor"></span>
+  </div>
+</div>
+
+<!-- Menu Upload Modal -->
+<div class="rv-backdrop" id="mnuBackdrop"></div>
+<div class="rv-modal" id="mnuModal">
+  <div class="rv-box">
+    <div class="rv-header">
+      <span class="rv-title" id="mnuTitle">📷 上傳菜單</span>
+      <button class="rv-close" id="mnuClose">✕</button>
+    </div>
+    <div class="rv-body">
+      <div>
+        <span class="rv-label">拍攝日期 <span style="color:var(--red)">*</span></span>
+        <input type="date" class="rv-date-input" id="mnuPhotoDate" required>
+      </div>
+      <div>
+        <span class="rv-label">照片（限 1 張）<span style="color:var(--red)">*</span></span>
+        <div class="rv-upload-area" id="mnuUploadArea">
+          <input type="file" id="mnuFileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif">
+          📷 點擊上傳照片
+        </div>
+        <div class="rv-preview-grid" id="mnuPreviewGrid" style="margin-top:10px"></div>
+      </div>
+      <div class="rv-progress" id="mnuProgress"></div>
+    </div>
+    <div class="rv-footer">
+      <button class="rv-btn-cancel" id="mnuCancelBtn">取消</button>
+      <button class="rv-btn-submit" id="mnuSubmitBtn" disabled>上傳</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Inline bootstrap script ────────────────────────────────────────────── -->
+<script>
+// ── Firebase init ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBdN0AYZMM2AU66QcH4BVNJHx1plwQBBYc",
+  authDomain: "taiwan-ramen-association.firebaseapp.com",
+  projectId: "taiwan-ramen-association",
+  storageBucket: "taiwan-ramen-association.firebasestorage.app",
+  messagingSenderId: "66234065738",
+  appId: "1:66234065738:web:eb9fc4348a942da66ad7b3"
+};
+firebase.initializeApp(firebaseConfig);
+const auth    = firebase.auth();
+const db      = firebase.firestore();
+const storage = firebase.storage();
+
+// ── Global state (expected by reviews.js / menus.js / photos.js) ─────────────
+var currentUserRole    = '';
+var currentDisplayName = '';
+var currentAvatarUrl   = '';
+var isWarned           = false;
+var stampMap   = {};
+var reviewMap  = {};
+var favSet     = new Set();
+var _currentShop = null;
+
+// ── Role helpers ─────────────────────────────────────────────────────────────
+const _ROLE_LEVEL = { all: 0, viewer: 1, member: 2, director: 3, admin: 4 };
+const _MEMBER_ROLES = ['member_individual','member_group','member_sponsor','member_honorary'];
+function _getRoleLevel(role) {
+  if (role === 'admin')                 return 4;
+  if (role === 'director')              return 3;
+  if (_MEMBER_ROLES.includes(role))     return 2;
+  if (role === 'viewer' || role === 'store') return 1;
+  return 0;
+}
+
+// Feature flags (defaults mirror auth.js)
+var featureFlags = {
+  reviews:  { vis: 'all',    perm: 'viewer' },
+  menuTab:  { vis: 'viewer', perm: 'viewer' },
+  photosTab:{ vis: 'all',    perm: 'all'    },
+};
+
+function canView(feature) {
+  const flag = featureFlags[feature];
+  if (!flag) return true;
+  const req = _ROLE_LEVEL[flag.vis] ?? 1;
+  return _getRoleLevel(currentUserRole) >= req;
+}
+function canUse(feature) {
+  const flag = featureFlags[feature];
+  if (!flag) return true;
+  const req = _ROLE_LEVEL[flag.perm] ?? 1;
+  return _getRoleLevel(currentUserRole) >= req;
+}
+function showAccessToast() {
+  if (!auth.currentUser) showStampToast('請先登入以使用此功能');
+  else showStampToast('此功能目前暫不開放');
+}
+
+// ── Stub: getShopById (used by reviews.js for write-review modal title) ──────
+function getShopById(id) { return _currentShop && _currentShop['ID'] === id ? _currentShop : null; }
+function findShopById(id) { return getShopById(id); }
+
+// ── Stub: render (reviews.js calls render() after post — no-op here) ─────────
+function render() {}
+
+// ── escapeHtml / escapeAttr / isValidUrl ─────────────────────────────────────
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escapeAttr(str) { return escapeHtml(str); }
+function isValidUrl(s) { return s && s.startsWith('http') && !['無',''].includes(s); }
+
+// ── Stub: showStampToast (stamps.js not loaded — define locally) ──────────────
+function showStampToast(msg) {
+  const t = document.getElementById('stampToast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Dark mode init ────────────────────────────────────────────────────────────
+(function() {
+  if (localStorage.getItem('darkMode') === '1') document.body.classList.add('dark');
+})();
+
+// ── Auth state ────────────────────────────────────────────────────────────────
+auth.onAuthStateChanged(async function(user) {
+  if (user) {
+    // Load role
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      if (snap.exists) {
+        const d = snap.data();
+        currentUserRole    = d.role || 'viewer';
+        currentDisplayName = d.displayName || user.displayName || '';
+        currentAvatarUrl   = d.avatarUrl || user.photoURL || '';
+        isWarned           = d.warned === true;
+      } else {
+        currentUserRole = 'viewer';
+      }
+    } catch(e) { currentUserRole = 'viewer'; }
+    // Load stamps
+    try {
+      const snap2 = await db.collection('userVisits').doc(user.uid).get();
+      if (snap2.exists) {
+        stampMap  = snap2.data().visits  || {};
+        reviewMap = snap2.data().reviews || {};
+      }
+    } catch(e) {}
+    // Load favorites
+    try {
+      const snap3 = await db.collection('users').doc(user.uid).get();
+      if (snap3.exists && snap3.data().favorites) {
+        favSet = new Set(snap3.data().favorites);
+      }
+    } catch(e) {}
+    // Load feature flags
+    try {
+      const ffs = await db.collection('meta').doc('featureFlags').get();
+      if (ffs.exists) {
+        const d = ffs.data();
+        if (d.reviews)  featureFlags.reviews  = d.reviews;
+        if (d.menuTab)  featureFlags.menuTab   = d.menuTab;
+        if (d.photosTab) featureFlags.photosTab = d.photosTab;
+      }
+    } catch(e) {}
+  } else {
+    currentUserRole    = '';
+    currentDisplayName = '';
+    currentAvatarUrl   = '';
+    isWarned           = false;
+    stampMap  = {};
+    reviewMap = {};
+    favSet    = new Set();
+  }
+  // Notify shop.js of auth change (re-render active tab)
+  if (typeof onShopAuthChange === 'function') onShopAuthChange(user);
+});
+</script>
+
+<!-- ── Module scripts ────────────────────────────────────────────────────────── -->
+<script src="js/reviews.js"></script>
+<script src="js/menus.js"></script>
+<script src="js/photos.js"></script>
+<script src="js/shop.js"></script>
+
+<!-- ── Init ──────────────────────────────────────────────────────────────────── -->
+<script>
+initShop();
+</script>
+
+</body>
+</html>

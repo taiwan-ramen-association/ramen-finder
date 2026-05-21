@@ -163,6 +163,9 @@ document.getElementById('smConfirmBtn').addEventListener('click', async () => {
       }).catch(() => {});
     }
     document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.add('stamped'));
+    // 同步更新 userProfiles.conqueredCount（供制霸排名使用）
+    const _cnt = Object.values(stampMap).filter(v => v != null && (v >= 1 || v === 20)).length;
+    db.collection('userProfiles').doc(uid).set({ conqueredCount: _cnt }, { merge: true }).catch(() => {});
     closeStampModal();
     const lbl = _stampStatus === 'many'
       ? `吃過${_stampCount >= 10 ? '10+' : _stampCount}次`
@@ -182,6 +185,9 @@ document.getElementById('smResetBtn').addEventListener('click', async () => {
       [`reviews.${shopId}`]: firebase.firestore.FieldValue.delete(),
     });
     document.querySelectorAll(`.stamp-btn[data-id="${shopId}"]`).forEach(b => b.classList.remove('stamped'));
+    // 同步更新 userProfiles.conqueredCount
+    const _cnt = Object.values(stampMap).filter(v => v != null && (v >= 1 || v === 20)).length;
+    db.collection('userProfiles').doc(auth.currentUser.uid).set({ conqueredCount: _cnt }, { merge: true }).catch(() => {});
     closeStampModal();
     showStampToast('已清除踩點記錄');
   } catch (e) { showStampToast('重置失敗：' + e.message); }

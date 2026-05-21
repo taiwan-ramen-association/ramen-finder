@@ -69,29 +69,43 @@
     /* ── Settings modal: footer buttons ── */
     .settings-footer { display: flex; gap: 8px; margin-top: 16px; }
     .settings-logout-btn {
-      flex: 1; padding: 10px; background: none;
+      flex: 1; height: 36px; background: none;
       border: 1px solid var(--line); border-radius: 8px;
       font-family: inherit; font-size: 13px; color: var(--stone); cursor: pointer;
     }
     .settings-logout-btn:hover { border-color: var(--red); color: var(--red); }
-    .settings-close { flex: 1; }
 
-    /* ── Settings: nickname + avatar rows ── */
-    .pf-nick-row { display: flex; gap: 8px; margin: 0 0 8px; }
+    /* ── Settings: 三欄 field 佈局 ── */
+    .settings-field {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .sf-label { font-size: 14px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+    .sf-desc { font-size: 11px; color: var(--stone); margin-top: 2px; }
+    /* 統一 action 按鈕高度 */
+    .sf-btn {
+      height: 32px; padding: 0 14px; background: var(--red); color: #fff;
+      border: none; border-radius: 7px; font-size: 13px; cursor: pointer;
+      font-family: inherit; white-space: nowrap; flex-shrink: 0;
+    }
+    .sf-btn:disabled { opacity: 0.6; cursor: default; }
+    .sf-btn.outline {
+      background: none; border: 1px solid var(--line); color: var(--stone);
+    }
+    .sf-btn.outline:hover { border-color: var(--red); color: var(--red); }
+    /* 暱稱輸入框 */
     .pf-nick-input {
-      flex: 1; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px;
-      font-size: 14px; font-family: inherit; background: var(--paper);
+      width: 100%; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 7px;
+      font-size: 13px; font-family: inherit; background: var(--paper);
       outline: none; box-sizing: border-box; color: var(--ink);
     }
     .pf-nick-input:focus { border-color: var(--red); }
-    .pf-nick-save {
-      padding: 8px 14px; background: var(--red); color: #fff; border: none;
-      border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; flex-shrink: 0;
-    }
-    .pf-nick-save:disabled { opacity: 0.6; cursor: default; }
-    .pf-avatar-edit { display: flex; align-items: center; gap: 8px; }
-    .pf-avatar-preview { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--line); }
-    .settings-divider { border: none; border-top: 1px solid var(--line); margin: 8px 0; }
+    /* 頭像預覽 */
+    .pf-avatar-preview { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--line); display: block; }
 
     /* ── Stats row ── */
     .stats-row {
@@ -173,7 +187,7 @@
     }
     .switch input:checked + .switch-slider { background: var(--red); }
     .switch input:checked + .switch-slider::before { transform: translateX(20px); }
-    .settings-close { display: block; width: 100%; padding: 10px; margin-top: 16px; background: var(--line); border: none; border-radius: 8px; font-family: inherit; cursor: pointer; }
+    .settings-close { flex: 1; height: 36px; background: var(--line); border: none; border-radius: 8px; font-family: inherit; cursor: pointer; font-size: 13px; }
 
     /* ── Photo Viewer ── */
     .pv-backdrop {
@@ -240,7 +254,7 @@
 
       <div class="tabs">
         <button class="tab-btn active" data-tab="reviews">📝 評論</button>
-        <button class="tab-btn" data-tab="visits">📍 踩點</button>
+        <button class="tab-btn" data-tab="visits">👣 踩點</button>
         <button class="tab-btn" data-tab="menus">🍜 菜單</button>
         <button class="tab-btn" data-tab="map">🗺 地圖</button>
       </div>
@@ -265,31 +279,28 @@
           </div>
         </div>
         <div class="settings-title">個人頁設定</div>
-        <!-- 暱稱 -->
-        <div class="settings-row" style="padding-bottom:4px">
+        <!-- 暱稱（三欄）-->
+        <div class="settings-field">
           <div>
-            <div class="settings-row-label">暱稱</div>
-            <div class="settings-row-desc">顯示在評論與個人頁上</div>
+            <div class="sf-label">暱稱</div>
+            <div class="sf-desc">顯示在評論與個人頁上</div>
           </div>
-        </div>
-        <div class="pf-nick-row">
           <input id="pfNicknameInput" class="pf-nick-input" type="text" maxlength="20" placeholder="輸入暱稱（最多 20 字）">
-          <button id="pfNicknameSaveBtn" class="pf-nick-save">儲存</button>
+          <button id="pfNicknameSaveBtn" class="sf-btn">儲存</button>
         </div>
-        <!-- 頭像 -->
-        <div class="settings-row">
+        <!-- 頭像（三欄）-->
+        <div class="settings-field">
           <div>
-            <div class="settings-row-label">頭像</div>
-            <div class="settings-row-desc">更換公開顯示的大頭貼</div>
+            <div class="sf-label">頭像</div>
+            <div class="sf-desc">更換公開顯示的大頭貼</div>
           </div>
-          <div class="pf-avatar-edit">
-            <img id="pfAvatarPreview" class="pf-avatar-preview" src="">
-            <button id="pfAvatarBtn" class="self-btn">更換</button>
+          <img id="pfAvatarPreview" class="pf-avatar-preview" src="">
+          <div>
+            <button id="pfAvatarBtn" class="sf-btn outline">更換</button>
             <input type="file" id="pfAvatarInput" accept="image/*" style="display:none">
           </div>
         </div>
-        <hr class="settings-divider">
-        <!-- 公開設定 -->
+        <!-- 公開個人頁 -->
         <div class="settings-row">
           <div>
             <div class="settings-row-label">公開個人頁</div>
@@ -300,8 +311,19 @@
             <span class="switch-slider"></span>
           </label>
         </div>
+        <!-- 公開制霸排名 -->
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">公開制霸排名</div>
+            <div class="settings-row-desc">開啟後，你的踩點進度可出現在制霸排名頁</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="dominationPublicToggle">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
         <div class="settings-footer">
-          <button id="logoutBtn" class="settings-logout-btn">🚪 登出帳號</button>
+          <button id="logoutBtn" class="settings-logout-btn">🚪 登出</button>
           <button class="settings-close" id="settingsCloseBtn">關閉</button>
         </div>
       </div>

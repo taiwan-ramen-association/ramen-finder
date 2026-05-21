@@ -153,6 +153,47 @@ header a:hover { opacity: 1; }
 /* Desktop: hide panel, mobile: hide tooltip */
 @media (pointer: fine) { #infoPanel { display: none !important; } }
 @media (pointer: coarse) { #tooltip { display: none !important; } }
+
+/* ── 制霸排名 ────────────────────────────────────────────────────────────── */
+.ranking-wrap {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 20px; margin-top: 14px;
+}
+.ranking-header {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;
+}
+.ranking-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+.ranking-sub { font-size: 11px; color: var(--stone); }
+.ranking-loading, .ranking-empty {
+  text-align: center; padding: 28px 16px; color: var(--stone); font-size: 13px;
+}
+.rank-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 8px; border-radius: 8px; margin: 0 -8px;
+  transition: background 0.12s;
+}
+.rank-row:hover { background: rgba(0,0,0,0.03); }
+.rank-row.is-self { background: rgba(200,39,45,0.05); }
+.rank-row + .rank-row { border-top: 1px solid var(--line); }
+.rank-num {
+  font-size: 13px; font-weight: 700; color: var(--stone);
+  width: 28px; text-align: center; flex-shrink: 0; line-height: 1;
+}
+.rank-medal { font-size: 18px; line-height: 1; }
+.rank-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  object-fit: cover; background: var(--line); flex-shrink: 0;
+}
+.rank-info { flex: 1; min-width: 0; }
+.rank-name {
+  font-size: 14px; font-weight: 500; color: var(--ink);
+  text-decoration: none; display: block;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rank-name:hover { color: var(--red); }
+.rank-you { font-size: 11px; color: var(--stone); margin-left: 4px; }
+.rank-count { font-size: 18px; font-weight: 800; color: var(--red); flex-shrink: 0; line-height: 1; }
+.rank-count-unit { font-size: 11px; color: var(--stone); font-weight: 400; margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -201,6 +242,15 @@ header a:hover { opacity: 1; }
     </div>
     <div class="legend-item"><div class="legend-swatch" style="background:#cccccc"></div>無拉麵店</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#fff0f0;border:1px solid #ddd"></div>未踩點</div>
+  </div>
+
+  <!-- 制霸排名 -->
+  <div class="ranking-wrap" id="rankingWrap" style="display:none">
+    <div class="ranking-header">
+      <span class="ranking-title">🏆 制霸排名</span>
+      <span class="ranking-sub">公開踩點進度的用戶</span>
+    </div>
+    <div id="rankingList"><div class="ranking-loading">載入排名中…</div></div>
   </div>
 </div>
 
@@ -420,6 +470,7 @@ auth.onAuthStateChanged(async user => {
   gate.style.display = 'none';
   app.style.display  = 'block';
   await loadAll(user.uid);
+  loadRanking(user.uid); // 排行榜：獨立載入，不阻塞地圖
 });
 
 
@@ -656,6 +707,60 @@ function renderMap(geo, shopsByTown, visits, townStats, cb) {
   });
 
   cb({ visitedTowns, fullTowns });
+}
+
+
+// ── 制霸排名 ──────────────────────────────────────────────────────────────────
+function _escR(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+  );
+}
+
+async function loadRanking(currentUid) {
+  const wrap = document.getElementById('rankingWrap');
+  const list = document.getElementById('rankingList');
+  wrap.style.display = 'block';
+
+  try {
+    const snap = await db.collection('userProfiles')
+      .where('dominationPublic', '==', true)
+      .orderBy('conqueredCount', 'desc')
+      .limit(50)
+      .get();
+
+    if (snap.empty) {
+      list.innerHTML = '<div class="ranking-empty">目前還沒有用戶公開制霸排名<br><small>在個人頁設定中開啟「公開制霸排名」即可出現在這裡</small></div>';
+      return;
+    }
+
+    const MEDALS = ['🥇', '🥈', '🥉'];
+    list.innerHTML = snap.docs.map((doc, i) => {
+      const d      = doc.data();
+      const uid    = doc.id;
+      const isSelf = uid === currentUid;
+      const rank   = i + 1;
+      const count  = d.conqueredCount ?? 0;
+      const name   = _escR(d.nickname || d.displayName || '匿名用戶');
+      const avatar = _escR(d.avatarUrl || d.photoURL || 'assets/icons/03.png');
+      const numHtml = rank <= 3
+        ? `<div class="rank-num"><span class="rank-medal">${MEDALS[rank - 1]}</span></div>`
+        : `<div class="rank-num">${rank}</div>`;
+      return `
+        <div class="rank-row${isSelf ? ' is-self' : ''}">
+          ${numHtml}
+          <img class="rank-avatar" src="${avatar}" onerror="this.src='assets/icons/03.png'" alt="">
+          <div class="rank-info">
+            <a class="rank-name" href="profile.html?uid=${_escR(uid)}">${name}${isSelf ? '<span class="rank-you">（你）</span>' : ''}</a>
+          </div>
+          <div class="rank-count">${count}<span class="rank-count-unit">間</span></div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    console.error('排名載入失敗', e);
+    list.innerHTML = `<div class="ranking-empty">排名載入失敗：${_escR(e.message)}</div>`;
+  }
 }
 </script>
 </body>
